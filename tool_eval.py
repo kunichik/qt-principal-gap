@@ -59,15 +59,25 @@ def translation_units(paths):
 
 
 def run_clazy(tus, added):
-    hits = []
+    """Warnings on added lines; a translation unit clazy could not parse is reported, not dropped."""
+    hits, failed = [], []
+    qroot = Q.resolve()
     for tu in tus:
         r = subprocess.run([CLAZY, tu], capture_output=True, text=True, timeout=600)
-        for m in re.finditer(r"^(/\S+?):(\d+):\d+: warning: (.*?) \[-W(clazy-[\w-]+)\]", r.stderr + r.stdout, re.M):
-            path, line, msg, check = m.group(1), int(m.group(2)), m.group(3), m.group(4)
-            rel = str(Path(path).resolve().relative_to(Q.resolve())) if path.startswith(str(Q)) else None
-            if rel and line in added.get(rel, ()):
+        out = r.stderr + r.stdout
+        if r.returncode != 0 or re.search(r"^\S+:\d+:\d+: (fatal )?error: ", out, re.M):
+            failed.append({"tu": str(Path(tu).relative_to(qroot)) if tu.startswith(str(qroot)) else tu,
+                           "returncode": r.returncode,
+                           "first_error": (re.search(r"^.*error: .*$", out, re.M) or [""])[0][:300]})
+        for m in re.finditer(r"^(/\S+?):(\d+):\d+: warning: (.*?) \[-W(clazy-[\w-]+)\]", out, re.M):
+            path, line, msg, check = Path(m.group(1)).resolve(), int(m.group(2)), m.group(3), m.group(4)
+            try:
+                rel = str(path.relative_to(qroot))
+            except ValueError:
+                continue  # outside qtbase (e.g. the SDK)
+            if line in added.get(rel, ()):
                 hits.append({"file": rel, "line": line, "check": check, "msg": msg})
-    return [dict(t) for t in {tuple(sorted(h.items())) for h in hits}]
+    return [dict(t) for t in {tuple(sorted(h.items())) for h in hits}], failed
 
 
 def run_sanitize():
@@ -80,14 +90,16 @@ def run_sanitize():
 
 
 def evaluate(task, arm, run, diff_files):
-    harness.reset(task, "K0")                 # same base tree as every arm, no arm material
-    diff = "".join(Path(f).read_text(errors="ignore") for f in diff_files)
-    for f in diff_files:
-        harness.sh(["git", "apply", "--whitespace=nowarn", f], cwd=Q)
-    added = added_lines(diff)
-    res = {"task": task, "arm": arm, "run": run,
-           "clazy": run_clazy(translation_units(added), added), "sanitize": run_sanitize()}
-    return res
+    with harness.tree_lock():                 # qtbase/ is shared with running agents
+        harness.reset(task, "K0")             # same base tree as every arm, no arm material
+        diff = "".join(Path(f).read_text(errors="ignore") for f in diff_files)
+        for f in diff_files:
+            harness.sh(["git", "apply", "--whitespace=nowarn", f], cwd=Q)
+        added = added_lines(diff)
+        tus = translation_units(added)
+        clazy, failed = run_clazy(tus, added)
+        return {"task": task, "arm": arm, "run": run, "tus": len(tus), "clazy": clazy,
+                "clazy_failed_tus": failed, "sanitize": run_sanitize()}
 
 
 def main():

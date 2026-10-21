@@ -10,6 +10,7 @@ ROOT = Path(os.environ.get("QTEXP_ROOT", Path(__file__).resolve().parent))  # ex
 import sys
 sys.path.insert(0, str(ROOT))
 from usermd import user_md_aside
+from harness import section
 
 T = ROOT / "tasks"
 CFG = ROOT / "claude-cfg"
@@ -55,10 +56,8 @@ def main():
     a = p.parse_args()
     run = Path(a.run).resolve()
     task = run.parts[-3]
-    prompts = (T / "prompts.md").read_text()
-    m = re.search(rf"^## {task}[^\n]*\n(.*?)(?=^#{{1,2}} |\Z)", prompts, re.S | re.M)
     review = (T / task / "review.txt").read_text()[:12000] or "(no reviewer comments)"
-    msg = (RUBRIC + "\n\n(A) TASK\n" + m.group(1).strip()
+    msg = (RUBRIC + "\n\n(A) TASK\n" + section(T / "prompts.md", task)
            + "\n\n(B) MAINTAINER CHANGE\n" + (T / task / "src.diff").read_text()
            + "\n\n(C) REVIEWER COMMENTS ON (B)\n" + review
            + "\n\n(D) CANDIDATE CHANGE\n" + src_part((run / "agent.diff").read_text()))

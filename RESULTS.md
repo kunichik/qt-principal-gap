@@ -409,3 +409,21 @@ Reading: the agents' patches are as clean as the maintainers' for Qt's own pitfa
 What separated the agent's change from the maintainer's (scope, unwritten contracts, deliberate
 simplicity) is invisible to these tools. Context: the official `qt-qml-review` skill already runs
 qmllint first; `qt-cpp-review` runs no tool.
+
+## Disclosure (2026-10-21) — an editorial note reached the 777778 prompt
+
+The 2026-10-13 note about the excluded 768691 run was an HTML comment placed after the `## 777778`
+section of `tasks/prompts.md`. The section parser did not strip comments, so the note was appended
+to the 777778 task text. It names no 777778 design or test; what it reveals is that runs are graded
+against a maintainer test and can be excluded.
+
+Exposure: 5 of 6 agent runs (K0 rep 1 ran before the note was added; K0 reps 2–3 and K0g ×3 saw
+it), all 6 blind-judge calls (re-judged 2026-10-20, part (A)) and the 2026-10-14 auditor inputs
+for 777778.
+
+Observed effect: none detectable. All 6 runs pass the hidden tests. Judge design_match is 0.85–0.95
+for the exposed runs and 0.90 for the unexposed one. One run (K0g rep 3) mentioned the note and
+said it ignored it as "pasted experiment notes"; no other agent, judge or auditor output refers to
+it. With one unexposed run and results at ceiling, a small effect cannot be ruled out; the 777778
+row should be read with that caveat. `section()` now drops HTML comments, so reruns are not
+affected.

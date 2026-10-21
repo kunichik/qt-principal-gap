@@ -3,7 +3,7 @@
 
 Usage: auditor.py <task> <model> <tag> [--source]
   --source  also show the maintainer's merged change (ground truth the card writer lacked)
-Writes audits/<task>/<tag>.json
+Writes ~/qtexp/audits/<task>/<tag>.json
 """
 import argparse, json, os, re, subprocess, sys
 from pathlib import Path
@@ -11,6 +11,7 @@ ROOT = Path(os.environ.get("QTEXP_ROOT", Path(__file__).resolve().parent))  # ex
 
 sys.path.insert(0, str(ROOT))
 from usermd import user_md_aside
+from harness import section
 
 Q = ROOT
 (Q / "claude-cfg").mkdir(exist_ok=True)
@@ -27,12 +28,6 @@ that the card leaves out. Do not flag style or wording.
 Reply with JSON only:
 {"verdict": "OK" or "NOT_OK", "problems": ["...", "..."]}
 """
-
-
-def section(path, task):
-    text = re.sub(r"<!--.*?-->\n?", "", path.read_text(), flags=re.S)
-    m = re.search(rf"^## {task}[^\n]*\n(.*?)(?=^#{{1,2}} |\Z)", text, re.S | re.M)
-    return m.group(1).strip()
 
 
 def main():

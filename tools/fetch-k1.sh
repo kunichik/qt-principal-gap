@@ -6,13 +6,13 @@
 # The wiki changes over time, so a fresh fetch may differ.
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 OUT="$ROOT/arms/K1-qt-conventions.md"
-{
-  echo "# Qt project conventions (from wiki.qt.io, fetched $(date +%Y-%m-%d))"
-  echo
-  curl -sL "https://wiki.qt.io/index.php?title=Coding_Conventions&action=raw"
-  echo
-  echo
-  curl -sL "https://wiki.qt.io/index.php?title=Qt_Coding_Style&action=raw"
-} > "$OUT"
+TMP="$OUT.tmp"
+fail() { echo "fetch failed: $1" >&2; rm -f "$TMP"; exit 1; }
+echo "# Qt project conventions (from wiki.qt.io, fetched $(date +%Y-%m-%d))" > "$TMP"
+echo >> "$TMP"
+curl -fsSL "https://wiki.qt.io/index.php?title=Coding_Conventions&action=raw" >> "$TMP" || fail Coding_Conventions
+printf '\n\n' >> "$TMP"
+curl -fsSL "https://wiki.qt.io/index.php?title=Qt_Coding_Style&action=raw" >> "$TMP" || fail Qt_Coding_Style
+mv "$TMP" "$OUT"
 echo "wrote $OUT"
 echo "sha256 without the date line: $(tail -n +2 "$OUT" | shasum -a 256 | cut -d' ' -f1)"

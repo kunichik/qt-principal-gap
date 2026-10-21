@@ -42,7 +42,7 @@ batch.sh        run "task arm rep" lines sequentially; stops on a usage-limit/AP
 usermd.py       moves ~/.claude/CLAUDE.md aside during a run (see below)
 cxx             compiler wrapper for macOS with only the Command Line Tools
 clazy-run.sh    clazy with the build's flags (precompiled headers stripped)
-tools/          sanitize-commit (from qtrepotools), fetch-k1.sh, make-clazydb.py
+tools/          sanitize-commit (from qtrepotools), fetch-k1.sh, make-clazydb.py, audit_transcripts.py
 tasks/<id>/     prompt in tasks/prompts.md; src.diff / test.diff (the merged change), commit.txt,
                 review.txt (Gerrit comments, reviewer names replaced by aliases)
 arms/           arm material (K1 is fetched, not stored)
@@ -55,8 +55,12 @@ audits/<id>/    card audits
 You need: a qtbase checkout with history to `6c198cd0d78461413280fa9c9cd6cfa01e604a68` (2026-10-12),
 Claude Code (`claude` on PATH) and Python 3, CMake, Ninja.
 
-1. **Source.** Put a bare/shallow clone of qtbase at `hidden.git` (the agent never sees it) and a work
-   tree at `qtbase/`. The harness resets `qtbase/` from `hidden.git` before every run.
+1. **Source.** Put a clone of qtbase at `hidden.git` with `HEAD` at
+   `6c198cd0d78461413280fa9c9cd6cfa01e604a68` — tasks without a fixed baseline reset from `HEAD`,
+   so another `HEAD` silently changes them. It needs history, not `--depth 1`: the baselines of
+   some tasks are parents of older commits, and arm K0g fetches the history before each change
+   (ours was a shallow clone of 2,305 commits, reaching back past 2025-02). Make a work tree at
+   `qtbase/`; the harness resets it from `hidden.git` before every run.
 2. **Build.** A Debug developer build in `b3/` with Core, Test, Concurrent and Network:
    ```
    cmake -S qtbase -B b3 -G Ninja -DCMAKE_BUILD_TYPE=Debug -DFEATURE_developer_build=ON \
@@ -77,7 +81,29 @@ Claude Code (`claude` on PATH) and Python 3, CMake, Ninja.
 7. **Run.** `python3 harness.py 756614 K0 1`, then `python3 judge.py results/756614/K0/claude-1`.
    Batches: `sh batch.sh < batch3.txt`.
 
-All paths are relative to this directory; set `QTEXP_ROOT` to use another one.
+All paths are relative to this directory. The Python scripts also accept `QTEXP_ROOT`; the shell
+scripts and `tools/*` always use the directory they are in.
+
+## What the harness does not prevent
+
+The agent is not sandboxed. It has Bash and runs in `qtbase/`, one `..` away from `tasks/`,
+`hidden.git/` and earlier `results/`. Nothing but the directory layout keeps it from reading them.
+`tools/audit_transcripts.py` checks each run's transcript for any access outside `qtbase/` and
+`b3/`, for test output from a hidden test the agent did not write, and for unpopped git stashes.
+For the published runs it reports 0 findings over all 115 agent transcripts (positive control in
+`RESULTS.md`). For new experiments, a container or sandbox that mounts only `qtbase/` and `b3/`
+is the stronger fix.
+
+## Harness versions
+
+The published runs were made 2026-10-13 … 2026-10-20 with an earlier version of `harness.py`. The
+current version also: gives every run a fresh Claude Code config and keeps its transcript in the
+run directory; strips HTML comments from the task prompt (the earlier version passed an editorial
+note into every **777778** prompt — see `RESULTS.md`); records the diff against the baseline
+snapshot rather than `HEAD`; removes stale test binaries from `b3/` before the agent and before
+grading; restores whole hidden-test directories; records hung tests, skipped and blacklisted
+counts; cleans ignored files between runs; grades runs that hit the budget limit instead of
+dropping them. The audit above checks the earlier runs for the problems these changes prevent.
 
 ## Limits
 
@@ -87,5 +113,6 @@ by the author. Treat the numbers as directions, not proofs.
 
 ## Licence
 
-Code: MIT ([`LICENSE`](LICENSE)). Material from Qt and its tools keeps its own licence — see
+Code: MIT ([`LICENSE`](LICENSE)). `clazy-run.sh` and `cxx` are written for macOS with the Command
+Line Tools; on Linux, call `clazy-standalone -p clazydb` directly. Material from Qt and its tools keeps its own licence — see
 [`NOTICE.md`](NOTICE.md).
