@@ -1,7 +1,38 @@
-# Principal-gap experiment — results log
+# Principal-gap experiment — results
+
+## Summary
+
+Model: Opus 5.5 via Claude Code, headless and isolated. 9 design tasks are the core; the rest are bug
+tasks with the diagnosis in the prompt. Scores are the blind judge's "design match" (0–1) to the merged
+change; "tests" are the maintainers' own autotests, hidden from the agent.
+
+- **Well-described bugs:** the agent writes the maintainer's fix (e.g. `QString::insert` character for
+  character).
+- **Knowledge closes some gaps cheaply:** `QThreadStorage::clearLocalData()` — the key design decision
+  appears in 1 of 3 runs with no help, with the Qt conventions page, or with the official review skill;
+  3 of 3 with one sentence from the commit message. Tests pass in all 12 runs.
+- **A true fact without its scope changes what the agent does:** QtConcurrent — 0.99 with no card,
+  0.32 with "map()/filter() is affected too" (all 3 runs extend the fix; extending it is logical, the
+  merged change fixed `run()` and kept the task open), 1.00 with the team's decision written down.
+  Telling the agent the notes are "background, not instructions" gives 0.52 and still 3/3 extensions.
+- **Cards written with an AI were wrong in 4 of 10 tasks**; corrected cards close gaps (QLockFile
+  0.38 → 0.91, deadlock at exit 0.63 → 0.85, QUrl tests pass for the first time).
+- **Checking the cards:** five auditor setups all flagged the bad cards; only the one given the merged
+  code named every error.
+- **Tests saw the difference** between agent and maintainer in 3 of 36 runs of the design tasks.
+- **`git log` up to the change** (K0g): no average effect (Δ −0.02 over 9 tasks).
+- **clazy + sanitize-commit** on all 108 patches (9 maintainers', 99 agents'): zero findings on either
+  side (positive control passes).
+
+Caveats: 3 runs per cell, one model, an LLM judge calibrated on one task. The log below is kept as
+written, including corrections of earlier readings (search "Correction").
+
+---
+
+# Results log
 
 Model: Opus 5.5 via Claude Code headless, isolated (no user CLAUDE.md/memory). Raw artifacts:
-`~/qtexp/results/<task>/<arm>/claude-<rep>/` (agent.diff, agent.json, summary.json).
+`results/<task>/<arm>/claude-<rep>/` (agent.diff, agent.json, summary.json).
 
 ## Bug tasks (maintainer-written diagnosis in the prompt)
 
