@@ -1,0 +1,270 @@
+diff --git a/src/corelib/serialization/qcborstreamreader.cpp b/src/corelib/serialization/qcborstreamreader.cpp
+index 55766977..79521786 100644
+--- a/src/corelib/serialization/qcborstreamreader.cpp
++++ b/src/corelib/serialization/qcborstreamreader.cpp
+@@ -407,6 +407,21 @@ static_assert(int(QCborStreamReader::Invalid) == CborInvalidType);
+    \sa type(), toDouble(), isFloat16(), isFloat()
+  */
+ 
++/*!
++   \fn bool QCborStreamReader::isNumber() const
++   \since 6.13
++
++   Returns true if the type of the current element is a number, that is, an
++   unsigned or negative integer or an IEEE 754 half-, single- or
++   double-precision floating point (if type() returns
++   QCborStreamReader::UnsignedInteger, QCborStreamReader::NegativeInteger,
++   QCborStreamReader::Float16, QCborStreamReader::Float or
++   QCborStreamReader::Double). If this function returns true, you may call
++   toNumber() to read that value as a \c double.
++
++   \sa type(), toNumber(), isInteger(), isFloat16(), isFloat(), isDouble()
++ */
++
+ /*!
+    \fn bool QCborStreamReader::isSimpleType() const
+ 
+@@ -1297,6 +1312,49 @@ bool QCborStreamReader::leaveContainer()
+    \sa isDouble(), toFloat16(), toFloat()
+  */
+ 
++/*!
++   \since 6.13
++
++   Returns the numeric value of the current element as a \c double, whatever
++   its CBOR type: unsigned or negative integer, or half-, single- or
++   double-precision floating point.
++
++   Floating point values are converted without loss, including infinities and
++   NaN. Integers whose magnitude exceeds 2\sup{53} may not be exactly
++   representable as a \c double; they are rounded to the nearest
++   representable value. If exact integer values are required, use
++   toInteger(), toUnsignedInteger() or toNegativeInteger() instead.
++
++   This function does not perform any other type conversions, including from
++   boolean or CBOR tag. Therefore, it may only be called if isNumber() is
++   true; calling it in any other condition is an error.
++
++   \sa isNumber(), toInteger(), toFloat16(), toFloat(), toDouble()
++ */
++double QCborStreamReader::toNumber() const
++{
++    Q_ASSERT(isNumber());
++    switch (type()) {
++    case UnsignedInteger:
++        return double(value64);
++    case NegativeInteger:
++        // the value is -1 - value64; avoid double rounding by negating first,
++        // except for -2^64, which can't be represented in a quint64
++        if (value64 == std::numeric_limits<quint64>::max())
++            return -0x1p64;
++        return -double(value64 + 1);
++    case Float16:
++        return double(toFloat16());
++    case Float:
++        return double(toFloat());
++    case Double:
++        return toDouble();
++    default:
++        break;
++    }
++    return qQNaN();
++}
++
+ /*!
+    \fn QCborStreamReader::StringResult<QString> QCborStreamReader::readString()
+ 
+diff --git a/src/corelib/serialization/qcborstreamreader.h b/src/corelib/serialization/qcborstreamreader.h
+index a5ec39ce..f6668e3e 100644
+--- a/src/corelib/serialization/qcborstreamreader.h
++++ b/src/corelib/serialization/qcborstreamreader.h
+@@ -119,6 +119,7 @@ public:
+     bool isBool() const             { return isFalse() || isTrue(); }
+     bool isNull() const             { return isSimpleType(QCborSimpleType::Null); }
+     bool isUndefined() const        { return isSimpleType(QCborSimpleType::Undefined); }
++    bool isNumber() const           { return isInteger() || isFloat16() || isFloat() || isDouble(); }
+ 
+     Q_DECL_PURE_FUNCTION bool isLengthKnown() const noexcept;
+     quint64 length() const;
+@@ -147,6 +148,7 @@ public:
+     qfloat16 toFloat16() const          { Q_ASSERT(isFloat16()); return _toFloatingPoint<qfloat16>(); }
+     float toFloat() const               { Q_ASSERT(isFloat()); return _toFloatingPoint<float>(); }
+     double toDouble() const             { Q_ASSERT(isDouble()); return _toFloatingPoint<double>(); }
++    double toNumber() const;
+ 
+     qint64 toInteger() const
+     {
+diff --git a/tests/auto/corelib/serialization/qcborstreamreader/tst_qcborstreamreader.cpp b/tests/auto/corelib/serialization/qcborstreamreader/tst_qcborstreamreader.cpp
+index d59a926b..af459d20 100644
+--- a/tests/auto/corelib/serialization/qcborstreamreader/tst_qcborstreamreader.cpp
++++ b/tests/auto/corelib/serialization/qcborstreamreader/tst_qcborstreamreader.cpp
+@@ -20,6 +20,10 @@ private Q_SLOTS:
+     void clear();
+     void integers_data();
+     void integers();
++    void numbers_data();
++    void numbers();
++    void notNumbers_data();
++    void notNumbers();
+     void fixed_data();
+     void fixed();
+     void strings_data();
+@@ -133,6 +137,7 @@ void tst_QCborStreamReader::basics()
+     QVERIFY(!reader.isFloat16());
+     QVERIFY(!reader.isFloat());
+     QVERIFY(!reader.isDouble());
++    QVERIFY(!reader.isNumber());
+     QVERIFY(!reader.isValid());
+     QVERIFY(reader.isInvalid());
+ 
+@@ -174,6 +179,7 @@ void tst_QCborStreamReader::basics()
+     QVERIFY(!reader.isFloat16());
+     QVERIFY(!reader.isFloat());
+     QVERIFY(!reader.isDouble());
++    QVERIFY(!reader.isNumber());
+     QVERIFY(!reader.isValid());
+     QVERIFY(reader.isInvalid());
+ 
+@@ -258,15 +264,141 @@ void tst_QCborStreamReader::integers()
+     QCOMPARE(reader.bytesAvailable(), data.size());
+     QCOMPARE(reader.lastError(), QCborError::NoError);
+     QVERIFY(reader.isInteger());
++    QVERIFY(reader.isNumber());
+ 
+-    if (inInt64Range)
++    if (inInt64Range) {
+         QCOMPARE(reader.toInteger(), expectedValue);
++        QCOMPARE(reader.toNumber(), double(expectedValue));
++    }
+     if (isNegative)
+         QCOMPARE(quint64(reader.toNegativeInteger()), absolute);
+     else
+         QCOMPARE(reader.toUnsignedInteger(), absolute);
+ }
+ 
++void tst_QCborStreamReader::numbers_data()
++{
++    QTest::addColumn<QByteArray>("data");
++    QTest::addColumn<QCborStreamReader::Type>("expectedType");
++    QTest::addColumn<double>("expectedValue");
++
++    auto addRow = [](const char *name, const QByteArray &data, QCborStreamReader::Type type,
++                     double value) {
++        QTest::newRow(name) << data << type << value;
++    };
++    constexpr auto Unsigned = QCborStreamReader::UnsignedInteger;
++    constexpr auto Negative = QCborStreamReader::NegativeInteger;
++    constexpr auto Float16 = QCborStreamReader::Float16;
++    constexpr auto Float = QCborStreamReader::Float;
++    constexpr auto Double = QCborStreamReader::Double;
++
++    // integers
++    addRow("0", raw("\x00"), Unsigned, 0.);
++    addRow("1", raw("\x01"), Unsigned, 1.);
++    addRow("UINT32_MAX", raw("\x1a\xff\xff\xff\xff"), Unsigned, 4294967295.);
++    addRow("2^53", raw("\x1b\0\x20\0\0\0\0\0\0"), Unsigned, 0x1p53);
++    addRow("2^53+1", raw("\x1b\0\x20\0\0\0\0\0\1"), Unsigned, 0x1p53);
++    addRow("INT64_MAX", raw("\x1b\x7f\xff\xff\xff\xff\xff\xff\xff"), Unsigned, 0x1p63);
++    addRow("UINT64_MAX", raw("\x1b\xff\xff\xff\xff\xff\xff\xff\xff"), Unsigned, 0x1p64);
++    addRow("-1", raw("\x20"), Negative, -1.);
++    addRow("-UINT32_MAX-1", raw("\x3a\xff\xff\xff\xff"), Negative, -4294967296.);
++    // raw value 2^53+1, so the value is -(2^53+2), which is exactly representable
++    addRow("-2^53-2", raw("\x3b\0\x20\0\0\0\0\0\1"), Negative, -0x1p53 - 2);
++    addRow("INT64_MIN", raw("\x3b\x7f\xff\xff\xff\xff\xff\xff\xff"), Negative, -0x1p63);
++    addRow("-2^64", raw("\x3b\xff\xff\xff\xff\xff\xff\xff\xff"), Negative, -0x1p64);
++
++    // half-precision
++    addRow("0.f16", raw("\xf9\0\0"), Float16, 0.);
++    addRow("-1.f16", raw("\xf9\xbc\x00"), Float16, -1.);
++    addRow("0.5f16", raw("\xf9\x38\0"), Float16, 0.5);
++    addRow("65504.f16", raw("\xf9\x7b\xff"), Float16, 65504.);
++    addRow("+inf_f16", raw("\xf9\x7c\x00"), Float16, qInf());
++    addRow("-inf_f16", raw("\xf9\xfc\x00"), Float16, -qInf());
++    addRow("nan_f16", raw("\xf9\x7e\x00"), Float16, qQNaN());
++
++    // single-precision
++    addRow("0.f", raw("\xfa\0\0\0\0"), Float, 0.);
++    addRow("-1.f", raw("\xfa\xbf\x80\0\0"), Float, -1.);
++    addRow("0.1f", raw("\xfa\x3d\xcc\xcc\xcd"), Float, double(0.1f));
++    addRow("16777215.f", raw("\xfa\x4b\x7f\xff\xff"), Float, 16777215.);
++    addRow("+inf_f", raw("\xfa\x7f\x80\0\0"), Float, qInf());
++    addRow("nan_f", raw("\xfa\x7f\xc0\0\0"), Float, qQNaN());
++
++    // double-precision
++    addRow("0.", raw("\xfb\0\0\0\0\0\0\0\0"), Double, 0.);
++    addRow("-1.", raw("\xfb\xbf\xf0\0\0\0\0\0\0"), Double, -1.);
++    addRow("0.1", raw("\xfb\x3f\xb9\x99\x99\x99\x99\x99\x9a"), Double, 0.1);
++    addRow("2.^53-1", raw("\xfb\x43\x3f\xff\xff\xff\xff\xff\xff"), Double, 0x1p53 - 1);
++    addRow("-inf", raw("\xfb\xff\xf0\0\0\0\0\0\0"), Double, -qInf());
++    addRow("nan", raw("\xfb\x7f\xf8\0\0\0\0\0\0"), Double, qQNaN());
++}
++
++void tst_QCborStreamReader::numbers()
++{
++    QFETCH_GLOBAL(bool, useDevice);
++    QFETCH(QByteArray, data);
++    QFETCH(QCborStreamReader::Type, expectedType);
++    QFETCH(double, expectedValue);
++
++    QBuffer buffer(&data);
++    QCborStreamReader reader(useDevice ? QByteArray() : data);
++    if (useDevice) {
++        buffer.open(QIODevice::ReadOnly);
++        reader.setDevice(&buffer);
++    }
++    QVERIFY(reader.isValid());
++    QCOMPARE(reader.lastError(), QCborError::NoError);
++    QCOMPARE(reader.type(), expectedType);
++    QVERIFY(reader.isNumber());
++
++    const double value = reader.toNumber();
++    if (qIsNaN(expectedValue)) {
++        QVERIFY(qIsNaN(value));
++    } else {
++        // QCOMPARE() uses fuzzy comparison for floating point; we want exact
++        QVERIFY2(value == expectedValue,
++                 qPrintable(QString::number(value, 'g', 17) + " != "
++                            + QString::number(expectedValue, 'g', 17)));
++        QCOMPARE(std::signbit(value), std::signbit(expectedValue));
++    }
++
++    // the current element is unchanged
++    QCOMPARE(reader.type(), expectedType);
++    QVERIFY(reader.next());
++    QVERIFY(!reader.isNumber());
++}
++
++void tst_QCborStreamReader::notNumbers_data()
++{
++    QTest::addColumn<QByteArray>("data");
++    QTest::newRow("false") << raw("\xf4");
++    QTest::newRow("true") << raw("\xf5");
++    QTest::newRow("null") << raw("\xf6");
++    QTest::newRow("undefined") << raw("\xf7");
++    QTest::newRow("simple32") << raw("\xf8\x20");
++    QTest::newRow("bytearray") << raw("\x41\x01");
++    QTest::newRow("string") << raw("\x61\x31");
++    QTest::newRow("array") << raw("\x81\x01");
++    QTest::newRow("map") << raw("\xa1\x01\x02");
++    QTest::newRow("tagged-integer") << raw("\xc1\x01");
++    QTest::newRow("tagged-double") << raw("\xc1\xfb\0\0\0\0\0\0\0\0");
++}
++
++void tst_QCborStreamReader::notNumbers()
++{
++    QFETCH_GLOBAL(bool, useDevice);
++    QFETCH(QByteArray, data);
++
++    QBuffer buffer(&data);
++    QCborStreamReader reader(useDevice ? QByteArray() : data);
++    if (useDevice) {
++        buffer.open(QIODevice::ReadOnly);
++        reader.setDevice(&buffer);
++    }
++    QVERIFY(reader.isValid());
++    QVERIFY(!reader.isNumber());
++}
++
+ void escapedAppendTo(QString &result, const QByteArray &data)
+ {
+     QByteArray hex =

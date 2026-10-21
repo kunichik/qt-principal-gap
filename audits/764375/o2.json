@@ -1,0 +1,12 @@
+{
+ "verdict": "NOT_OK",
+ "problems": [
+  "The third bullet says the map()/filter() family is affected but never says it is out of scope. The reviewers decided this patch does not fix the map()/filter() path, and the commit uses 'Task-number:' instead of closing the bug for that reason. An engineer following the card closely would likely try to fix map()/filter() too, which goes against that decision.",
+  "The third bullet also adds details the review never states: that ThreadEngine is non-auto-deleting, that it is 'started more than once', and that 'it also leaks'. These are unsupported and may be wrong.",
+  "The card leaves out the reviewer's request to extend the test to cover an attached .onCanceled() continuation running when the task is dropped.",
+  "The card leaves out the guard from the agreed fix: only cancel and finish the promise if it is not already finished (if (!promise.isFinished())). The card also does not say where the fix goes: report canceled and finished when the runnable is deleted without having run, in qtconcurrentrunbase.h, rather than changing the autoDelete check in QThreadPool."
+ ],
+ "model": "opus",
+ "source": false,
+ "cost_usd": 0.015507400000000001
+}

@@ -1,0 +1,143 @@
+{
+ "duration_api_ms": 43292,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 0.2662339,
+ "usage": {
+  "input_tokens": 16,
+  "cache_creation_input_tokens": 16876,
+  "cache_read_input_tokens": 281745,
+  "output_tokens": 3726,
+  "output_tokens_details": {
+   "thinking_tokens": 1085
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 16876,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 703,
+    "cache_read_input_tokens": 40789,
+    "cache_creation_input_tokens": 1284,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1284
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1599,
+   "outputTokens": 266,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002929,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 240,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 16,
+   "outputTokens": 3726,
+   "cacheReadInputTokens": 281745,
+   "cacheCreationInputTokens": 16876,
+   "webSearchRequests": 0,
+   "costUSD": 0.265941,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 1085,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 10,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "I fixed this in `src/corelib/io/qlockfile_unix.cpp`. The existing `tst_qlockfile` tests still pass (22 passed, 1 skipped), but I couldn't test the NFS case itself: I didn't add a test, because there's no simple way to make `unlink()` fail with `EBUSY` in an autotest.\n\n**Root cause.** The Unix `QLockFile` deletes the lock file while it still holds the lock on it (`flock()`, or `fcntl()` on Android). Two places do this:\n- **`QLockFile::unlock()`** calls `unlink()` first and only closes the file (which drops the lock) afterwards.\n- **`QLockFilePrivate::removeStaleLock()`** takes the lock on purpose, to make sure nobody still owns the file, and then calls `unlink()` while holding it.\n\nOn a local file system that's fine. On an NFS server that refuses to delete a locked file, `unlink()` fails with `EBUSY`. `unlock()` then only prints a warning and closes the file, so the lock file stays on disk and becomes a stale lock. In `removeStaleLock()` the delete always fails, so the stale lock can't be cleaned up either.\n\n**Fix.** A new helper, `unlinkLockedFile()`, tries `unlink()` as before. Only if that fails with `EBUSY`, it releases the lock (`flock(LOCK_UN)`, or `F_UNLCK` on Android) and tries once more. Both `unlock()` and `removeStaleLock()` now use it. On local file systems nothing changes.\n\n**Trade-off.** On an affected NFS server, there's now a brief moment between releasing the lock and deleting the file. This doesn't let another process take a lock that's still in use: the file still exists, so nobody else can create it. Another process could only delete it in that moment if its stale-lock check already treats our lock as stale.\n\nTo test it properly, run `tst_qlockfile` with the test directory on the NFSv4.2 mount where you saw the problem.",
+ "ttft_ms": 2532,
+ "type": "result",
+ "duration_ms": 139078,
+ "ttft_stream_ms": 1927,
+ "time_to_request_ms": 324,
+ "time_to_request_phases_ms": {
+  "other": 14,
+  "system_prompt": 5,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 7,
+  "input_hooks": 2,
+  "transcript_persist": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 2,
+  "engine_pickup": 0,
+  "message_prep": 1,
+  "model_config_wait": 281,
+  "autocompact": 0,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 3,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 16,
+ "time_to_request_cpu_ms": 286,
+ "time_to_request_major_faults": 418,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 13,
+  "major_faults": 21
+ },
+ "first_content_frame_ms": 1927,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

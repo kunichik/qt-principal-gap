@@ -1,0 +1,8 @@
+{
+ "design_match": 0.15,
+ "reviewer_concerns": 0.8,
+ "minimality": 0.1,
+ "hidden_risk": 0.4,
+ "key_difference": "(B) fixes run() locally with a destructor on RunFunctionTaskBase that cancels and finishes an unfinished promise when the pool deletes the discarded task; (D) instead adds a new exported discard-handler registry to QThreadPoolPrivate, called from every QFutureInterfaceBase::setRunnable/reportFinished and from ThreadEngine. That adds cross-module API surface, extra pool-mutex traffic on the hot path, and possible stale or dangling handler entries keyed by raw runnable pointers, plus it extends into the map/filter path that (B) deliberately left out of scope.",
+ "judge_cost_usd": 0.06977900000000001
+}

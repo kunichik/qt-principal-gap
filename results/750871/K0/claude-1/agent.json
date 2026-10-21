@@ -1,0 +1,143 @@
+{
+ "duration_api_ms": 207374,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 1.0330599,
+ "usage": {
+  "input_tokens": 40,
+  "cache_creation_input_tokens": 44342,
+  "cache_read_input_tokens": 1005900,
+  "output_tokens": 23841,
+  "output_tokens_details": {
+   "thinking_tokens": 16347
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 44342,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1050,
+    "cache_read_input_tokens": 68950,
+    "cache_creation_input_tokens": 589,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 589
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1509,
+   "outputTokens": 26,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001639,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 40,
+   "outputTokens": 23841,
+   "cacheReadInputTokens": 1005900,
+   "cacheCreationInputTokens": 44342,
+   "webSearchRequests": 0,
+   "costUSD": 1.032896,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 16347,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 22,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "I found and fixed the cause. A queued `QObject::connect()` with member-function pointers now registers the signal's argument types: Q_GADGET types, Q_ENUM types, `T*` and `const T*` to QObject subclasses, and other complete types. `QMetaType::fromName()` then finds them.\n\n**Root cause** (`src/corelib/kernel/qobject_impl.h`): `connect()` gets its list of argument types from `QtPrivate::ConnectionTypes`. That list was only built when every argument passed `QMetaTypeId2<Arg>::Defined`. In Qt 6 that check is only true for built-in types, `Q_DECLARE_METATYPE` types, Q_ENUM types and pointers to gadgets. For anything else it returned `nullptr`, and nothing was registered.\n\nSo a single plain struct or gadget argument blocked registration for the whole signal, including any Q_ENUM argument alongside it. On its own, a Q_ENUM argument was already registered correctly.\n\n**Fix** (all in `src/corelib/kernel/qobject_impl.h`):\n- **New check, `isConnectionArgumentUsableAsMetaType<Arg>()`:** an argument now counts if it is declared as before, or if `QMetaType::fromType()` would accept it. It applies the same rules as `checkTypeIsSuitableForMetaType()`: no non-const references, the type must be complete, and a pointer must point to a complete type unless it is declared opaque. Arguments that fail this still return `nullptr`, as before, and still compile, because no `static_assert` is reached for them.\n- **New helper, `connectionArgumentMetaTypeId<Arg>()`:** declared types still go through `QMetaTypeIdHelper`, so special registration such as qualified Q_ENUM names is unchanged. Every other type is registered with `QMetaType::fromType<T>().id()`.\n\n**Test:** I added `tst_QObject::connectFunctorRegistersArgumentTypes`. It uses a gadget, a Q_ENUM, a `QObject*` subclass, a `const QObject*` subclass and a plain struct passed by const reference. It first checks that none of these names is known to `QMetaType::fromName()`, connects queued with member-function pointers, then checks that each name resolves to the right type. Before the fix it failed on the gadget, and the pointer and plain-struct names were not registered either. It now passes.\n\n**Test runs:** with the fix, all of `tst_qobject` passes (124). These also pass: `tst_qmetaobject`, `tst_qmetamethod`, `tst_qobjectrace`, `tst_qthread`, `tst_qtimer` (one skipped), `tst_qfuturewatcher` and `tst_qsignalspy`. I didn't run the `tst_qmetatype` tests, because there is no target by that exact name in this build.\n\nThe trailing lines in your message (\"764375 K0 1\" and so on) didn't seem related to the task, so I ignored them.",
+ "ttft_ms": 3310,
+ "type": "result",
+ "duration_ms": 540655,
+ "ttft_stream_ms": 1297,
+ "time_to_request_ms": 264,
+ "time_to_request_phases_ms": {
+  "other": 14,
+  "system_prompt": 4,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 5,
+  "input_hooks": 1,
+  "transcript_persist": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 2,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 225,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 3,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 17,
+ "time_to_request_cpu_ms": 281,
+ "time_to_request_major_faults": 418,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 7,
+  "major_faults": 20
+ },
+ "first_content_frame_ms": 1297,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

@@ -1,0 +1,55 @@
+[PS3 Reviewer 12 /COMMIT_MSG:26]
+conventionally, one would use "bytes" here.
+
+anyway, that seems to be the wrong unit to start with, as we're at QString level here. maybe "code points"?
+
+[PS3 Reviewer 03 /COMMIT_MSG:26]
+Or `s/a byte/any character/`
+Except that an invalid UTF-8 sequence is back in bytes
+
+[PS3 Reviewer 12 /COMMIT_MSG:26]
+i have no idea what to make of that statement. it's a fact that QUrl::toLocalFile() returns a QString. you need to explain how bytes fit in there.
+
+[PS3 Reviewer 03 /COMMIT_MSG:26]
+"the fully-decoded path" is returned as a `QString`.  Before it can be used by a single-byte API, it must in some way be converted from that UTF-16 to the single-byte API's encoding (presumably UTF-8).  So how can "an invalid UTF-8 sequence" arise in the result of (correctly, I hope) converting UTF-16 to UTF-8 ?
+
+Is the invalid UTF-8 issue in fact: "if the %-encoded bytes constitute an invalid UTF-8 sequence, then there is no valid decoding of the given string as a fully-decoded path, so a null `QString()` is returned, as also happens when the string, when fully decoded, contains a character that is invalid in a local file path" ?  In that case, the invalid UTF-8 sequence contributes to there being no such thing as a fully-decoded path, as opposed to it leading to a fully-decoded path that contains an invalid UTF-8 sequence.  It's a bit of a nit-pick but you tripped over the two reviewers most likely to have our brains' parsers throw an exception on it !  If that is the case, my suggestion is:
+
+    ... instead of a dangerous path when either the decoding fails (by
+    producing an invalid UTF-8 sequence) or the fully-decoded path would
+    contain a character that is invalid in a local file path (a NUL, an
+    encoded slash or, on Windows, an encoded backslash).
+
+[PS3 Reviewer 03 /COMMIT_MSG:26]
+Works for me ;^>
+
+[PS3 Reviewer 03 src/corelib/io/qurl.cpp:898]
+(Pre-existing: magic number.)
+
+[PS3 Reviewer 03 tests/auto/corelib/io/qurl/tst_qurl.cpp:1568]
+Missing: `QVERIFY(!localFile.isNull());` for the `empty-path` test-case.
+
+[PS4 Reviewer 12 /COMMIT_MSG:27]
+that would seem obviously correct.
+so the question is only whether we want a mode that is lenient towards malformed manual input.
+
+[PS4 Reviewer 03 /COMMIT_MSG:27]
+I would expect `resolved()` to map local file separators to forward slashes.
+
+[PS4 Reviewer 03 /COMMIT_MSG:27]
+Acknowledged
+
+[PS4 Reviewer 03 /PATCHSET_LEVEL:0]
+Code looks fine.  Just a confusing (to a very unrepresentative sample of two readers) change log message.
+
+[PS6 Reviewer 16 /PATCHSET_LEVEL:0]
+But an encoded slash is actually fine in a file name:
+
+    qt@aal:/tmp$ echo alive > %2F.txt
+    qt@aal:/tmp$ cat %2F.txt
+    alive
+    
+This just means that no one can create QUrls for such files anymore. Why do we do this. I maintain that documenting the danger is actually enough.
+
+[PS6 Reviewer 16 /PATCHSET_LEVEL:0]
+Ah, well, we're required to decode those characters when getting the path out and in order to encode a path with a legitimate %2F in it, we should encode the '%'. I see.

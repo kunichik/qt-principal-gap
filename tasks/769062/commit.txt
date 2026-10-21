@@ -1,0 +1,14 @@
+QByteArray: fix crash if zlib reurns Z_BUF_ERROR
+
+It is possible if the input data is corrupt in specific ways and trigger
+this problem. Amends commit bda3628402d04ed6fc244616791e1170a0cb61d0
+which added this incorrect assumption.
+
+[ChangeLog][QtCore][QByteArray] Fixed a bug that could cause
+qUncompress() to crash or have undefined behavior on specific corrupted
+input streams.
+
+Fixes: QTBUG-150081
+Pick-to: 6.12 6.12.0 6.11 6.11.3 6.8 6.5
+Change-Id: I5f3eaf4748d31a1c3a07fffd4021ac1eef5bdc10
+Reviewed-by: Marc Mutz <marc.mutz@qt.io>

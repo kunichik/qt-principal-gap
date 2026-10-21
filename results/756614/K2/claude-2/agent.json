@@ -1,0 +1,143 @@
+{
+ "duration_api_ms": 145255,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 0.7872305999999999,
+ "usage": {
+  "input_tokens": 36,
+  "cache_creation_input_tokens": 45751,
+  "cache_read_input_tokens": 922625,
+  "output_tokens": 11812,
+  "output_tokens_details": {
+   "thinking_tokens": 3318
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 45751,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1238,
+    "cache_read_input_tokens": 69530,
+    "cache_creation_input_tokens": 1418,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1418
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1586,
+   "outputTokens": 310,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00031360000000000003,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 285,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 36,
+   "outputTokens": 11812,
+   "cacheReadInputTokens": 922625,
+   "cacheCreationInputTokens": 45751,
+   "webSearchRequests": 0,
+   "costUSD": 0.7869169999999999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 3318,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 18,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "I've added `QThreadStorage<T>::clearLocalData()` for both pointer and value payloads, with docs and autotests, and switched `QCollator` over to value-based storage using it. `tst_qthreadstorage` passes (19 passed, 1 Windows-only test skipped) and `tst_qcollator` passes (263 passed). Nothing is committed.\n\n**The API** (`src/corelib/thread/qthreadstorage.h`)\n- **Threaded build:** `clearLocalData()` calls a new exported `QThreadStorageData::clear()`.\n- **No-thread build:** it just calls `data.reset()`.\n\n**The implementation** (`QThreadStorageData::clear()` in `qthreadstorage.cpp`)\n- It returns early if the calling thread has no stored data. Unlike `get()` and `set()`, it never creates per-thread data or grows the storage list.\n- Otherwise it calls `set(nullptr)`, so cleanup goes through the existing code that handles a destructor using QThreadStorage again.\n- Because it creates nothing, it's safe to call during thread or program shutdown, which the \"Caveats\" section warns about for the other functions.\n\n**Docs**\n- New `\\fn` entry, marked `\\since 6.13`, saying the data is destroyed and `hasLocalData()` is false afterwards.\n- For pointers it's the same as `setLocalData(nullptr)`; for values, the next `localData()` creates a fresh default value.\n- I updated the \"Caveats\" list and the `\\sa` on `setLocalData()`.\n\n**Where it's used** (`src/corelib/text/qcollator.cpp`)\n- `GenerationalCollatorHolder` used `QThreadStorage<GenerationalCollator*>` only so it could call `setLocalData(nullptr)` from its destructor. That needed a `QThreadData::currentThreadData()` check to avoid re-creating thread data at shutdown, plus manual lazy `new`.\n- It's now `QThreadStorage<GenerationalCollator>`; the destructor calls `storage.clearLocalData()` and `localData()` just forwards. The guard and the `qthread_p.h` include are gone, since `clear()` now does that check itself.\n\n**New autotests** (`tst_qthreadstorage.cpp`)\n- **`clearLocalData()`:** pointer payload. Checks that it does nothing when empty, deletes the pointee, can be called twice, and the storage still works afterwards.\n- **`clearLocalDataValueBased()`:** value payload, whether created by `localData()` or `setLocalData()`. Checks the instance count goes back down, that `localData()` then returns a fresh default value, and that the const overload doesn't re-create it.\n- **`clearLocalDataOnlyAffectsCurrentThread()`:** clearing in one thread leaves the other thread's data alone.\n\n**Left alone:**\n- **`QFontCache`, `QHttpThreadDelegate`:** they hold QObject-like or shared caches by pointer on purpose, so switching to values doesn't fit.\n- **`qiosfileengineassetslibrary.mm`:** it could use `clearLocalData()` instead of `setLocalData(QString())` / `setLocalData(0)`, but it's iOS-only and I couldn't build it here.",
+ "ttft_ms": 3318,
+ "type": "result",
+ "duration_ms": 156098,
+ "ttft_stream_ms": 2212,
+ "time_to_request_ms": 323,
+ "time_to_request_phases_ms": {
+  "other": 12,
+  "system_prompt": 4,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 7,
+  "input_hooks": 2,
+  "transcript_persist": 15,
+  "tool_pool_refresh": 2,
+  "init_message": 2,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 269,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 3,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 1
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 22,
+ "time_to_request_cpu_ms": 280,
+ "time_to_request_major_faults": 394,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 12,
+  "major_faults": 26
+ },
+ "first_content_frame_ms": 2212,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

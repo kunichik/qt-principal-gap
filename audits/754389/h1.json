@@ -1,0 +1,13 @@
+{
+ "verdict": "NOT_OK",
+ "problems": [
+  "Omits the reported regression: after PS8, Reviewer 09 reported that the change triggers a crash in CoAP (QTBUG-149883). An engineer implementing this change needs to know it has a known crash report.",
+  "Omits the no-event-dispatcher case raised in PS6 by Reviewer 10: if the sender's thread has no event dispatcher, the notification may never be delivered. The review asked for a fallback to a direct call or for documentation saying the object might not be notified. The card only mentions a thread that has finished.",
+  "Omits the PS4 review point that the mutex only keeps the sender alive as far as QObject. Derived-class destructors can still run, so the docs must state this limit on accessing senderPriv. The card's documentation bullet does not mention this.",
+  "Omits the open question of whether qtdeclarative's QQmlNotifierEndpoint (and qtscxml) need the same fix rather than only documentation. The reviewer asked whether the destination object can be destroyed at that call site, and the card presents these callers as documentation-only without noting that this was unresolved.",
+  "Omits the reviewers' analysis of when posting is not wanted (receiver known not to be deleted and the disconnect must take effect immediately). This matters to an engineer deciding whether a direct call is ever acceptable."
+ ],
+ "model": "haiku",
+ "source": false,
+ "cost_usd": 0.00237727
+}

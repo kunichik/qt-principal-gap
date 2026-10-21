@@ -1,0 +1,31 @@
+diff --git a/src/corelib/global/qnamespace.qdoc b/src/corelib/global/qnamespace.qdoc
+index a73fc636..593a961f 100644
+--- a/src/corelib/global/qnamespace.qdoc
++++ b/src/corelib/global/qnamespace.qdoc
+@@ -731,6 +731,10 @@
+     some GMT-based zones-names, such as \c{Etc/GMT+3}, which use the opposite
+     convention).
+ 
++    \note Qt::ISODate: the parser is lenient about the date-field separators:
++    any punctuation character is accepted in place of the '-' that ISO 8601
++    requires, so "2024/01/02" and "2024.01.02" are also allowed.
++
+     \sa QDate::toString(), QTime::toString(), QDateTime::toString(),
+         QDate::fromString(), QTime::fromString(), QDateTime::fromString()
+ */
+diff --git a/src/corelib/time/qdatetime.cpp b/src/corelib/time/qdatetime.cpp
+index 47667fd6..8e2e35ab 100644
+--- a/src/corelib/time/qdatetime.cpp
++++ b/src/corelib/time/qdatetime.cpp
+@@ -1715,9 +1715,8 @@ QDate QDate::fromString(QStringView string, Qt::DateFormat format)
+         return QDate(year, month, day);
+         }
+     case Qt::ISODate:
+-        // Semi-strict parsing, must be long enough and have punctuators as separators
+-        if (string.size() >= 10 && string[4].isPunct() && string[7].isPunct()
+-                && (string.size() == 10 || !string[10].isDigit())) {
++        // Semi-strict parsing: must be exactly "yyyy-MM-dd" and have punctuators as separators
++        if (string.size() == 10 && string[4].isPunct() && string[7].isPunct()) {
+             const ParsedInt year = readInt(string.first(4));
+             const ParsedInt month = readInt(string.sliced(5, 2));
+             const ParsedInt day = readInt(string.sliced(8, 2));

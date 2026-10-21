@@ -1,0 +1,8 @@
+{
+ "design_match": 0.55,
+ "reviewer_concerns": 0.8,
+ "minimality": 0.85,
+ "hidden_risk": 0.5,
+ "key_difference": "(D) implements clearLocalData() as an unguarded inline `d.set(nullptr)` and leaves the QThreadData::currentThreadData() check (and the qthread_p.h include) at the qcollator call site, so the new public API can re-create thread-local storage during shutdown; (B) moves that guard into an exported QThreadStorageData::clear(), making clearLocalData() unconditionally shutdown-safe and simplifying the holder by inheriting from QThreadStorage<GenerationalCollator>.",
+ "judge_cost_usd": 0.0703684
+}

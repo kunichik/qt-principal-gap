@@ -1,0 +1,363 @@
+diff --git a/src/corelib/io/qurl.h b/src/corelib/io/qurl.h
+index dd0c9b45..942c69e4 100644
+--- a/src/corelib/io/qurl.h
++++ b/src/corelib/io/qurl.h
+@@ -126,6 +126,7 @@ public:
+         EncodeReserved = 0x1000000,
+         DecodeReserved = 0x2000000,
+         // 0x4000000 used to indicate full-decode mode
++        // 0x8000000 used privately to indicate decoding for local files
+ 
+         FullyEncoded = EncodeSpaces | EncodeUnicode | EncodeDelimiters | EncodeReserved,
+         FullyDecoded = FullyEncoded | DecodeReserved | 0x4000000
+diff --git a/src/corelib/io/qurl_p.h b/src/corelib/io/qurl_p.h
+index 6698dbb1..fefd3564 100644
+--- a/src/corelib/io/qurl_p.h
++++ b/src/corelib/io/qurl_p.h
+@@ -23,6 +23,13 @@
+ QT_BEGIN_NAMESPACE
+ 
+ // in qurlrecode.cpp
++
++// Private QUrl::ComponentFormattingOptions value for qt_urlRecode(): fully
++// decodes like QUrl::FullyDecoded, but fails (returns a negative value) if the
++// result would be unsafe to use as a local file path, see qt_urlRecode().
++inline constexpr QUrl::ComponentFormattingOptions QUrlDecodeForLocalFile =
++        QUrl::ComponentFormattingOptions::fromInt(uint(QUrl::FullyDecoded) | 0x8000000U);
++
+ extern Q_AUTOTEST_EXPORT qsizetype qt_urlRecode(QString &appendTo, QStringView url,
+                                                 QUrl::ComponentFormattingOptions encoding,
+                                                 const ushort *tableModifications = nullptr);
+diff --git a/src/corelib/io/qurlrecode.cpp b/src/corelib/io/qurlrecode.cpp
+index 7b94a4be..827d611f 100644
+--- a/src/corelib/io/qurlrecode.cpp
++++ b/src/corelib/io/qurlrecode.cpp
+@@ -3,6 +3,7 @@
+ // Qt-Security score:critical reason:data-parser
+ 
+ #include "qurl.h"
++#include "qurl_p.h"
+ #include "private/qstringconverter_p.h"
+ #include "private/qtools_p.h"
+ #include "private/qsimd_p.h"
+@@ -250,6 +251,13 @@ struct QUrlUtf8Traits : public QUtf8BaseTraitsNoAscii
+         ptr += n * 3;
+     }
+ };
++
++struct QUrlLocalFileUtf8Traits : public QUrlUtf8Traits
++{
++    // Non-characters are valid UTF-8 and may legitimately appear in file
++    // names, so decode them instead of rejecting the sequence.
++    static const bool allowNonCharacters = true;
++};
+ }
+ 
+ // returns true if we performed an UTF-8 decoding
+@@ -522,6 +530,59 @@ static bool simdCheckNonEncoded(...)
+ }
+ #endif
+ 
++static bool hasBadPercentEncoding(const char16_t *input, const char16_t *end)
++{
++    for ( ; input != end; ++input) {
++        if (*input != '%')
++            continue;
++        if (end - input < 3 || !isHex(input[1]) || !isHex(input[2]))
++            return true;
++        input += 2;
++    }
++    return false;
++}
++
++/*
++ * Decodes one percent-encoded sequence at \a input (which must be a valid %XX
++ * sequence) for use in a local file path, writing it to \a output. If the
++ * sequence starts a multi-byte UTF-8 sequence, the subsequent percent-encoded
++ * bytes are consumed too.
++ *
++ * Returns false, without writing anything, if the decoded data would be
++ * unsafe in a local file path: NUL, the directory separator ('/' and, on
++ * Windows, '\\') or percent-encoded bytes that are not valid UTF-8.
++ */
++static bool decodeForLocalFile(QChar *&output, const char16_t *&input, const char16_t *end)
++{
++    const char16_t decoded = decodePercentEncoding(input);
++    if (decoded < 0x80) {
++        if (decoded == '\0' || decoded == '/')
++            return false;
++#ifdef Q_OS_WIN
++        if (decoded == '\\')
++            return false;
++#endif
++        *output++ = QChar(decoded);
++        input += 3;
++        return true;
++    }
++
++    char32_t ucs4;
++    char32_t *dst = &ucs4;
++    const char16_t *src = input + 3;    // skip the %XX that yielded decoded
++    if (QUtf8Functions::fromUtf8<QUrlLocalFileUtf8Traits>(uchar(decoded), dst, src, end) < 0)
++        return false;
++
++    if (QChar::requiresSurrogates(ucs4)) {
++        *output++ = QChar(QChar::highSurrogate(ucs4));
++        *output++ = QChar(QChar::lowSurrogate(ucs4));
++    } else {
++        *output++ = QChar(char16_t(ucs4));
++    }
++    input = src;
++    return true;
++}
++
+ /*!
+     \since 5.0
+     \internal
+@@ -542,8 +603,14 @@ static bool simdCheckNonEncoded(...)
+ 
+     The input should also be a valid percent-encoded sequence (the output of
+     qt_urlRecode is always valid).
++
++    If \a forLocalFile is true, the sequences from %80 to %FF are instead
++    decoded as UTF-8 and the function fails if the result would be unsafe to
++    use as a local file path: in that case, nothing is appended to \a appendTo
++    and -1 is returned. See decodeForLocalFile() for the conditions. Bad
++    encodings are still handled by copying the original input, undecoded.
+ */
+-static qsizetype decode(QString &appendTo, QStringView in)
++static qsizetype decode(QString &appendTo, QStringView in, bool forLocalFile)
+ {
+     const char16_t *begin = in.utf16();
+     const char16_t *end = begin + in.size();
+@@ -573,11 +640,26 @@ static qsizetype decode(QString &appendTo, QStringView in)
+             return end - begin;
+         }
+ 
+-        ++input;
+-        *output++ = QChar::fromUcs2(decodeNibble(input[0]) << 4 | decodeNibble(input[1]));
+-        if (output[-1].unicode() >= 0x80)
+-            output[-1] = QChar::ReplacementCharacter;
+-        input += 2;
++        if (forLocalFile) {
++            if (Q_UNLIKELY(!decodeForLocalFile(output, input, end))) {
++                // If there's badly-encoded data later in the string, we'd
++                // have copied everything undecoded, which is safe.
++                if (hasBadPercentEncoding(input, end)) {
++                    appendTo.resize(origSize + (end - begin));
++                    memcpy(static_cast<void *>(appendTo.begin() + origSize),
++                           static_cast<const void *>(begin), (end - begin) * sizeof(*end));
++                    return end - begin;
++                }
++                appendTo.truncate(origSize);
++                return -1;
++            }
++        } else {
++            ++input;
++            *output++ = QChar::fromUcs2(decodeNibble(input[0]) << 4 | decodeNibble(input[1]));
++            if (output[-1].unicode() >= 0x80)
++                output[-1] = QChar::ReplacementCharacter;
++            input += 2;
++        }
+ 
+         // search for the next percent, copying from input to output
+         if (simdCheckNonEncoded(output, input, end)) {
+@@ -623,6 +705,17 @@ static void maskTable(uchar (&table)[N], const uchar (&mask)[N])
+                             In this mode, the behaviour is undefined if the input string
+                             contains any percent-encoding sequences above %80.
+                             Also, the function will not correct bad % sequences.
++    \li QUrlDecodeForLocalFile: (private, implies QUrl::FullyDecoded) like
++                            QUrl::FullyDecoded, but percent-encoded sequences
++                            from %80 to %FF are decoded as UTF-8 and the
++                            function fails, returning -1 and leaving \a appendTo
++                            unchanged, if the decoded string would be unsafe to
++                            use as a local file path. That is the case if a
++                            percent-encoded sequence decodes to NUL or to '/'
++                            (or '\\' on Windows), or if the percent-encoded bytes
++                            do not form valid UTF-8. Bad % sequences are still
++                            not corrected: the input is copied undecoded, as
++                            with QUrl::FullyDecoded.
+     \endlist
+ 
+     Other flags are ignored (including QUrl::EncodeReserved).
+@@ -635,6 +728,8 @@ static void maskTable(uchar (&table)[N], const uchar (&mask)[N])
+ 
+     This function corrects percent-encoded errors by interpreting every '%' as
+     meaning "%25" (all percents in the same content).
++
++    Returns -1 on failure, which is only possible with QUrlDecodeForLocalFile.
+  */
+ 
+ Q_AUTOTEST_EXPORT qsizetype
+@@ -643,7 +738,8 @@ qt_urlRecode(QString &appendTo, QStringView in,
+ {
+     uchar actionTable[sizeof defaultActionTable];
+     if ((encoding & QUrl::FullyDecoded) == QUrl::FullyDecoded) {
+-        return decode(appendTo, in);
++        return decode(appendTo, in,
++                      (encoding & QUrlDecodeForLocalFile) == QUrlDecodeForLocalFile);
+     }
+ 
+     memcpy(actionTable, defaultActionTable, sizeof actionTable);
+diff --git a/tests/auto/corelib/io/qurlinternal/tst_qurlinternal.cpp b/tests/auto/corelib/io/qurlinternal/tst_qurlinternal.cpp
+index 1d7e33eb..a9c001c1 100644
+--- a/tests/auto/corelib/io/qurlinternal/tst_qurlinternal.cpp
++++ b/tests/auto/corelib/io/qurlinternal/tst_qurlinternal.cpp
+@@ -57,6 +57,12 @@ private Q_SLOTS:
+     void encodingRecode();
+     void encodingRecodeInvalidUtf8_data();
+     void encodingRecodeInvalidUtf8();
++    void decodeForLocalFile_data();
++    void decodeForLocalFile();
++    void decodeForLocalFileInvalidUtf8_data();
++    void decodeForLocalFileInvalidUtf8();
++    void decodeForLocalFileNonCharacters_data();
++    void decodeForLocalFileNonCharacters();
+ 
+     void tldRestrictions_data();
+     void tldRestrictions();
+@@ -731,6 +737,144 @@ void tst_QUrlInternal::encodingRecodeInvalidUtf8()
+     }
+ }
+ 
++void tst_QUrlInternal::decodeForLocalFile_data()
++{
++    QTest::addColumn<QString>("input");
++    QTest::addColumn<QString>("expected");
++    QTest::addColumn<bool>("success");
++
++    QTest::newRow("null") << QString() << QString() << true;
++    QTest::newRow("empty") << u""_s << u""_s << true;
++    QTest::newRow("nothing-encoded") << u"dir/file.txt"_s << u"dir/file.txt"_s << true;
++    QTest::newRow("unreserved") << u"%66%6f%6F%42a%72"_s << u"fooBar"_s << true;
++    QTest::newRow("percent") << u"25%2525"_s << u"25%25"_s << true;
++    QTest::newRow("space") << u"/tmp/Hello%20World"_s << u"/tmp/Hello World"_s << true;
++    QTest::newRow("delimiters") << u"%3A%3F%23%5B%5D%40%21%24%26%27%28%29%2A%2B%2C%3B%3D"_s
++                                << u":?#[]@!$&'()*+,;="_s << true;
++    QTest::newRow("control") << u"%01%0D%0A%1F%7F"_s << u"\x01\r\n\x1f\x7f"_s << true;
++    QTest::newRow("literal-backslash") << u"dir\\file"_s << u"dir\\file"_s << true;
++
++    // valid UTF-8 is decoded, unlike with QUrl::FullyDecoded
++    QTest::newRow("utf8-2char") << u"R%C3%A9sum%C3%A9"_s << u"Résumé"_s << true;
++    QTest::newRow("utf8-3char") << u"%E2%82%AC"_s << u"€"_s << true;
++    QTest::newRow("utf8-4char") << u"%F0%90%80%80"_s << u"\U00010000"_s << true;
++    QTest::newRow("utf8-4char-last") << u"%F4%8F%BF%BD"_s << u"\U0010FFFD"_s << true;
++    QTest::newRow("utf8-replacement-char") << u"%EF%BF%BD"_s << u"�"_s << true;
++    QTest::newRow("utf8-mixed-literal") << u"é%C3%A9/%41"_s << u"éé/A"_s << true;
++
++    // unsafe decoded characters
++    QTest::newRow("nul") << u"%00"_s << QString() << false;
++    QTest::newRow("nul-middle") << u"file%00.txt"_s << QString() << false;
++    QTest::newRow("slash") << u"%2F"_s << QString() << false;
++    QTest::newRow("slash-lowercase") << u"%2f"_s << QString() << false;
++    QTest::newRow("slash-dotdot") << u"/tmp/..%2F..%2Fetc%2Fpasswd"_s << QString() << false;
++    QTest::newRow("slash-after-decoded") << u"%41%2F"_s << QString() << false;
++#ifdef Q_OS_WIN
++    QTest::newRow("backslash") << u"dir%5Cfile"_s << QString() << false;
++    QTest::newRow("backslash-lowercase") << u"dir%5cfile"_s << QString() << false;
++#else
++    QTest::newRow("backslash") << u"dir%5Cfile"_s << u"dir\\file"_s << true;
++    QTest::newRow("backslash-lowercase") << u"dir%5cfile"_s << u"dir\\file"_s << true;
++#endif
++
++    // invalid UTF-8 (more in decodeForLocalFileInvalidUtf8)
++    QTest::newRow("utf8-lone-continuation") << u"%80"_s << QString() << false;
++    QTest::newRow("utf8-ff") << u"%FF"_s << QString() << false;
++    QTest::newRow("utf8-truncated") << u"abc%C3"_s << QString() << false;
++    QTest::newRow("utf8-truncated-literal") << u"%C3abc"_s << QString() << false;
++    QTest::newRow("utf8-bad-continuation") << u"%C3%28"_s << QString() << false;
++    QTest::newRow("utf8-overlong-slash-2") << u"%C0%AF"_s << QString() << false;
++    QTest::newRow("utf8-overlong-slash-3") << u"%E0%80%AF"_s << QString() << false;
++    QTest::newRow("utf8-overlong-nul") << u"%C0%80"_s << QString() << false;
++    QTest::newRow("utf8-surrogate") << u"%ED%A0%80"_s << QString() << false;
++    QTest::newRow("utf8-too-high") << u"%F4%90%80%80"_s << QString() << false;
++    QTest::newRow("utf8-valid-then-invalid") << u"%C3%A9%80"_s << QString() << false;
++
++    // bad percent-encoding: copied undecoded, as with QUrl::FullyDecoded
++    QTest::newRow("bad-percent") << u"%G0"_s << u"%G0"_s << true;
++    QTest::newRow("bad-percent-trailing") << u"abc%"_s << u"abc%"_s << true;
++    QTest::newRow("bad-percent-after-slash") << u"a%2Fb%"_s << u"a%2Fb%"_s << true;
++    QTest::newRow("bad-percent-after-nul") << u"%00%zz"_s << u"%00%zz"_s << true;
++    QTest::newRow("bad-percent-in-utf8") << u"%C3%zz"_s << u"%C3%zz"_s << true;
++    QTest::newRow("bad-percent-before-slash") << u"%zz%2F"_s << u"%zz%2F"_s << true;
++}
++
++void tst_QUrlInternal::decodeForLocalFile()
++{
++    static_assert((QUrlDecodeForLocalFile & QUrl::FullyDecoded) == QUrl::FullyDecoded);
++
++    QFETCH(QString, input);
++    QFETCH(QString, expected);
++    QFETCH(bool, success);
++
++    // prepend some data to be sure that it remains there
++    const QString dataTag = QString::fromLatin1(QTest::currentDataTag());
++    QString output = dataTag;
++
++    qsizetype ret = qt_urlRecode(output, input, QUrlDecodeForLocalFile);
++    if (!success) {
++        QCOMPARE_LT(ret, 0);
++        QCOMPARE(output, dataTag);
++        return;
++    }
++
++    QCOMPARE_GE(ret, 0);
++    QCOMPARE(ret, output.size() - dataTag.size());
++    if (ret == 0)
++        output += input;
++    QCOMPARE(output, dataTag + expected);
++}
++
++void tst_QUrlInternal::decodeForLocalFileInvalidUtf8_data()
++{
++    QTest::addColumn<QByteArray>("utf8");
++    QTest::addColumn<QString>("utf16");
++
++    extern void loadInvalidUtf8Rows();
++    loadInvalidUtf8Rows();
++
++    QTest::newRow("utf8-mix-4") << QByteArray("\xE0.A2\x80");
++    QTest::newRow("utf8-mix-5") << QByteArray("\xE0\xA2.80");
++    QTest::newRow("utf8-mix-6") << QByteArray("\xE0\xA2\x33");
++}
++
++void tst_QUrlInternal::decodeForLocalFileInvalidUtf8()
++{
++    QFETCH(QByteArray, utf8);
++    const QString input = QString::fromLatin1(utf8.toPercentEncoding());
++
++    const QString dataTag = QString::fromLatin1(QTest::currentDataTag());
++    QString output = dataTag;
++    QCOMPARE_LT(qt_urlRecode(output, input, QUrlDecodeForLocalFile), 0);
++    QCOMPARE(output, dataTag);
++
++    // FullyDecoded is unaffected and keeps replacing with U+FFFD
++    output.clear();
++    QCOMPARE_GT(qt_urlRecode(output, input, QUrl::FullyDecoded), 0);
++    QVERIFY(output.contains(QChar::ReplacementCharacter));
++}
++
++void tst_QUrlInternal::decodeForLocalFileNonCharacters_data()
++{
++    QTest::addColumn<QByteArray>("utf8");
++    QTest::addColumn<QString>("utf16");
++
++    extern void loadNonCharactersRows();
++    loadNonCharactersRows();
++}
++
++void tst_QUrlInternal::decodeForLocalFileNonCharacters()
++{
++    // non-characters are valid UTF-8, so they decode
++    QFETCH(QByteArray, utf8);
++    QFETCH(QString, utf16);
++    const QString input = QString::fromLatin1(utf8.toPercentEncoding());
++
++    QString output;
++    QCOMPARE_GT(qt_urlRecode(output, input, QUrlDecodeForLocalFile), 0);
++    QCOMPARE(output, utf16);
++}
++
+ void tst_QUrlInternal::tldRestrictions_data()
+ {
+     QTest::addColumn<QString>("tld");

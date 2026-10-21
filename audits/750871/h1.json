@@ -1,0 +1,13 @@
+{
+ "verdict": "NOT_OK",
+ "problems": [
+  "Omits the backport scope: the review concluded this can only target 6.12 and later, because b0f495735c30e400c9749c8b9f9823dbb56dfbd9 is absent from older branches. The commit's Pick-to is 6.12 only. An engineer could otherwise try to pick it to older branches.",
+  "Omits the reviewers' deferral: replacing the null check with a union is a good idea but was explicitly moved to a follow-up, not this change.",
+  "Omits the rejected approach for the null check: the reviewers said `is_nullptr_t` cannot be used because the type is fixed. An engineer could otherwise try it.",
+  "Omits the reviewers' open concern about compile-time and codegen impact of the registration loop, which was raised and not shown to be resolved in the review.",
+  "Presents routing UniqueType through TypeIsSuitableForMetaType into is_complete as the fix. That was a reviewer's suggestion made after probing, not a confirmed outcome of the review, and the card does not mark it as such."
+ ],
+ "model": "haiku",
+ "source": false,
+ "cost_usd": 0.00175907
+}

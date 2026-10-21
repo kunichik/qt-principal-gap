@@ -1,0 +1,24 @@
+{
+ "task": "750871",
+ "arm": "K0",
+ "rep": "0",
+ "agent": "none",
+ "model": "opus",
+ "tests": {
+  "tst_qobject": {
+   "build": "OK",
+   "passed": 124,
+   "failed": 4,
+   "fail_names": [
+    "tst_QObject::connectRegistersGadgetType()",
+    "tst_QObject::connectRegistersQObjectPointerType()",
+    "tst_QObject::connectRegistersQObjectConstPointerType()",
+    "tst_QObject::connectRegistersOtherType()"
+   ],
+   "crashed": false
+  }
+ },
+ "cost_usd": null,
+ "turns": null,
+ "wall_s": null
+}

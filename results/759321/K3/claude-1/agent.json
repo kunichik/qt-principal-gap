@@ -1,0 +1,143 @@
+{
+ "duration_api_ms": 68542,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 0.38472500000000004,
+ "usage": {
+  "input_tokens": 16,
+  "cache_creation_input_tokens": 22812,
+  "cache_read_input_tokens": 312742,
+  "output_tokens": 6973,
+  "output_tokens_details": {
+   "thinking_tokens": 2677
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 22812,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 925,
+    "cache_read_input_tokens": 46116,
+    "cache_creation_input_tokens": 1893,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1893
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1436,
+   "outputTokens": 26,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00015659999999999998,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 16,
+   "outputTokens": 6973,
+   "cacheReadInputTokens": 312742,
+   "cacheCreationInputTokens": 22812,
+   "webSearchRequests": 0,
+   "costUSD": 0.38456840000000003,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 2677,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 8,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "I fixed it in `src/corelib/io/qlockfile_unix.cpp`. The QLockFile tests pass on macOS (24 passed, 1 Windows-only skip), but I couldn't reproduce the NFS `EBUSY` itself here, so the actual NFS case is still untested.\n\n**Root cause:** the Unix code removed the lock file while it still held an open descriptor with an active `flock()` on it:\n- `QLockFile::unlock()` called `unlink()` first and only then `close()`.\n- `QLockFilePrivate::removeStaleLock()` took the native lock, unlinked the file while holding it, then closed it.\n\nOn a file system that refuses to remove a locked file, `unlink()` fails with `EBUSY`. `unlock()` only logs a warning and goes on, so the lock file stays behind. Every other user then has to wait for the stale-lock timeout. The same failure blocks stale-lock removal.\n\n**Fix:** a new helper, `closeAndUnlink(fd, path)`, closes the file first (which drops our lock) and then unlinks it. Closing first leaves a short gap in which another process could remove our file and create its own lock under the same name. So the helper records our file's identity (device and inode, via `fstat`) before closing. It only deletes the file if the name still points to that same file; if not, it reports `ENOENT`, meaning our file is already gone. It's now used in three places:\n- **`unlock()`:** the handle is marked as closed even if the unlink then fails, so it is never closed twice.\n- **`removeStaleLock()`:** if taking the native lock fails, the owner is still holding it, so it returns `false` and removes nothing, as before. Otherwise it closes, then unlinks. If someone else already replaced the file, it returns success, matching the existing \"already gone\" behaviour.\n- **`tryLock_sys()`, when writing the lock file fails:** it already closed before unlinking; it now also gets the identity check.\n\n**Tests added** to `tst_qlockfile.cpp`:\n- `unlockClosesBeforeRemoving`: after `unlock()`, the handle is closed and the lock file is gone. This only confirms the end state; it can't show the order of the two calls.\n- `unlockDoesNotRemoveReplacedFile`: if our lock file was replaced by another one, `unlock()` leaves the new file alone. The old code would have deleted it.",
+ "ttft_ms": 2347,
+ "type": "result",
+ "duration_ms": 87978,
+ "ttft_stream_ms": 1327,
+ "time_to_request_ms": 271,
+ "time_to_request_phases_ms": {
+  "other": 17,
+  "system_prompt": 5,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 8,
+  "input_hooks": 2,
+  "transcript_persist": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 2,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 223,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 3,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 20,
+ "time_to_request_cpu_ms": 283,
+ "time_to_request_major_faults": 432,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 11,
+  "major_faults": 22
+ },
+ "first_content_frame_ms": 1327,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

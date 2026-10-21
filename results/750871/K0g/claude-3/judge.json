@@ -1,0 +1,8 @@
+{
+ "design_match": 0.1,
+ "reviewer_concerns": 0.6,
+ "minimality": 0.7,
+ "hidden_risk": 0.25,
+ "key_difference": "(D) leaves the compile-time QtPrivate::ConnectionTypes logic untouched and instead registers moc's recorded parameter types at runtime in connectImpl, and only for explicit Queued/BlockingQueued connections; (B) makes ConnectionTypes build the type-id array for every complete, non-reference argument type, using a UniqueType-guarded completeness check, so registration also happens for AutoConnection (the default, which becomes queued across threads) and for every connect call.",
+ "judge_cost_usd": 0.0541711
+}

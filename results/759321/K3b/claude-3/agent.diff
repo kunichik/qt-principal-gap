@@ -1,0 +1,131 @@
+diff --git a/src/corelib/io/qlockfile_unix.cpp b/src/corelib/io/qlockfile_unix.cpp
+index 421412f2..3baf40fa 100644
+--- a/src/corelib/io/qlockfile_unix.cpp
++++ b/src/corelib/io/qlockfile_unix.cpp
+@@ -133,6 +133,39 @@ static bool setNativeLocks(int fd)
+     return true;
+ }
+ 
++/*!
++    \internal
++    Removes the lock file \a lockFileName and closes \a fd, which refers to it.
++
++    The file is unlinked first, before closing the descriptor (and thereby
++    dropping the native lock), so that no other process can mistake the file
++    for an abandoned lock in between. Some network file systems (e.g. NFS)
++    refuse to unlink a file that is still locked or open, failing with EBUSY;
++    in that case (and for ETXTBSY and EPERM) the unlink is retried after
++    the descriptor has been closed.
++
++    \a fd is always closed by this function. Returns \c true only if the file
++    is gone afterwards; otherwise returns \c false with errno set.
++*/
++static bool unlinkAndClose(const QByteArray &lockFileName, int fd)
++{
++    int ret = ::unlink(lockFileName.constData());
++    int savedErrno = ret == 0 ? 0 : errno;
++    qt_safe_close(fd);
++    if (ret == 0)
++        return true;
++
++    if (savedErrno == EBUSY || savedErrno == ETXTBSY || savedErrno == EPERM) {
++        ret = ::unlink(lockFileName.constData());
++        if (ret == 0)
++            return true;
++        savedErrno = errno;
++    }
++
++    errno = savedErrno;
++    return savedErrno == ENOENT || savedErrno == ENOTDIR;
++}
++
+ QLockFile::LockError QLockFilePrivate::tryLock_sys()
+ {
+     const QByteArray lockFileName = QFile::encodeName(fileName);
+@@ -183,9 +216,13 @@ bool QLockFilePrivate::removeStaleLock()
+     if (fd < 0) // gone already?
+         return errno == ENOENT;
+ 
+-    bool success = setNativeLocks(fd) && (::unlink(lockFileName) == 0);
+-    close(fd);
+-    return success;
++    // If we can't lock it, it's still in use by someone else.
++    if (!setNativeLocks(fd)) {
++        qt_safe_close(fd);
++        return false;
++    }
++
++    return unlinkAndClose(lockFileName, fd);
+ }
+ 
+ bool QLockFilePrivate::isProcessRunning(qint64 pid, const QString &appname)
+@@ -310,14 +347,12 @@ void QLockFile::unlock()
+         return;
+ 
+     const QByteArray lockFileName = QFile::encodeName(d->fileName);
+-    int ret = unlink(lockFileName);
+-    if (ret != 0 && errno != ENOENT && errno != ENOTDIR) {
++    if (!unlinkAndClose(lockFileName, d->fileHandle)) {
+         qWarning("Could not remove our own lock file %s: %ls (maybe permissions changed meanwhile?)",
+                  lockFileName.constBegin(), qUtf16Printable(qt_error_string()));
+         // This is bad because other users of this lock file will now have to wait for the stale-lock-timeout...
+     }
+ 
+-    close(d->fileHandle);
+     d->fileHandle = -1;
+     d->lockError = QLockFile::NoError;
+     d->isLocked = false;
+diff --git a/tests/auto/corelib/io/qlockfile/tst_qlockfile.cpp b/tests/auto/corelib/io/qlockfile/tst_qlockfile.cpp
+index cb116ca4..607b10e8 100644
+--- a/tests/auto/corelib/io/qlockfile/tst_qlockfile.cpp
++++ b/tests/auto/corelib/io/qlockfile/tst_qlockfile.cpp
+@@ -17,6 +17,8 @@
+ 
+ #if defined(Q_OS_UNIX) && !defined(Q_OS_VXWORKS)
+ #include <unistd.h>
++#include <fcntl.h>
++#include <errno.h>
+ 
+ #include <sys/stat.h> // utimensat
+ #include <sys/time.h>
+@@ -36,6 +38,7 @@ class tst_QLockFile : public QObject
+ private slots:
+     void initTestCase();
+     void lockUnlock();
++    void unlockClosesHandle();
+     void lockOutOtherProcess();
+     void lockOutOtherThread();
+     void raceWithOtherThread();
+@@ -109,6 +112,32 @@ void tst_QLockFile::lockUnlock()
+     QVERIFY(!QFile::exists(fileName));
+ }
+ 
++void tst_QLockFile::unlockClosesHandle()
++{
++#ifdef Q_OS_UNIX
++    const QString fileName = dir.path() + "/lockCloses";
++    QLockFile lockFile(fileName);
++    QVERIFY(lockFile.lock());
++    const int fd = QLockFilePrivate::getLockFileHandle(&lockFile);
++    QVERIFY(fd >= 0);
++    QVERIFY(fcntl(fd, F_GETFD) != -1);
++
++    lockFile.unlock();
++    QVERIFY(!QFile::exists(fileName));
++    QCOMPARE(QLockFilePrivate::getLockFileHandle(&lockFile), -1);
++    // the descriptor must have been closed exactly once, by unlock()
++    QCOMPARE(fcntl(fd, F_GETFD), -1);
++    QCOMPARE(errno, EBADF);
++
++    // and it can be locked again
++    QVERIFY(lockFile.tryLock());
++    lockFile.unlock();
++    QVERIFY(!QFile::exists(fileName));
++#else
++    QSKIP("Unix-specific test");
++#endif
++}
++
+ void tst_QLockFile::lockOutOtherProcess()
+ {
+ #if !QT_CONFIG(process)

@@ -1,0 +1,143 @@
+{
+ "duration_api_ms": 107307,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 0.6392713999999999,
+ "usage": {
+  "input_tokens": 32,
+  "cache_creation_input_tokens": 32915,
+  "cache_read_input_tokens": 714468,
+  "output_tokens": 11639,
+  "output_tokens_details": {
+   "thinking_tokens": 4372
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 32915,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1064,
+    "cache_read_input_tokens": 55464,
+    "cache_creation_input_tokens": 985,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 985
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1368,
+   "outputTokens": 26,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001498,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 32,
+   "outputTokens": 11639,
+   "cacheReadInputTokens": 714468,
+   "cacheCreationInputTokens": 32915,
+   "webSearchRequests": 0,
+   "costUSD": 0.6391216,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 4372,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 17,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "I fixed it. Futures whose tasks are removed by `QThreadPool::clear()` now end up canceled and finished, so `waitForFinished()` returns and `.onCanceled()` handlers run. All 8 QtConcurrent autotest binaries pass, including the new tests. With the library change stashed, both new tests fail; with it restored, they pass.\n\n## Root cause\n`QThreadPoolPrivate::clear()` removes queued runnables. It deletes the ones marked auto-delete and leaves the rest alone. Nothing tells the task's future, so it stays Running forever.\n\n- **`QtConcurrent::run()`:** the task (`RunFunctionTaskBase`) is auto-delete, so `clear()` deletes it. But its future was only ever finished from inside `run()`, which never happens. The `QPromise` variant of `run()` was already safe, because `~QPromise` cancels and finishes the future.\n- **`map()`/`filter()` family:** the `ThreadEngine` is not auto-delete and is queued directly with `threadPool->start(this)`. When it's cleared it's never run and never deleted, so the future hangs and the engine and its future data leak.\n\n## Fix (all in `src/concurrent`, nothing in QtCore)\n- **`qtconcurrentrunbase.h`:** `RunFunctionTaskBase` now has a destructor. If its future isn't finished yet, it calls `reportCanceled()` then `reportFinished()`, the same way `start()` handles a null pool. Canceling first matters: without it, `.onCanceled()` handlers wouldn't run.\n- **`qtconcurrentthreadengine.{h,cpp}`:** the engine's first queued start now goes through a small auto-delete wrapper, `ThreadEngineStartTask`, added via a new protected `ThreadEngineBase::startInThreadPool()`.\n  - If the wrapper runs, it just runs the engine.\n  - If it's destroyed without running (for example by `clear()`), it cancels the future and calls `threadExit()`. That gives the barrier slot back and runs the normal `asynchronousFinish()`, which finishes the future and deletes the engine.\n  - `QThreadPool` itself doesn't change, and runnables that aren't auto-delete stay owned by whoever created them. The engine's extra worker threads start through `tryStart()`, which never queues, so only this first start could be stranded.\n\n## Tests\n- **`tst_QtConcurrentRun::clearThreadPool`:** covers a plain `run()`, a `QPromise` `run()` and a functor that counts its own lifetime. It checks the futures are finished and canceled, `waitForFinished()` returns, `onCanceled` fires, no task body runs, and nothing leaks.\n- **`tst_QtConcurrentMap::mappedClearThreadPool`:** checks the same for `mapped()` and `mappedReduced()`.\n\nOne compatibility note: code already compiled against the old inline `startAsynchronously()` keeps the old behaviour until it's recompiled.",
+ "ttft_ms": 2162,
+ "type": "result",
+ "duration_ms": 187696,
+ "ttft_stream_ms": 1056,
+ "time_to_request_ms": 315,
+ "time_to_request_phases_ms": {
+  "other": 17,
+  "system_prompt": 6,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 8,
+  "input_hooks": 3,
+  "transcript_persist": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 2,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 263,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 3,
+  "message_normalization": 1,
+  "client_creation": 0,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 7,
+ "time_to_request_cpu_ms": 283,
+ "time_to_request_major_faults": 420,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 6,
+  "cpu_ms": 6,
+  "major_faults": 20
+ },
+ "first_content_frame_ms": 1056,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

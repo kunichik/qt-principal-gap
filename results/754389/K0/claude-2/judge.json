@@ -1,0 +1,8 @@
+{
+ "design_match": 0.55,
+ "reviewer_concerns": 0.75,
+ "minimality": 0.9,
+ "hidden_risk": 0.6,
+ "key_difference": "(D) reuses QQueuedMetaCallEvent with a lambda instead of adding a dedicated DisconnectNotify event type, and when the sender's thread has no event dispatcher it falls back to calling disconnectNotify() directly from the foreign thread (keeping the original race for such threads), whereas (B) skips the notification in that case.",
+ "judge_cost_usd": 0.0812152
+}

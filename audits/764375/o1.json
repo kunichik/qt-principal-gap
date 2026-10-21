@@ -1,0 +1,11 @@
+{
+ "verdict": "NOT_OK",
+ "problems": [
+  "The third bullet says the map()/filter() path is 'affected too', which reads as if it belongs in this change. Reviewers decided the opposite: this patch does not fix map()/filter(). That is why the commit uses 'Task-number: QTBUG-149511' instead of a closing 'Fixes:' footer. The card needs to say map()/filter() is out of scope and the bug must stay open.",
+  "The card's details about map()/filter() ('non-auto-deleting ThreadEngine that is started more than once', 'it also leaks') do not appear anywhere in the review. They are unsupported claims that could send the engineer down the wrong path.",
+  "The card leaves out the reviewer's request to extend the test to cover an attached .onCanceled() continuation. It also omits the guard: cancel and finish only if the promise is not already finished, matching the existing pattern in start()."
+ ],
+ "model": "opus",
+ "source": false,
+ "cost_usd": 0.026871799999999998
+}

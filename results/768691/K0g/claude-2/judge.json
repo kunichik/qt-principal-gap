@@ -1,0 +1,8 @@
+{
+ "design_match": 0.45,
+ "reviewer_concerns": 0.6,
+ "minimality": 0.5,
+ "hidden_risk": 0.3,
+ "key_difference": "(D) adds its own in-decode UTF-8 decoding of %80–%FF sequences, a new traits struct that allows non-characters, and only checks percent-encoded separators; (B) relies on valid UTF-8 already being folded, rejects any decoded byte >= 0x80, and pre-checks for literal backslashes on Windows, which are stored in decoded form and which (D) therefore lets through.",
+ "judge_cost_usd": 0.1059064
+}

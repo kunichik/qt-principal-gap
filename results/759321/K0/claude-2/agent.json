@@ -1,0 +1,143 @@
+{
+ "duration_api_ms": 44254,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 0.26302820000000005,
+ "usage": {
+  "input_tokens": 16,
+  "cache_creation_input_tokens": 15640,
+  "cache_read_input_tokens": 276338,
+  "output_tokens": 4115,
+  "output_tokens_details": {
+   "thinking_tokens": 1360
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 15640,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 758,
+    "cache_read_input_tokens": 40297,
+    "cache_creation_input_tokens": 540,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 540
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1516,
+   "outputTokens": 250,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002766,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 223,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 16,
+   "outputTokens": 4115,
+   "cacheReadInputTokens": 276338,
+   "cacheCreationInputTokens": 15640,
+   "webSearchRequests": 0,
+   "costUSD": 0.2627516,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 1360,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 10,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "I fixed this in `src/corelib/io/qlockfile_unix.cpp`. The existing `tst_qlockfile` suite still passes (22 passed, 1 skipped) on macOS, but the new `EBUSY` fallback itself has not run: nothing here can make `unlink()` return `EBUSY`, and I didn't add a test for it.\n\n**Root cause.** `QLockFile` takes an `flock()` lock on its file (an `fcntl` lock on Android) so that other processes can't delete it while it is held. Two places then delete the file while that lock is still held:\n- `QLockFile::unlock()` deletes the file first and only closes it (which releases the lock) afterwards.\n- `removeStaleLock()` locks the stale file and then deletes it while still holding the lock.\n\nOn a local file system that's fine. A server that refuses to delete a locked file (the NFSv4.2 case) returns `EBUSY` instead. `unlock()` then just prints a warning, closes the file and reports success, so the lock file stays on disk. Other users then have to wait for the stale-lock timeout, and stale-lock cleanup can't remove the file either.\n\n**Fix.** Both places now go through a new helper, `unlinkLockedFile(path, fd)`:\n- It tries the delete first, so normal file systems behave exactly as before.\n- Only if that fails with `EBUSY` does it release our lock (new `releaseNativeLocks()`: `flock(LOCK_UN)`, or `F_UNLCK` on Android) and try again.\n- Before retrying, it checks that the path still points to the file we have open (same device and inode). If someone replaced the lock file in the gap after we unlocked, we don't delete theirs.\n\n**Remaining race.** On the fallback path there is still a very small window between that check and the second delete. It only matters on the file systems that return `EBUSY`, and only in the situation where the lock could otherwise never be removed at all.\n\nThe trailing lines in your message (\"764375 K0 2\", \u2026) looked unrelated to the task, so I ignored them.",
+ "ttft_ms": 1750,
+ "type": "result",
+ "duration_ms": 138129,
+ "ttft_stream_ms": 1360,
+ "time_to_request_ms": 233,
+ "time_to_request_phases_ms": {
+  "other": 17,
+  "system_prompt": 8,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 7,
+  "input_hooks": 2,
+  "transcript_persist": 15,
+  "tool_pool_refresh": 1,
+  "init_message": 2,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 170,
+  "autocompact": 0,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 3,
+  "message_normalization": 1,
+  "client_creation": 0,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 19,
+ "time_to_request_cpu_ms": 268,
+ "time_to_request_major_faults": 402,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 10,
+  "major_faults": 20
+ },
+ "first_content_frame_ms": 1360,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

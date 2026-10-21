@@ -1,0 +1,19 @@
+{
+ "task": "756614",
+ "arm": "K3",
+ "rep": "2",
+ "agent": "claude",
+ "model": "opus",
+ "tests": {
+  "tst_qthreadstorage": {
+   "build": "OK",
+   "passed": 17,
+   "failed": 0,
+   "fail_names": [],
+   "crashed": false
+  }
+ },
+ "cost_usd": 0.8498246,
+ "turns": 22,
+ "wall_s": 193
+}

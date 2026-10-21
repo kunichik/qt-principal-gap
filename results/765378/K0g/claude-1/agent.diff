@@ -1,0 +1,123 @@
+diff --git a/src/corelib/kernel/qcoreapplication.cpp b/src/corelib/kernel/qcoreapplication.cpp
+index 4fcd8834..494f4ebf 100644
+--- a/src/corelib/kernel/qcoreapplication.cpp
++++ b/src/corelib/kernel/qcoreapplication.cpp
+@@ -527,15 +527,25 @@ void QCoreApplicationPrivate::cleanupThreadData()
+ #endif
+ 
+         // need to clear the state of the mainData, just in case a new QCoreApplication comes along.
+-        const auto locker = qt_scoped_lock(thisThreadData->postEventList.mutex);
+-        for (const QPostEvent &pe : std::as_const(thisThreadData->postEventList)) {
+-            if (pe.event) {
+-                pe.receiver->d_func()->postedEvents.fetchAndSubAcquire(1);
+-                pe.event->m_posted = false;
+-                delete pe.event;
++        auto locker = qt_unique_lock(thisThreadData->postEventList.mutex);
++        while (!thisThreadData->postEventList.isEmpty()) {
++            QList<QEvent *> events;
++            for (const QPostEvent &pe : std::as_const(thisThreadData->postEventList)) {
++                if (pe.event) {
++                    pe.receiver->d_func()->postedEvents.fetchAndSubAcquire(1);
++                    pe.event->m_posted = false;
++                    events.append(pe.event);
++                }
+             }
++            thisThreadData->postEventList.clear();
++
++            // Delete the events without holding the lock: their destructors
++            // may post new events (e.g. call deleteLater()), which would
++            // otherwise deadlock. Loop to also discard any such new events.
++            locker.unlock();
++            qDeleteAll(events);
++            locker.lock();
+         }
+-        thisThreadData->postEventList.clear();
+         thisThreadData->postEventList.recursion = 0;
+         thisThreadData->quitNow = false;
+         threadData_clean = true;
+diff --git a/src/corelib/thread/qthread.cpp b/src/corelib/thread/qthread.cpp
+index 75e8cb52..253df0d3 100644
+--- a/src/corelib/thread/qthread.cpp
++++ b/src/corelib/thread/qthread.cpp
+@@ -73,14 +73,20 @@ QThreadData::~QThreadData()
+ 
+ void QThreadData::clearEvents()
+ {
+-    for (const auto &pe : std::as_const(postEventList)) {
+-        if (pe.event) {
+-            pe.receiver->d_func()->postedEvents.fetchAndSubRelaxed(1);
+-            pe.event->m_posted = false;
+-            delete pe.event;
++    // Detach the events from the list before deleting them: their destructors
++    // may post new events (e.g. call deleteLater()), which modifies the list.
++    while (!postEventList.isEmpty()) {
++        QList<QEvent *> events;
++        for (const auto &pe : std::as_const(postEventList)) {
++            if (pe.event) {
++                pe.receiver->d_func()->postedEvents.fetchAndSubRelaxed(1);
++                pe.event->m_posted = false;
++                events.append(pe.event);
++            }
+         }
++        postEventList.clear();
++        qDeleteAll(events);
+     }
+-    postEventList.clear();
+ }
+ 
+ QAbstractEventDispatcher *QThreadData::createEventDispatcher()
+diff --git a/tests/auto/corelib/kernel/qcoreapplication/tst_qcoreapplication.cpp b/tests/auto/corelib/kernel/qcoreapplication/tst_qcoreapplication.cpp
+index a06b883b..34291fc1 100644
+--- a/tests/auto/corelib/kernel/qcoreapplication/tst_qcoreapplication.cpp
++++ b/tests/auto/corelib/kernel/qcoreapplication/tst_qcoreapplication.cpp
+@@ -1235,6 +1235,38 @@ void tst_QCoreApplication::QTBUG31606_QEventDestructorDeadLock()
+     QVERIFY(spy.recordedEvents.contains(QEvent::User + 2));
+ }
+ 
++void tst_QCoreApplication::pendingEventDestructorPostsOnExit()
++{
++    // An event still pending when the application is destroyed is deleted
++    // during cleanup; its destructor posting events or calling deleteLater()
++    // must not deadlock.
++    class PostingEvent : public QEvent
++    {
++    public:
++        PostingEvent(QObject *target, QObject *toDelete)
++            : QEvent(QEvent::Type(QEvent::User + 1)), target(target), toDelete(toDelete) {}
++        ~PostingEvent() override
++        {
++            QCoreApplication::postEvent(target, new QEvent(QEvent::Type(QEvent::User + 2)));
++            toDelete->deleteLater();
++        }
++        QObject *target;
++        QObject *toDelete;
++    };
++
++    QObject target;
++    QPointer<QObject> toDelete = new QObject;
++    {
++        int argc = 1;
++        char *argv[] = { const_cast<char*>(QTest::currentAppName()) };
++        TestApplication app(argc, argv);
++        QCoreApplication::postEvent(&target, new PostingEvent(&target, toDelete));
++        // leave the event pending while the application is destroyed
++    }
++    QVERIFY(toDelete); // DeferredDelete event was discarded, not delivered
++    delete toDelete.data();
++}
++
+ // this is almost identical to sendEventsOnProcessEvents
+ void tst_QCoreApplication::applicationEventFilters_mainThread()
+ {
+diff --git a/tests/auto/corelib/kernel/qcoreapplication/tst_qcoreapplication.h b/tests/auto/corelib/kernel/qcoreapplication/tst_qcoreapplication.h
+index 13dc68bf..663d161a 100644
+--- a/tests/auto/corelib/kernel/qcoreapplication/tst_qcoreapplication.h
++++ b/tests/auto/corelib/kernel/qcoreapplication/tst_qcoreapplication.h
+@@ -46,6 +46,7 @@ private slots:
+     void customEventDispatcher();
+     void testQuitLock();
+     void QTBUG31606_QEventDestructorDeadLock();
++    void pendingEventDestructorPostsOnExit();
+     void applicationEventFilters_mainThread();
+     void applicationEventFilters_auxThread();
+     void threadedEventDelivery_data();

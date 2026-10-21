@@ -1,0 +1,12 @@
+{
+ "verdict": "NOT_OK",
+ "problems": [
+  "The card's 'no unrelated refactoring' rule conflicts with the final commit. Reviewer 08 objected at PS2 to moving the `result` declaration for NRVO. The landed commit message still includes it: 'While modifying the control structure anyway, move the result declaration out of the conditional, so that NRVO can apply.' An engineer following the card would leave this out, even though it was accepted as part of the restructured loop.",
+  "The card says nothing about the regression test, which the reviewers shaped explicitly. Reviewer 08 rejected running the test in a QThread, because on failure the QThread is destroyed while still running. The test should instead build a very deep nesting (e.g. `constexpr qsizetype Depth = 100000;`, without Hungarian-style naming) and call `readElementText(IncludeChildElements)` in the main thread, so the stack overflow happens there and gives a usable backtrace.",
+  "The card leaves out the backport scope. Because this is a security fix, the reviewer said 5.15 must be included, and the final Pick-to is 6.12 6.11 6.8 6.5 5.15. The fix amends the start of the public history, so every branch is affected.",
+  "The card leaves out the loop shape the reviewer suggested at PS4. Where an end element is reached, decrement and test in one step: `if (--nestingLevel) break; else return result;`. This returns as soon as the nesting level reaches zero and avoids a separate return after the big if."
+ ],
+ "model": "opus",
+ "source": false,
+ "cost_usd": 0.023591
+}

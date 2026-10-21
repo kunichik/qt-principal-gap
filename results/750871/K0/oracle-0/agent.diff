@@ -1,0 +1,114 @@
+diff --git a/src/corelib/kernel/qmetatype.h b/src/corelib/kernel/qmetatype.h
+index 193a0e3..2978d3c 100644
+--- a/src/corelib/kernel/qmetatype.h
++++ b/src/corelib/kernel/qmetatype.h
+@@ -363,19 +363,31 @@ To convertImplicit(const From& from)
+     template <> struct IsPointerDeclaredOpaque<void *>       : std::true_type {};
+     template <> struct IsPointerDeclaredOpaque<const void *> : std::true_type {};
+ 
++    template <typename T, typename UniqueType = void> constexpr inline
++    bool TypeIsCompleteOrVoid = is_complete<T, UniqueType>::value || std::is_void_v<T>;
++    template <typename T> constexpr inline
++    bool PointerIsSuitableForMetaTypeHelper =
++            IsPointerDeclaredOpaque<T>::value
++            || is_complete<std::remove_pointer_t<T>>::value;
++    template <typename T, typename UniqueType = void> constexpr inline
++    bool TypeIsSuitableForMetaType =
++            TypeIsCompleteOrVoid<T, UniqueType>
++            && !std::is_reference_v<T>
++            && (!std::is_pointer_v<T> || PointerIsSuitableForMetaTypeHelper<T>);
++
+     template <typename X> static constexpr bool checkTypeIsSuitableForMetaType()
+     {
+         using T = typename MetatypeDecay<X>::type;
+-        static_assert(is_complete<T, void>::value || std::is_void_v<T>,
+-                "Meta Types must be fully defined");
++        static_assert(TypeIsCompleteOrVoid<T>, "Meta Types must be fully defined");
+         static_assert(!std::is_reference_v<T>,
+                 "Meta Types cannot be non-const references or rvalue references.");
+-        if constexpr (std::is_pointer_v<T> && !IsPointerDeclaredOpaque<T>::value) {
+-            using Pointed = std::remove_pointer_t<T>;
+-            static_assert(is_complete<Pointed, void>::value,
++        if constexpr (std::is_pointer_v<T>) {
++            static_assert(PointerIsSuitableForMetaTypeHelper<T>,
+                     "Pointer Meta Types must either point to fully-defined types "
+                     "or be declared with Q_DECLARE_OPAQUE_POINTER(T *)");
+         }
++        // final check
++        static_assert(TypeIsSuitableForMetaType<T>);
+         return true;
+     }
+ }  // namespace QtPrivate
+diff --git a/src/corelib/kernel/qobject_impl.h b/src/corelib/kernel/qobject_impl.h
+index 1c27e5f..b059a47 100644
+--- a/src/corelib/kernel/qobject_impl.h
++++ b/src/corelib/kernel/qobject_impl.h
+@@ -4,6 +4,7 @@
+ 
+ #ifndef QOBJECT_H
+ #error Do not include qobject_impl.h directly
++#include <QtCore/qobjectdefs_impl.h>
+ #endif
+ 
+ #if 0
+@@ -11,31 +12,46 @@
+ #pragma qt_sync_stop_processing
+ #endif
+ 
++#include <QtCore/qmetatype.h>
++
+ QT_BEGIN_NAMESPACE
+ 
+ 
+ namespace QtPrivate {
++    namespace { struct UniqueType; }
+     /*
+         Logic to statically generate the array of qMetaTypeId
+         ConnectionTypes<FunctionPointer<Signal>::Arguments>::types() returns an array
+         of int that is suitable for the types arguments of the connection functions.
+ 
+-        The array only exist of all the types are declared as a metatype
+-        (detected using the TypesAreDeclaredMetaType helper struct)
+-        If one of the type is not declared, the function return 0 and the signal
+-        cannot be used in queued connection.
++        The array only exist if all the types are valid for QMetaType, detected
++        using qTryMetaTypeInterfaceForType(). If any type is not valid at this
++        point (non-const references and forward-declared types), the function
++        returns nullptr. If the issue is a forward-declared type, the function
++        can be used in a queued connection if the type is registered elsewhere
++        before the signal is emitted. If the type is a non-const reference, it
++        cannot be use in queued connections at all.
+     */
+-    template <typename ArgList> struct TypesAreDeclaredMetaType { enum { Value = false }; };
+-    template <> struct TypesAreDeclaredMetaType<List<>> { enum { Value = true }; };
+-    template <typename Arg, typename... Tail> struct TypesAreDeclaredMetaType<List<Arg, Tail...> >
+-    { enum { Value = QMetaTypeId2<Arg>::Defined && TypesAreDeclaredMetaType<List<Tail...>>::Value }; };
+-
+-    template <typename ArgList, bool Declared = TypesAreDeclaredMetaType<ArgList>::Value > struct ConnectionTypes
+-    { static const int *types() { return nullptr; } };
+-    template <> struct ConnectionTypes<List<>, true>
++    template <typename... Args> struct ConnectionTypesHelper
++    {
++        static const int *types()
++        {
++            if constexpr ((TypeIsSuitableForMetaType<Args, UniqueType> && ...)) {
++                static const int t[] = { qMetaTypeId<Args>()..., 0 };
++                return t;
++            } else {
++                return nullptr;
++            }
++        }
++    };
++
++    template <typename ArgList> struct ConnectionTypes;
++    template <> struct ConnectionTypes<List<>>
+     { static const int *types() { return nullptr; } };
+-    template <typename... Args> struct ConnectionTypes<List<Args...>, true>
+-    { static const int *types() { static const int t[sizeof...(Args) + 1] = { (QtPrivate::QMetaTypeIdHelper<Args>::qt_metatype_id())..., 0 }; return t; } };
++    template <typename... Args> struct ConnectionTypes<List<Args...>>
++            : public ConnectionTypesHelper<typename MetatypeDecay<Args>::type...>
++    {
++    };
+ }
+ 
+ 

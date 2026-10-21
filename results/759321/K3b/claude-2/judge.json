@@ -1,0 +1,8 @@
+{
+ "design_match": 0.9,
+ "reviewer_concerns": 0.95,
+ "minimality": 0.9,
+ "hidden_risk": 0.9,
+ "key_difference": "(D) keeps the 'could not remove lock file' warning in unlock() and signals failure through errno, so a failed stale-lock removal in removeStaleLock() is silent; (B) puts the warning inside the shared releaseLockFile() helper, so both callers report it.",
+ "judge_cost_usd": 0.05646879999999999
+}

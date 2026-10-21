@@ -1,0 +1,13 @@
+[PS1 Reviewer 02 /PATCHSET_LEVEL:0]
+Yeah file watchers have all sorts of problems (waking up all Qt apps, multiple times... and sometimes not working (e.g. kdevelop open, you run out of inotify inodes...).
+
+I'm not sure what you mean with your last comment. Apps must also react to files being installed externally (e.g. when installing an RPM), not just from within the app itself, so surely we need a way for new files to be picked up without an explicit `reload()` from the app.
+
+My thinking however is that reload() would simplify some existing unittests which currently set `qmime_secondsBetweenChecks` to 0 (`tst_qmimedatabase.cpp:1210`, `tst_qmimedatabase.cpp:1325`). I wouldn't mind those being ported to reload() instead, in this commit. We should even stop exporting `qmime_secondsBetweenChecks` then.
+
+[PS1 Reviewer 02 /PATCHSET_LEVEL:0]
+At the Qt level I want a solution that works for non-KDE Qt apps that don't use DBus, too.
+
+The mtime check is what other technology stacks do too, and my experience says it's far more reliable than any kind of DBus-signal/file-watching over-engineering (remember ksycoca not reliably updating in kde3/kde4, while now it does a much better job at keeping up-to-date because it does a mtime check instead of relying on file-watching+DBus).
+
+The immediate use after installing is indeed the case where the throttled mtime check isn't great, and you just fixed that with reload().

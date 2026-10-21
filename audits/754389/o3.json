@@ -1,0 +1,13 @@
+{
+ "verdict": "NOT_OK",
+ "problems": [
+  "The card never says what happens when the sender's thread can no longer deliver events (finished, or no event dispatcher). It only says 'unless'. Mårten asked that this case fall back to a direct inline call, or at least be documented, and the commit message implies the inline fallback. The engineer could otherwise drop the notification entirely.",
+  "The card says the notification 'can be posted', which leaves the core rule optional. The real decision is fixed: notify inline when the sender belongs to the current thread, and always post to the sender's thread otherwise.",
+  "The card omits Thiago's documentation request. Reading senderPriv is not racy only because the mutex keeps the sender alive as far as QObject; it does not stop the destructors of further-derived classes from running. The reviewer explicitly asked for this to be documented.",
+  "The card omits the known regression: at PS8 this change was reported to cause a crash in QtCoAP (QTBUG-149883). Code that relies on disconnectNotify() being synchronous, or that tracks counters (QBuffer, QFutureWatcher, QDBusAbstractInterface's relay), now sees deferred notifications. The engineer needs to check these users.",
+  "Bullet 3 mentions callers outside qtbase but does not say they are out of scope. Changing the private QObjectPrivate helper that QQmlNotifierEndpoint and qtscxml call was only floated as a question for Ulf. The final change did not alter those callers; QtQml getting the same fix would be a separate change. The card should state this so the engineer does not widen the change."
+ ],
+ "model": "opus",
+ "source": false,
+ "cost_usd": 0.0283066
+}

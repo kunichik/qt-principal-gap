@@ -1,0 +1,16 @@
+{
+ "task": "756614",
+ "arm": "K0",
+ "rep": "0",
+ "agent": "none",
+ "model": "opus",
+ "tests": {
+  "tests/auto/corelib/thread/qthreadstorage": {
+   "build": "FAIL",
+   "log": "calData' in 'QThreadStorage<SPointer>'; did you mean 'hasLocalData'?\n  627 |         tls.clearLocalData(); // no-op, must not crash\n      |             ^~~~~~~~~~~~~~\n      |             hasLocalData\n<experiment-root>/qtbase/src/corelib/thread/qthreadstorage.h:115:17: note: 'hasLocalData' declared here\n  115 |     inline bool hasLocalData() const\n      |                 ^\n<experiment-root>/qtbase/tests/auto/corelib/thread/qthreadstorage/tst_qthreadstorage.cpp:646:26: error: no member named 'clearLocalData' in 'QThreadStorage<SPointer>'; did you mean 'hasLocalData'?\n  646 |                 pointers.clearLocalData(); // no-op, must not crash\n      |                          ^~~~~~~~~~~~~~\n      |                          hasLocalData\n<experiment-root>/qtbase/src/corelib/thread/qthreadstorage.h:115:17: note: 'hasLocalData' declared here\n  115 |     inline bool hasLocalData() const\n      |                 ^\n<experiment-root>/qtbase/tests/auto/corelib/thread/qthreadstorage/tst_qthreadstorage.cpp:652:26: error: no member named 'clearLocalData' in 'QThreadStorage<SPointer>'; did you mean 'hasLocalData'?\n  652 |                 pointers.clearLocalData();\n      |                          ^~~~~~~~~~~~~~\n      |                          hasLocalData\n<experiment-root>/qtbase/src/corelib/thread/qthreadstorage.h:115:17: note: 'hasLocalData' declared here\n  115 |     inline bool hasLocalData() const\n      |                 ^\n8 errors generated.\nninja: build stopped: subcommand failed.\n"
+  }
+ },
+ "cost_usd": null,
+ "turns": null,
+ "wall_s": null
+}

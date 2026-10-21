@@ -1,0 +1,8 @@
+{
+ "design_match": 0.7,
+ "reviewer_concerns": 0.4,
+ "minimality": 0.75,
+ "hidden_risk": 0.5,
+ "key_difference": "(D) drains in an unbounded `while (true)` loop with no MaxPasses cap, so an event destructor that always posts a new event spins forever; (B) gives up after 16 passes with a warning. (D) also unposts while holding the mutex and switches Relaxed to Acquire, both of which the reviewers objected to.",
+ "judge_cost_usd": 0.06441179999999999
+}

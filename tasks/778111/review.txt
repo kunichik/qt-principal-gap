@@ -1,0 +1,14 @@
+[PS1 Reviewer 15 src/corelib/text/qbytearray.cpp:760]
+Verify that there's no signed integer overflow here and clamp to qsizetype's max.
+
+[PS2 Reviewer 15 src/corelib/text/qbytearray.cpp:771]
+There's still a signed/unsigned problem here for 32-bit systems. It's where you removed the "cannot overflow" comment.
+
+For a QByteArray input of just under 2MB, maxPlausibleSize could exceed 2GB. The inner `std::min` is fine: between the two of them, but then the result cast to `qsizetype` would become negative. Of course, then it would be definitely smaller than `nbytes` and that gets selected.
+
+As you've noted, it doesn't matter whether we get it wrong, because we do reallocate later. But I think you should move your new block above the `MaxDecompressedSize` check and update `expectedSize = min(expectedSize, maxPlausibleSize)`. That way, the "cannot overflow" remains true.
+
+[PS3 Reviewer 15 src/corelib/text/qbytearray.cpp:757]
+Overly verbose AI comment... and wrong. This can't overflow on 64-bit platforms because `nbytes` cannot reach PTRDIFF_MAX/1032.
+
+Just remove it.

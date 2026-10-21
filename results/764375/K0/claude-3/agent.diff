@@ -1,0 +1,90 @@
+diff --git a/src/concurrent/qtconcurrentrunbase.h b/src/concurrent/qtconcurrentrunbase.h
+index 4674d7f4..7731ff5c 100644
+--- a/src/concurrent/qtconcurrentrunbase.h
++++ b/src/concurrent/qtconcurrentrunbase.h
+@@ -47,6 +47,17 @@ template <typename T>
+ class RunFunctionTaskBase : public QRunnable
+ {
+ public:
++    ~RunFunctionTaskBase() override
++    {
++        // The task may be deleted without having run, e.g. when it is
++        // removed from the queue by QThreadPool::clear(). Make sure the
++        // future does not stay in the Running state forever.
++        if (!promise.isFinished()) {
++            promise.reportCanceled();
++            promise.reportFinished();
++        }
++    }
++
+     QFuture<T> start()
+     {
+         return start(TaskStartParameters());
+diff --git a/tests/auto/concurrent/qtconcurrentrun/tst_qtconcurrentrun.cpp b/tests/auto/concurrent/qtconcurrentrun/tst_qtconcurrentrun.cpp
+index 0bc29619..59e87063 100644
+--- a/tests/auto/concurrent/qtconcurrentrun/tst_qtconcurrentrun.cpp
++++ b/tests/auto/concurrent/qtconcurrentrun/tst_qtconcurrentrun.cpp
+@@ -4,6 +4,8 @@
+ #include <QFuture>
+ #include <QMutex>
+ #include <QMutexLocker>
++#include <QScopeGuard>
++#include <QSemaphore>
+ #include <QString>
+ #include <QWaitCondition>
+ #include <QTest>
+@@ -45,6 +47,7 @@ private slots:
+     void nonDefaultConstructibleValue();
+     void nullThreadPool();
+     void nullThreadPoolNoLeak();
++    void clearedFromThreadPool();
+ };
+ 
+ void light()
+@@ -1630,5 +1633,46 @@ void tst_QtConcurrentRun::nullThreadPoolNoLeak()
+     QCOMPARE(LifetimeChecker::count, 0);
+ }
+ 
++void tst_QtConcurrentRun::clearedFromThreadPool()
++{
++    QThreadPool pool;
++    pool.setMaxThreadCount(1);
++
++    QSemaphore started;
++    QSemaphore release;
++    auto blocker = run(&pool, [&] {
++        started.release();
++        release.acquire();
++    });
++    auto cleanup = qScopeGuard([&] {
++        release.release();
++        blocker.waitForFinished();
++    });
++    started.acquire();
++
++    // These tasks are queued behind the blocker and will be removed by clear()
++    QFuture<void> voidFuture = run(&pool, [] {});
++    QFuture<int> intFuture = run(&pool, [] { return 42; });
++    QFuture<int> promiseFuture = run(&pool, [](QPromise<int> &p) { p.addResult(42); });
++    bool continuationCalled = false;
++    QFuture<void> continuation = run(&pool, [] {}).then(QtFuture::Launch::Sync,
++                                                         [&] { continuationCalled = true; });
++
++    pool.clear();
++
++    QVERIFY(voidFuture.isFinished());
++    QVERIFY(voidFuture.isCanceled());
++    QVERIFY(intFuture.isFinished());
++    QVERIFY(intFuture.isCanceled());
++    QVERIFY(promiseFuture.isFinished());
++    QVERIFY(promiseFuture.isCanceled());
++    QVERIFY(continuation.isFinished());
++    QVERIFY(!continuationCalled);
++
++    // must not hang
++    voidFuture.waitForFinished();
++    intFuture.waitForFinished();
++}
++
+ QTEST_MAIN(tst_QtConcurrentRun)
+ #include "tst_qtconcurrentrun.moc"

@@ -1,0 +1,23 @@
+QDate: Reject trailing data in Qt::ISODate parsing
+
+A valid ISO date is always exactly 10 characters with fixed separators.
+QDate::fromString(s, Qt::ISODate) only required the string to be at
+least 10 characters and that the character at index 10, if any, was not
+a digit. As a result "2024-01-02 anything at all" with a trailing part
+parsed to a valid QDate, silently discarding the tail. This was
+inconsistent with the QDateTime overload and Qt::TextDate path, so
+require the string to be exactly "yyyy-MM-dd" and reject any trailing
+data.
+Document that ISODate requires exactly "yyyy-MM-dd" and that its field
+separators are lenient: any punctuation character is accepted in place
+of '-'.
+
+[ChangeLog][QtCore][QDate] QDate::fromString() with Qt::ISODate or
+Qt::ISODateWithMs now rejects trailing data after the "yyyy-MM-dd" date.
+Previously a string such as "2024-01-02 ..." parsed to a valid date and
+the trailing text was silently ignored; it now returns an invalid QDate,
+consistent with other handling of Qt::TextDate formats.
+
+Fixes: QTBUG-150212
+Change-Id: Iea9dd0d7f93beb8633892c286d1ba168acbd8ea3
+Reviewed-by: Edward Welbourne <edward.welbourne@qt.io>

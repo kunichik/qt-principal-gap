@@ -1,0 +1,8 @@
+{
+ "design_match": 0.8,
+ "reviewer_concerns": 1.0,
+ "minimality": 0.35,
+ "hidden_risk": 0.6,
+ "key_difference": "(D) has the same RunFunctionTaskBase destructor as (B), but it also wraps ThreadEngine's initial pool start in a new auto-deleting ThreadEngineStartTask (with a new protected method and a friend declaration) to cover the map()/filter() path; reviewers deliberately left that path out of (B), and in (D) it means threadExit()/finish() and continuations can run from inside QThreadPool::clear(), which is the riskier part.",
+ "judge_cost_usd": 0.059770699999999996
+}

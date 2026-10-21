@@ -1,0 +1,8 @@
+{
+ "design_match": 0.9,
+ "reviewer_concerns": 1.0,
+ "minimality": 0.85,
+ "hidden_risk": 0.95,
+ "key_difference": "(D) dispatches with a switch on type() and converts negative integers by computing value64 + 1 in quint64 with a special case for the wrap at -2^64, where (B) uses a plain if-chain and the simpler `-double(value64) - 1`; both are correct and (D) rounds only once, at the cost of a little extra complexity.",
+ "judge_cost_usd": 0.0649877
+}

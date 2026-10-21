@@ -1,0 +1,143 @@
+{
+ "duration_api_ms": 167321,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 0.8498246,
+ "usage": {
+  "input_tokens": 44,
+  "cache_creation_input_tokens": 43072,
+  "cache_read_input_tokens": 1133655,
+  "output_tokens": 13903,
+  "output_tokens_details": {
+   "thinking_tokens": 3372
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 43072,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1179,
+    "cache_read_input_tokens": 65465,
+    "cache_creation_input_tokens": 2804,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2804
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1586,
+   "outputTokens": 246,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002816,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 222,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 44,
+   "outputTokens": 13903,
+   "cacheReadInputTokens": 1133655,
+   "cacheCreationInputTokens": 43072,
+   "webSearchRequests": 0,
+   "costUSD": 0.8495430000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 3372,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 22,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "I've added `QThreadStorage<T>::clearLocalData()` for both the pointer and value variants, and switched QCollator back to a value-based `QThreadStorage`. `tst_qthreadstorage` passes (19 passed, 1 skipped: the Windows-only test) and `tst_qcollator` passes (263 tests). Nothing is committed.\n\n**How it works**\n- **New function:** it deletes the calling thread's data, if there is any, using the storage's normal destructor. Afterwards `hasLocalData()` is false and other threads' data is untouched. Behind it is a new exported member, `QThreadStorageData::clear()`; adding a non-virtual member keeps binary compatibility.\n- **No QThreadData is created:** as `CLAUDE.md` requires, it uses `QThreadData::currentThreadData()`, which doesn't create one. If the thread has no QThreadData, or no data in this slot, it does nothing.\n- **Kept minimal:** `get()` and `set()` are untouched. The deletion code is written out again in `clear()` rather than moved into a shared helper, so existing code paths don't change.\n- **Builds without thread support:** there it's simply `data.reset()`.\n\n**Documentation** (`qthreadstorage.cpp`)\n- New `\\fn` block with `\\since 6.13`. It covers both variants, says it's safe to call during thread or program shutdown, and notes that `localData()` creates a new default-constructed value after a clear.\n- I updated the two class-level Caveats bullets that list when data is deleted and which calls can re-create thread storage at shutdown.\n\n**QCollator** (`qcollator.cpp`)\n- Now uses `QThreadStorage<GenerationalCollator>`. The holder's destructor just calls `storage.clearLocalData()`.\n- The `currentThreadData()` guard, the manual `new` in `localData()` and the `qthread_p.h` include are gone.\n\n**Autotests** (`tst_qthreadstorage.cpp`)\n- `clearLocalData()`, pointer variant: clearing with no data, clearing set data, clearing twice, and reusing the storage afterwards, checking the destroyed-object counts each time.\n- `clearLocalData_valueBased()`: `SPointer`, `QString` and `std::unique_ptr` payloads, with data created by both `setLocalData()` and `localData()`, plus a check in a worker thread.\n- `clearLocalData_noData()`: a `std::thread` and a `QThread` that never set data. It checks that the main thread's data is unaffected, and that clearing on a `std::thread` doesn't create a QThreadData.\n  - That check uses private API, so the test now links `Qt::CorePrivate` (in `CMakeLists.txt`), and the check is only compiled when `QT_BUILD_INTERNAL` is defined, as in your developer build.\n  - To make sure it would catch a regression, I temporarily switched `clear()` to the creating `QThreadData::current()`: the test failed. I then restored the code.\n\n`tst_qthreadstorage` has to be run from its build directory. From anywhere else, `crashOnExit` fails because it can't find its helper program.\n\nI ignored the lines of numbers at the end of your message (\"756614 K0 2\" and so on), since they looked unrelated to the request.",
+ "ttft_ms": 2810,
+ "type": "result",
+ "duration_ms": 191528,
+ "ttft_stream_ms": 1968,
+ "time_to_request_ms": 244,
+ "time_to_request_phases_ms": {
+  "other": 12,
+  "system_prompt": 6,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 7,
+  "input_hooks": 1,
+  "transcript_persist": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 2,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 202,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 2,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 12,
+ "time_to_request_cpu_ms": 256,
+ "time_to_request_major_faults": 413,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 8,
+  "major_faults": 22
+ },
+ "first_content_frame_ms": 1968,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

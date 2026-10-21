@@ -1,0 +1,143 @@
+{
+ "duration_api_ms": 125710,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 0.6256255999999999,
+ "usage": {
+  "input_tokens": 34,
+  "cache_creation_input_tokens": 29325,
+  "cache_read_input_tokens": 726046,
+  "output_tokens": 12272,
+  "output_tokens_details": {
+   "thinking_tokens": 5847
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 29325,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 967,
+    "cache_read_input_tokens": 53667,
+    "cache_creation_input_tokens": 855,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 855
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1519,
+   "outputTokens": 177,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002404,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 156,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 34,
+   "outputTokens": 12272,
+   "cacheReadInputTokens": 726046,
+   "cacheCreationInputTokens": 29325,
+   "webSearchRequests": 0,
+   "costUSD": 0.6253852,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 5847,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 20,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "I found and fixed the race in `QObject::~QObject()`. The new regression test fails without the fix and passes with it, and all 129 tests in `tst_qobject` pass. I did not run anything under ThreadSanitizer (the `b3` build doesn't have it enabled) or run the QtNetwork tests. So the race being gone is based on reading the code, not on a clean TSan run.\n\n**Root cause** (`src/corelib/kernel/qobject.cpp`, the \"disconnect all senders\" loop): when a receiver is destroyed, it calls two virtual functions on each sender, `metaObject()` and `disconnectNotify()`. It does this before taking any lock and without checking which thread the sender lives in.\n\n- If the sender lives in another thread, it may be running its own subclass destructors at that moment. Those destructors rewrite the object's vtable pointer and tear down its members.\n- Reading the vtable pointer and calling `disconnectNotify()` from the receiver's thread at the same time is a data race on an object partly destroyed in another thread.\n- A code comment there claimed the sender's destructor would block on the receiver's lock, but that only holds for the base `~QObject`. The subclass destructors run before it and take no lock, so no lock can make the virtual call safe.\n- QtNetwork hits this on every request because its reply objects and the HTTP thread's objects are connected across threads and destroyed in parallel.\n\n**Fix:** the receiver's destructor now calls `disconnectNotify()` on a sender only if that sender lives in the current thread. Same-thread senders behave exactly as before. Connections are still removed in every case. I added a `\\note` to the `disconnectNotify()` docs describing this.\n\n**Behaviour change to accept:** when the destroyed receiver is in a different thread from the sender, the sender no longer gets `disconnectNotify()` for that connection.\n- In qtbase, only `QBuffer` and the D-Bus classes override `disconnectNotify()`. `QBuffer` uses it as a connection count to skip emitting signals nobody listens to. A missed notification leaves the count too high, so it keeps emitting signals; it doesn't break anything.\n- Any other code that relies on this callback across threads will no longer get it in that case.\n\n**Test:** I added `tst_QObject::disconnectNotify_receiverDestroyedCrossThread`. It has two parts:\n- It checks that destroying a receiver doesn't call into a sender living in another thread.\n- It repeatedly destroys connected pairs in two threads at once. This part is mainly useful when run under TSan.\n\nI ignored the block of numbers at the end of your message (`764375 K0 2` and so on). It didn't seem related to the task; tell me if it was meant to be.",
+ "ttft_ms": 4079,
+ "type": "result",
+ "duration_ms": 258029,
+ "ttft_stream_ms": 1362,
+ "time_to_request_ms": 210,
+ "time_to_request_phases_ms": {
+  "other": 11,
+  "system_prompt": 4,
+  "resume_other": 1,
+  "process_user_input": 1,
+  "input_attachments": 10,
+  "input_hooks": 2,
+  "transcript_persist": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 1,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 169,
+  "autocompact": 0,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 2,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 6,
+ "time_to_request_cpu_ms": 276,
+ "time_to_request_major_faults": 414,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 8,
+  "cpu_ms": 12,
+  "major_faults": 23
+ },
+ "first_content_frame_ms": 1362,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

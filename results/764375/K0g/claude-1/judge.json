@@ -1,0 +1,8 @@
+{
+ "design_match": 1.0,
+ "reviewer_concerns": 1.0,
+ "minimality": 1.0,
+ "hidden_risk": 1.0,
+ "key_difference": "Functionally identical: (D) adds the same destructor that does reportCanceled() then reportFinished() when the promise isn't finished, so .onCanceled() continuations fire. It differs only in placing the destructor above start() and adding an explanatory comment.",
+ "judge_cost_usd": 0.0245928
+}

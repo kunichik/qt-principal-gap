@@ -1,0 +1,143 @@
+{
+ "duration_api_ms": 211143,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 1.2452576000000002,
+ "usage": {
+  "input_tokens": 56,
+  "cache_creation_input_tokens": 56249,
+  "cache_read_input_tokens": 1644136,
+  "output_tokens": 23298,
+  "output_tokens_details": {
+   "thinking_tokens": 12696
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 56249,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1255,
+    "cache_read_input_tokens": 80931,
+    "cache_creation_input_tokens": 515,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 515
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1589,
+   "outputTokens": 191,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002544,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 171,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 56,
+   "outputTokens": 23298,
+   "cacheReadInputTokens": 1644136,
+   "cacheCreationInputTokens": 56249,
+   "webSearchRequests": 0,
+   "costUSD": 1.2450032000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 12696,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 36,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "I fixed this. There were two problems, both in headers.\n\n**Root cause**\n\n1. **`src/corelib/kernel/qmetatype.h`**: the template that decides whether a type has a known meta-type (`QMetaTypeIdQObject`) only recognised pointers to Q_GADGET types and Q_ENUM types. The cases for pointers to QObject subclasses and for Q_GADGET values were missing. So `QMetaTypeId2<T>::Defined` was 0 for those types.\n2. **`src/corelib/kernel/qobject_impl.h`**: `ConnectionTypes`, which `connect()` uses to build and register the argument-type list, only accepted types where `Defined` is true. If any argument failed that check, it returned `nullptr` and registered nothing, including Q_ENUM arguments that sat next to an unrecognised type. Other complete types without `Q_DECLARE_METATYPE` never qualified at all.\n\n**Fix**\n\n- **`qmetatype.h`**: I added the two missing cases.\n  - QObject pointers register through `QMetaType::fromType<T*>().id()`, so `const Foo*` and `Foo*` stay separate types. The existing `constQObjectPointer` test (QTBUG-147588) depends on that.\n  - Q_GADGET values count as declared only if they have a default constructor. This keeps the existing `connectNoDefaultConstructorArg` test compiling.\n- **`qobject_impl.h`**: an argument can now be registered either because it is declared, or because it is a complete, non-reference type that `QMetaType` can handle. A pointer argument also needs its pointee to be complete, unless it is `void*`, a function pointer or a member pointer. Declared types still go through `QMetaTypeIdHelper`; the others go through `QMetaType::fromType<Arg>().id()`. Forward-declared types and non-const references still give `nullptr`, so the existing fallback of working the types out from the signal's signature when it's emitted still applies.\n\n`connect()` still only builds this list for `Qt::QueuedConnection` and `Qt::BlockingQueuedConnection`, as before. With `AutoConnection`, nothing is registered at connect time.\n\n**Test**\n\nI added `tst_QObject::connectRegistersMetaTypes` in `tests/auto/corelib/kernel/qobject/tst_qobject.cpp`. It covers a Q_GADGET, a Q_ENUM, `Object*`, `const Object*` and a plain struct passed as `const Plain&`. It checks that `QMetaType::fromName()` finds nothing before the queued `connect()` and the right type after it, and that a queued emit delivers each value.\n\n**Results**\n\n- With only the library changes stashed, the new test fails. With them in place it passes.\n- `tst_qobject`: 124 passed, 0 failed. The output includes XFAIL lines from `mixedConnectDisconnect`, which is marked as an expected failure.\n- `tst_qmetaobject`, `tst_qmetamethod`, `tst_qmetaproperty`, `tst_qmetaenum`, `tst_qproperty`, `tst_qmetacontainer` and `tst_qslotobject` all pass.\n- `tst_qmetatype` and `tst_qvariant` aren't set up in this build directory, so they weren't run. They're the most relevant remaining suites, since `qmetatype.h` changed.\n\nOne limitation: the completeness check uses a tag private to `ConnectionTypes`. A type that is forward-declared in one source file and complete in another can still be handled differently in each. The existing `Q_DECLARE_METATYPE`-based check already had the same issue.",
+ "ttft_ms": 2513,
+ "type": "result",
+ "duration_ms": 533073,
+ "ttft_stream_ms": 1323,
+ "time_to_request_ms": 309,
+ "time_to_request_phases_ms": {
+  "other": 14,
+  "system_prompt": 7,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 8,
+  "input_hooks": 2,
+  "transcript_persist": 10,
+  "tool_pool_refresh": 1,
+  "init_message": 6,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 250,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 4,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 20,
+ "time_to_request_cpu_ms": 297,
+ "time_to_request_major_faults": 421,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 13,
+  "major_faults": 27
+ },
+ "first_content_frame_ms": 1323,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

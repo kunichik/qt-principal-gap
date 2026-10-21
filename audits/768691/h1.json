@@ -1,0 +1,11 @@
+{
+ "verdict": "NOT_OK",
+ "problems": [
+  "The card omits the failure-mode contract for `appendTo`. Review PS12 flags that the doc promises one thing and the code does another (on failure the code makes `appendTo` null, which contradicts the doc unless it was already null). The card should say what happens to `appendTo` on a negative return, or that the doc must be fixed and a precondition added.",
+  "The card says a literal backslash in the input is also unsafe on Windows. The task and commit only reject decoded `\\` (from %5C) and the decoder is meant to check decoded bytes. Extending the rule to literal input is not in the commit or the task and changes behaviour for other input.",
+  "The card leaves out the scope decision. No existing caller passes `QUrlDecodeForLocalFile` in this change, behaviour for all current modes is unchanged, and wiring it into `QUrl::toLocalFile()`/`toString()` is for the next commit. The engineer needs this boundary stated explicitly."
+ ],
+ "model": "haiku",
+ "source": false,
+ "cost_usd": 0.00252587
+}

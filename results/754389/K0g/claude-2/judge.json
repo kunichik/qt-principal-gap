@@ -1,0 +1,8 @@
+{
+ "design_match": 0.0,
+ "reviewer_concerns": 0.0,
+ "minimality": 1.0,
+ "hidden_risk": 0.0,
+ "key_difference": "Section (D) is empty, so these scores treat the candidate as making no change, but this may be a harness bug (empty or missing diff) and should be checked before the score is used. Read as a no-op, (D) leaves the race in ~QObject(): disconnectNotify() is still called virtually on a sender in another thread that may be running its derived destructors, which (B) fixes by posting a QDisconnectNotifyEvent to the sender's thread.",
+ "judge_cost_usd": 0.0643478
+}

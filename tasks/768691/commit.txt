@@ -1,0 +1,22 @@
+QUrl: add a decode mode that rejects unsafe local-file paths
+
+This commit adds a private ComponentFormattingOption,
+QUrlDecodeForLocalFile, that combines with FullyDecoded. In that mode,
+qt_urlRecode() stops and returns a negative value when it encounters an
+unsafe character. No caller passes the flag yet, so behavior is
+unchanged; the next commit will use it in QUrl::toLocalFile() and
+QUrl::toString().
+
+This is necessary because QUrl::toLocalFile() must fully decode the
+percent-encoded path, turning any percent sequence into UTF-16 code
+units for QString. Some of those are unsafe once the result is used as a
+file path:
+- %00 (NUL) and %2F (slash), plus %5C (backslash) on Windows
+- percent-encoded sequences that cannot be decoded as UTF-8 and thus
+  cannot be represented in QString
+
+Task-number: QTBUG-150008
+Task-number: QTBUG-150016
+Change-Id: I92002d9bd29839e7f0ecfffdc835808508047d93
+Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
+Reviewed-by: Edward Welbourne <edward.welbourne@qt.io>

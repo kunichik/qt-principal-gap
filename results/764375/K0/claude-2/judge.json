@@ -1,0 +1,8 @@
+{
+ "design_match": 0.97,
+ "reviewer_concerns": 1.0,
+ "minimality": 0.95,
+ "hidden_risk": 0.95,
+ "key_difference": "(D) is functionally identical to (B): the same destructor cancels and finishes the unfinished promise. It differs only in placing the destructor before start() and adding an explanatory comment.",
+ "judge_cost_usd": 0.034087
+}

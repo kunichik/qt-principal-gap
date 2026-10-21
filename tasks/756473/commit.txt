@@ -1,0 +1,13 @@
+QByteArray: support constexpr construction from literals
+
+The _ba literal and QByteArrayLiteral() already point at static byte
+data, but the QByteArray wrapper could not be created during constant
+evaluation.
+
+Reuse the constexpr-capable QArrayDataPointer path and make QByteArray
+destruction, move operations, and swapping constexpr when supported.
+Make the DataPointer constructor and _ba literal operator constexpr in
+those builds.
+
+Change-Id: Idab61828a77d58bd93e3721c823b4b0f39a5c061
+Reviewed-by: Thiago Macieira <thiago.macieira@intel.com>

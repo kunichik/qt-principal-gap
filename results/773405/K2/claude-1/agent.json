@@ -1,0 +1,143 @@
+{
+ "duration_api_ms": 129848,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 0.7057177,
+ "usage": {
+  "input_tokens": 38,
+  "cache_creation_input_tokens": 34015,
+  "cache_read_input_tokens": 851317,
+  "output_tokens": 13146,
+  "output_tokens_details": {
+   "thinking_tokens": 2857
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 34015,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 981,
+    "cache_read_input_tokens": 58268,
+    "cache_creation_input_tokens": 944,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 944
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1528,
+   "outputTokens": 219,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00026230000000000003,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 193,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 38,
+   "outputTokens": 13146,
+   "cacheReadInputTokens": 851317,
+   "cacheCreationInputTokens": 34015,
+   "webSearchRequests": 0,
+   "costUSD": 0.7054554000000001,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 2857,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 22,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "I've added `QCborStreamReader::isNumber()` and `QCborStreamReader::toNumber()`, with documentation and autotests. `tst_qcborstreamreader` builds and passes in full (3694 passed, 0 failed), using both a byte array and a `QBuffer` as input.\n\n**API** (`src/corelib/serialization/qcborstreamreader.h`). Both functions are inline, like the other `is*()` and `to*()` accessors there, so the library's binary interface doesn't change.\n- `bool isNumber() const` is true for unsigned and negative integers and for half-, single- and double-precision floats.\n- `double toNumber() const` asserts `isNumber()`, the same way the other accessors check their type, and then converts by type:\n  - **Unsigned integer:** converted with `double(value64)`.\n  - **Negative integer:** I add the 1 to the stored value as an integer before converting, so the result is rounded only once. The obvious `-double(value64) - 1` rounds twice and can give a wrong result for large values. The one value where adding 1 would overflow returns \u22122\u2076\u2074 directly. As a result, `toNumber()` doesn't overflow outside the `qint64` range the way `toInteger()` does.\n  - **Floats:** half and single precision are widened to `double` with no loss; infinities, NaN and \u22120 are kept.\n\n**Docs** (`qcborstreamreader.cpp`): both functions are documented with `\\since 6.13`, taken from `.cmake.conf`. The `toNumber()` docs say that integers above 2\u2075\u00b3 in magnitude are rounded to the nearest `double`. They also say that tagged values (bignums, decimal fractions) are tags, not numbers, so `toNumber()` doesn't convert them.\n\n**Tests** (`tst_qcborstreamreader.cpp`):\n- **New data-driven `numbers()` test:**\n  - **Integers:** boundary values up to 2\u2076\u2074\u22121 and down to \u22122\u2076\u2074, plus one value chosen so that rounding twice gives a different result. I checked that this row would fail with the naive formula.\n  - **Floats:** zero and \u22120, subnormals, the largest finite values, infinities and NaN in all three precisions.\n  - **Non-numbers:** booleans, null, undefined, a simple type, strings, byte arrays, containers, and tagged numbers including bignums and decimal fractions.\n- **Checks in `numbers()`:**\n  - Values are compared exactly (`QCOMPARE_EQ` plus a sign check), because plain `QCOMPARE` compares doubles approximately and treats 0 and \u22120 as equal.\n  - `isNumber()` must match the existing type checks.\n  - `toNumber()` must match the type-specific getters.\n- **Existing tests:** `basics()` now also checks `!isNumber()`, and `integers()` checks `isNumber()` for every integer case.\n\nNothing is committed yet.",
+ "ttft_ms": 3873,
+ "type": "result",
+ "duration_ms": 145316,
+ "ttft_stream_ms": 3060,
+ "time_to_request_ms": 329,
+ "time_to_request_phases_ms": {
+  "other": 14,
+  "system_prompt": 7,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 7,
+  "input_hooks": 2,
+  "transcript_persist": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 1,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 284,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 3,
+  "message_normalization": 1,
+  "client_creation": 0,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 13,
+ "time_to_request_cpu_ms": 274,
+ "time_to_request_major_faults": 405,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 13,
+  "major_faults": 27
+ },
+ "first_content_frame_ms": 3060,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

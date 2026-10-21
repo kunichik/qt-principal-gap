@@ -1,0 +1,8 @@
+{
+ "design_match": 0.95,
+ "reviewer_concerns": 1.0,
+ "minimality": 0.95,
+ "hidden_risk": 1.0,
+ "key_difference": "(D) is functionally the same as (B): it invalidates m_lastCheck under the mutex via a private helper and makes qmime_secondsBetweenChecks a non-exported constexpr; it differs only in keeping the int/elapsed()*1000 comparison instead of moving to std::chrono and in adding a redundant null check on QMimeDatabasePrivate::instance().",
+ "judge_cost_usd": 0.0555678
+}

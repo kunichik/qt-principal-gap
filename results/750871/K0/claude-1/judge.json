@@ -1,0 +1,8 @@
+{
+ "design_match": 0.45,
+ "reviewer_concerns": 0.3,
+ "minimality": 0.8,
+ "hidden_risk": 0.3,
+ "key_difference": "(D) tests completeness with `is_complete<T, void>` inside templates shared across translation units. The same signal argument list can then be instantiated as complete in one TU and incomplete in another, an ODR violation that may fold in the wrong `types()` result. (B) avoids this by routing an anonymous-namespace `UniqueType` through `TypeIsSuitableForMetaType` into `is_complete`, and keeps the suitability check in shared `qmetatype.h` helpers instead of duplicating it.",
+ "judge_cost_usd": 0.059259099999999995
+}

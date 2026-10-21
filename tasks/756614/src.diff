@@ -1,0 +1,142 @@
+diff --git a/src/corelib/text/qcollator.cpp b/src/corelib/text/qcollator.cpp
+index 8fce0bb1..2061f1c8 100644
+--- a/src/corelib/text/qcollator.cpp
++++ b/src/corelib/text/qcollator.cpp
+@@ -10,7 +10,6 @@
+ #include "qdebug.h"
+ #include "qlocale_p.h"
+ #include "qthreadstorage.h"
+-#include <QtCore/private/qthread_p.h>
+ 
+ QT_BEGIN_NAMESPACE
+ QT_DEFINE_QESDP_SPECIALIZATION_DTOR(QCollatorSortKeyPrivate)
+@@ -36,29 +35,18 @@ public:
+     }
+ };
+ class GenerationalCollatorHolder
++    : QThreadStorage<GenerationalCollator>
+ {
+-    QThreadStorage<GenerationalCollator*> storage;
+ public:
+-    GenerationalCollatorHolder() = default;
+     ~GenerationalCollatorHolder()
+     {
+         // Delete local data when the Q_GLOBAL_STATIC is destroyed.
+         // QThreadStorage's own cleanup for it runs too late, so we'd
+-        // "leak" in an appless program. Skip if this thread doesn't have
+-        // a QThreadData (anymore): there's nothing to clear, then, and
+-        // setLocalData() would otherwise re-create it, here, during
+-        // shutdown, with nothing left to destroy it again.
+-        if (QThreadData::currentThreadData())
+-            storage.setLocalData(nullptr);
++        // "leak" in an appless program.
++        clearLocalData();
+     }
+ 
+-    GenerationalCollator &localData()
+-    {
+-        auto &d = storage.localData();
+-        if (!d)
+-            d = new GenerationalCollator();
+-        return *d;
+-    }
++    using QThreadStorage<GenerationalCollator>::localData;
+ };
+ }
+ Q_GLOBAL_STATIC(GenerationalCollatorHolder, defaultCollator)
+diff --git a/src/corelib/thread/qthreadstorage.cpp b/src/corelib/thread/qthreadstorage.cpp
+index 45e26c0b..e384c778 100644
+--- a/src/corelib/thread/qthreadstorage.cpp
++++ b/src/corelib/thread/qthreadstorage.cpp
+@@ -131,6 +131,15 @@ void **QThreadStorageData::set(void *p)
+     return ptr;
+ }
+ 
++void QThreadStorageData::clear()
++{
++    // Skip if this thread doesn't have a QThreadData (anymore): there's
++    // nothing to clear, then, and set() would otherwise re-create it, here,
++    // during shutdown, with nothing left to destroy it again.
++    if (QThreadData::currentThreadData())
++        set(nullptr);
++}
++
+ void QThreadStoragePrivate::init()
+ {
+     // Make sure the Q_GLOBAL_STATIC is initialized, ensuring consistent
+@@ -215,9 +224,12 @@ void QThreadStoragePrivate::finish(QList<void *> *tls, bool suppressWarnings)
+ 
+     \list
+ 
++    \target qthreadstorage-shutdown-caveat
+     \li Calling hasLocalData(), localData() or setLocalData() during thread or
+     program shutdown may re-create the thread-local storage for the current
+-    thread with nothing left to destroy it afterwards.
++    thread with nothing left to destroy it afterwards. The clearLocalData()
++    function is the only one that is unconditionally safe to call during
++    shutdown.
+ 
+     \li The QThreadStorage destructor does not delete per-thread data.
+     QThreadStorage only deletes per-thread data when the thread exits
+@@ -294,7 +306,30 @@ void QThreadStoragePrivate::finish(QList<void *> *tls, bool suppressWarnings)
+     and deletes it automatically either when the thread exits (either
+     normally or via termination) or when setLocalData() is called again.
+ 
+-    \sa localData(), hasLocalData()
++    \sa localData(), hasLocalData(), clearLocalData()
++*/
++
++/*!
++    \fn template <class T> void QThreadStorage<T>::clearLocalData()
++    \since 6.13
++
++    Resets the local data (if any) for the calling thread.
++
++    If the thread had no localData(), does nothing. After the call,
++    hasLocalData() is \c{false} (unless the destructor of the previous value
++    stored a new one).
++
++    \note If \c{T} is a pointer type, this is mostly the same as
++    \c{setLocalData(nullptr)}. For non-pointers, this functionality was not
++    accessible before Qt 6.13.
++
++    This function differs from setLocalData() in that it will not create
++    thread-local storage when it doesn't exist for the current thread (yet, or
++    anymore). This makes calling the function safe in shutdown code, where
++    thread-local storage may already have been destroyed, and setLocalData()
++    would re-create it with nothing left to destroy it afterwards.
++
++    \sa setLocalData(), hasLocalData(), {qthreadstorage-shutdown-caveat}{Caveats}
+ */
+ 
+ QT_END_NAMESPACE
+diff --git a/src/corelib/thread/qthreadstorage.h b/src/corelib/thread/qthreadstorage.h
+index 9e64b882..f04f21b9 100644
+--- a/src/corelib/thread/qthreadstorage.h
++++ b/src/corelib/thread/qthreadstorage.h
+@@ -35,6 +35,7 @@ public:
+ 
+     void** get() const;
+     void** set(void* p);
++    void clear();
+ 
+     int id;
+ };
+@@ -122,6 +123,8 @@ public:
+ 
+     inline void setLocalData(T t)
+     { qThreadStorage_setLocalData(d, &t); }
++
++    void clearLocalData() { d.clear(); }
+ };
+ 
+ #else // !QT_CONFIG(thread)
+@@ -193,6 +196,8 @@ public:
+     {
+         data.reset(new T(t));
+     }
++
++    void clearLocalData() { data.reset(); }
+ };
+ 
+ #endif // QT_CONFIG(thread)

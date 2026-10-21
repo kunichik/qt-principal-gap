@@ -1,0 +1,8 @@
+{
+ "design_match": 0.7,
+ "reviewer_concerns": 0.9,
+ "minimality": 0.7,
+ "hidden_risk": 0.85,
+ "key_difference": "(D) implements QThreadStorageData::clear() as a standalone copy of set()'s destructor-lookup and destroy logic, while (B) simply guards on QThreadData::currentThreadData() and reuses set(nullptr), so (D) duplicates internal TLS bookkeeping that must stay in sync with set().",
+ "judge_cost_usd": 0.08192400000000001
+}

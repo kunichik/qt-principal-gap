@@ -1,0 +1,19 @@
+{
+ "task": "773405",
+ "arm": "K0g",
+ "rep": "1",
+ "agent": "claude",
+ "model": "opus",
+ "tests": {
+  "tst_qcborstreamreader": {
+   "build": "OK",
+   "passed": 3646,
+   "failed": 0,
+   "fail_names": [],
+   "crashed": false
+  }
+ },
+ "cost_usd": 0.7494130999999999,
+ "turns": 17,
+ "wall_s": 1321
+}

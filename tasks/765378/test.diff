@@ -1,0 +1,361 @@
+diff --git a/tests/auto/corelib/kernel/qcoreapplication/apphelper.cpp b/tests/auto/corelib/kernel/qcoreapplication/apphelper.cpp
+index ce2360c5..1ffd8ba3 100644
+--- a/tests/auto/corelib/kernel/qcoreapplication/apphelper.cpp
++++ b/tests/auto/corelib/kernel/qcoreapplication/apphelper.cpp
+@@ -3,6 +3,7 @@
+ 
+ #include <private/qcoreapplication_p.h>
+ #include <qplatformdefs.h>
++#include <qpointer.h>
+ #include <qthread.h>
+ #include <qtimer.h>
+ 
+@@ -10,7 +11,9 @@
+ #  include <qpluginloader.h>
+ #endif
+ 
++#include <chrono>
+ #include <string_view>
++#include <utility>
+ #include <thread>
+ 
+ #include <stdlib.h>
+@@ -40,6 +43,8 @@ using TestApplication = QCoreApplication;
+ 
+ #include "maybeshow.h"
+ 
++using namespace std::chrono_literals;
++
+ static int exitFromEventLoop(int argc, char **argv)
+ {
+     TestApplication app(argc, argv);
+@@ -181,6 +186,152 @@ static int mainAppInAThread(int argc, char **argv)
+     return EXIT_SUCCESS;
+ }
+ 
++// Its destructor re-enters the post event list mutex, which used to be held while the
++// pending events were destroyed at application or thread teardown.
++class DeleteLaterEvent : public QEvent
++{
++public:
++    static inline int liveCount = 0;
++
++    explicit DeleteLaterEvent(QObject *receiver, QObject *victim, int depth)
++        : QEvent(QEvent::User), m_receiver(receiver), m_victim(victim), m_depth(depth)
++    {
++        ++liveCount;
++    }
++
++    ~DeleteLaterEvent() override
++    {
++        --liveCount;
++        if (m_victim)
++            m_victim->deleteLater();
++        if (m_depth > 0 && m_receiver) {
++            QCoreApplication::postEvent(m_receiver,
++                                        new DeleteLaterEvent(m_receiver, nullptr, m_depth - 1));
++        }
++    }
++
++    DeleteLaterEvent *clone() const override { Q_UNREACHABLE_RETURN(nullptr); }
++
++private:
++    const QPointer<QObject> m_receiver;
++    const QPointer<QObject> m_victim;
++    const int m_depth;
++};
++
++static int deleteLaterFromEventDestructor(int argc, char **argv)
++{
++    // the post event list refers to the receiver, so both must outlive the application
++    QObject receiver;
++    QObject victim;
++
++    {
++        TestApplication app(argc, argv);
++        [[maybe_unused]] auto w = maybeShowSomething();
++        QCoreApplication::postEvent(&receiver, new DeleteLaterEvent(&receiver, &victim, 2));
++    }
++
++    if (DeleteLaterEvent::liveCount != 0) {
++        fprintf(stderr, "%d event(s) leaked by ~QCoreApplication\n", DeleteLaterEvent::liveCount);
++        return EXIT_FAILURE;
++    }
++
++    return EXIT_SUCCESS;
++}
++
++// same, but for QThreadData::clearEvents() reached through ~QThreadPrivate
++static int deleteLaterFromEventDestructorInThread(int argc, char **argv)
++{
++    TestApplication app(argc, argv);
++    [[maybe_unused]] auto w = maybeShowSomething();
++
++    QObject receiver;
++    QObject victim;
++
++    {
++        QThread thread;
++        thread.start();
++        receiver.moveToThread(&thread);
++        victim.moveToThread(&thread);
++
++        thread.quit();
++        if (!thread.wait(5s)) {
++            fprintf(stderr, "thread did not finish\n");
++            return EXIT_FAILURE;
++        }
++
++        // the thread is gone, so nothing will dispatch this
++        QCoreApplication::postEvent(&receiver, new DeleteLaterEvent(&receiver, &victim, 2));
++    }
++
++    if (DeleteLaterEvent::liveCount != 0) {
++        fprintf(stderr, "%d event(s) leaked by ~QThread\n", DeleteLaterEvent::liveCount);
++        return EXIT_FAILURE;
++    }
++
++    return EXIT_SUCCESS;
++}
++
++// Unposting the whole batch must finish before the first delete: deleting this event
++// destroys a receiver that still has another event queued.
++class DeleteReceiverEvent : public QEvent
++{
++public:
++    explicit DeleteReceiverEvent(QObject *receiver) : QEvent(QEvent::User), m_receiver(receiver) { }
++
++    ~DeleteReceiverEvent() override { delete m_receiver; }
++
++    DeleteReceiverEvent *clone() const override { Q_UNREACHABLE_RETURN(nullptr); }
++
++private:
++    QObject *const m_receiver;
++};
++
++static int deleteReceiverFromEventDestructor(int argc, char **argv)
++{
++    TestApplication app(argc, argv);
++    [[maybe_unused]] auto w = maybeShowSomething();
++
++    auto *receiver = new QObject; // deleted by the event below
++    QCoreApplication::postEvent(receiver, new DeleteReceiverEvent(receiver));
++    QCoreApplication::postEvent(receiver, new QEvent(QEvent::User));
++
++    return EXIT_SUCCESS;
++}
++
++// Dropping the pending events must leave the post event list offsets consistent for the
++// sendPostedEvents() frame that resumes once the application is gone.
++static int destroyAppFromEventHandler(int argc, char **argv)
++{
++    class Destroyer : public QObject
++    {
++    public:
++        TestApplication *app = nullptr;
++        bool event(QEvent *e) override
++        {
++            if (e->type() == QEvent::User && app) {
++                delete std::exchange(app, nullptr);
++                return true;
++            }
++            return QObject::event(e);
++        }
++    };
++
++    Destroyer destroyer;
++    destroyer.app = new TestApplication(argc, argv);
++
++    // several events, so that startOffset is non-zero when the application goes away
++    QCoreApplication::postEvent(&destroyer, new QEvent(QEvent::Type(QEvent::User + 1)));
++    QCoreApplication::postEvent(&destroyer, new QEvent(QEvent::User));
++    QCoreApplication::postEvent(&destroyer, new QEvent(QEvent::Type(QEvent::User + 1)));
++
++    // processEvents() would leave the platform dispatcher, which ~QCoreApplication
++    // destroys, running underneath us
++    QCoreApplication::sendPostedEvents();
++
++    delete destroyer.app;
++    return EXIT_SUCCESS;
++}
++
+ static int usage(const char *name)
+ {
+     printf("%s <subtest>\n", name);
+@@ -216,6 +367,14 @@ int main(int argc, char **argv)
+         return exitWithPlugins(argc - 1, argv + 1);
+     if (subtest == "mainAppInAThread")
+         return mainAppInAThread(argc - 1, argv + 1);
++    if (subtest == "deleteLaterFromEventDestructor")
++        return deleteLaterFromEventDestructor(argc - 1, argv + 1);
++    if (subtest == "deleteLaterFromEventDestructorInThread")
++        return deleteLaterFromEventDestructorInThread(argc - 1, argv + 1);
++    if (subtest == "destroyAppFromEventHandler")
++        return destroyAppFromEventHandler(argc - 1, argv + 1);
++    if (subtest == "deleteReceiverFromEventDestructor")
++        return deleteReceiverFromEventDestructor(argc - 1, argv + 1);
+ 
+     fprintf(stderr, "%s: unknown test %s\n", argv[0], argv[1]);
+     return EXIT_FAILURE;
+diff --git a/tests/auto/corelib/kernel/qcoreapplication/tst_qcoreapplication.cpp b/tests/auto/corelib/kernel/qcoreapplication/tst_qcoreapplication.cpp
+index a06b883b..af6a4162 100644
+--- a/tests/auto/corelib/kernel/qcoreapplication/tst_qcoreapplication.cpp
++++ b/tests/auto/corelib/kernel/qcoreapplication/tst_qcoreapplication.cpp
+@@ -1235,6 +1235,97 @@ void tst_QCoreApplication::QTBUG31606_QEventDestructorDeadLock()
+     QVERIFY(spy.recordedEvents.contains(QEvent::User + 2));
+ }
+ 
++// The pending events used to be destroyed while QThreadData::postEventList.mutex was
++// held, so an event destructor that posts self-deadlocked on that non-recursive mutex.
++void tst_QCoreApplication::eventDestructorDeadLockAtAppDestruction()
++{
++    static int liveEvents = 0;
++
++    class RepostingEvent : public QEvent
++    {
++    public:
++        explicit RepostingEvent(QObject *receiver, int depth)
++            : QEvent(QEvent::Type(QEvent::User + 1)), m_receiver(receiver), m_depth(depth)
++        {
++            ++liveEvents;
++        }
++
++        ~RepostingEvent() override
++        {
++            --liveEvents;
++            if (m_depth > 0 && m_receiver)
++                QCoreApplication::postEvent(m_receiver,
++                                            new RepostingEvent(m_receiver, m_depth - 1));
++        }
++
++        RepostingEvent *clone() const override { Q_UNREACHABLE_RETURN(nullptr); }
++
++    private:
++        const QPointer<QObject> m_receiver;
++        const int m_depth;
++    };
++
++    QObject receiver; // must outlive the application
++    {
++        int argc = 1;
++        char *argv[] = { const_cast<char *>(QTest::currentAppName()) };
++        TestApplication app(argc, argv);
++
++        QCoreApplication::postEvent(&receiver, new RepostingEvent(&receiver, 2));
++        QCOMPARE(liveEvents, 1);
++    }
++
++    // not just the original event: the ones its destructor posted must be gone too
++    QCOMPARE(liveEvents, 0);
++#ifdef QT_BUILD_INTERNAL
++    QCOMPARE(qGlobalPostedEventsCount(), 0);
++#endif
++}
++
++// same, with the deleteLater() that a QObject tied to a refcount would use
++void tst_QCoreApplication::eventDestructorDeleteLaterAtAppDestruction()
++{
++    class DeleteLaterEvent : public QEvent
++    {
++    public:
++        explicit DeleteLaterEvent(QObject *target)
++            : QEvent(QEvent::Type(QEvent::User + 1)), m_target(target)
++        {
++        }
++
++        ~DeleteLaterEvent() override
++        {
++            if (m_target)
++                m_target->deleteLater();
++        }
++
++        DeleteLaterEvent *clone() const override { Q_UNREACHABLE_RETURN(nullptr); }
++
++    private:
++        const QPointer<QObject> m_target;
++    };
++
++    QObject receiver; // must outlive the application
++    QPointer victim = new QObject; // owned by nothing: see the QVERIFY below
++    auto cleanup = qScopeGuard([&]{
++        delete victim;
++    });
++
++    {
++        int argc = 1;
++        char *argv[] = { const_cast<char *>(QTest::currentAppName()) };
++        TestApplication app(argc, argv);
++
++        QCoreApplication::postEvent(&receiver, new DeleteLaterEvent(victim));
++    }
++
++#ifdef QT_BUILD_INTERNAL
++    QCOMPARE(qGlobalPostedEventsCount(), 0);
++#endif
++    // deferred deletes are destroyed, not delivered, at application destruction
++    QVERIFY(victim);
++}
++
+ // this is almost identical to sendEventsOnProcessEvents
+ void tst_QCoreApplication::applicationEventFilters_mainThread()
+ {
+diff --git a/tests/auto/corelib/kernel/qcoreapplication/tst_qcoreapplication.h b/tests/auto/corelib/kernel/qcoreapplication/tst_qcoreapplication.h
+index 13dc68bf..11d09c69 100644
+--- a/tests/auto/corelib/kernel/qcoreapplication/tst_qcoreapplication.h
++++ b/tests/auto/corelib/kernel/qcoreapplication/tst_qcoreapplication.h
+@@ -46,6 +46,8 @@ private slots:
+     void customEventDispatcher();
+     void testQuitLock();
+     void QTBUG31606_QEventDestructorDeadLock();
++    void eventDestructorDeadLockAtAppDestruction();
++    void eventDestructorDeleteLaterAtAppDestruction();
+     void applicationEventFilters_mainThread();
+     void applicationEventFilters_auxThread();
+     void threadedEventDelivery_data();
+@@ -57,6 +59,10 @@ private slots:
+     void exitFromThreadedEventLoop() { QCoreApplicationTestHelper::run(); }
+     void exitWithPlugins() { QCoreApplicationTestHelper::run(); }
+     void mainAppInAThread() { QCoreApplicationTestHelper::run(); }
++    void deleteLaterFromEventDestructor() { QCoreApplicationTestHelper::run(); }
++    void deleteLaterFromEventDestructorInThread() { QCoreApplicationTestHelper::run(); }
++    void destroyAppFromEventHandler() { QCoreApplicationTestHelper::run(); }
++    void deleteReceiverFromEventDestructor() { QCoreApplicationTestHelper::run(); }
+ 
+     void testTrWithPercantegeAtTheEnd();
+ #if QT_CONFIG(library)
+diff --git a/tests/auto/corelib/kernel/qcoreapplication/tst_static_qcoreapplication.cpp b/tests/auto/corelib/kernel/qcoreapplication/tst_static_qcoreapplication.cpp
+index 3f6f1a0d..2c415aaf 100644
+--- a/tests/auto/corelib/kernel/qcoreapplication/tst_static_qcoreapplication.cpp
++++ b/tests/auto/corelib/kernel/qcoreapplication/tst_static_qcoreapplication.cpp
+@@ -34,6 +34,16 @@ void tst_Static_QCoreApplication::staticApplication()
+     const char *argv[] = { staticMetaObject.className(), nullptr };
+     static App app(argc, const_cast<char **>(argv));
+     [[maybe_unused]] static auto w = maybeShowSomething();
++
++    // left pending, so that the application destructor has to destroy it inside exit();
++    // the owned QObject makes a leaked event visible to HookManager below
++    struct OwningEvent : QEvent
++    {
++        OwningEvent() : QEvent(QEvent::User) {}
++        OwningEvent *clone() const override { Q_UNREACHABLE_RETURN(nullptr); }
++        QObject obj;
++    };
++    QCoreApplication::postEvent(&app, new OwningEvent);
+ }
+ 
+ struct HookManager
+diff --git a/tests/auto/widgets/kernel/qapplication/tst_qapplication.cpp b/tests/auto/widgets/kernel/qapplication/tst_qapplication.cpp
+index 0ecb7d29..bd337e39 100644
+--- a/tests/auto/widgets/kernel/qapplication/tst_qapplication.cpp
++++ b/tests/auto/widgets/kernel/qapplication/tst_qapplication.cpp
+@@ -101,6 +101,10 @@ private slots:
+     void exitFromThreadedEventLoop() { QCoreApplicationTestHelper::run(); }
+     void exitWithPlugins() { QCoreApplicationTestHelper::run(); }
+     void mainAppInAThread() { QCoreApplicationTestHelper::run(); }
++    void deleteLaterFromEventDestructor() { QCoreApplicationTestHelper::run(); }
++    void deleteLaterFromEventDestructorInThread() { QCoreApplicationTestHelper::run(); }
++    void destroyAppFromEventHandler() { QCoreApplicationTestHelper::run(); }
++    void deleteReceiverFromEventDestructor() { QCoreApplicationTestHelper::run(); }
+ 
+     void thread();
+     void desktopSettingsAware();

@@ -1,0 +1,8 @@
+{
+ "design_match": 0.85,
+ "reviewer_concerns": 1.0,
+ "minimality": 0.95,
+ "hidden_risk": 0.95,
+ "key_difference": "(D) takes the mutex in the public QMimeDatabase::reload() and calls a private requestCheck() that asserts the lock is held, whereas (B) puts the locking inside QMimeDatabasePrivate::reload(); both invalidate m_lastCheck and stop exporting qmime_secondsBetweenChecks, and (D) keeps an int where (B) switches to std::chrono.",
+ "judge_cost_usd": 0.0564695
+}

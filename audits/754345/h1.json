@@ -1,0 +1,12 @@
+{
+ "verdict": "NOT_OK",
+ "problems": [
+  "The card says the fix must be minimal with no unrelated refactoring, but the landed commit message says the result declaration was moved out of the conditional so NRVO can apply. The card never mentions this hunk or whether it stays in the change, which the engineer needs to decide. Reviewers called it 'unrelated' and asked for it to be separated, and Reviewer 06 had no strong opinion on splitting.",
+  "The card omits the backport decision. The commit has 'Pick-to: 6.12 6.11 6.8 6.5 5.15' and 'Fixes: QTBUG-148482', and Reviewer 08 questioned including 5.15 as inconsistent with the security framing. The card should say which branches are picked and that 5.15 was contested.",
+  "The card omits the process requirement that the change is marked private and must be un-privated and rebased before staging so Sanity Bot can run, as Reviewer 08 instructed.",
+  "The card omits the test guidance that reviewers treated as essential: do not run the deep-recursion case in a QThread (destroying a running QThread on failure is a problem), let the overflow crash the main thread for a usable backtrace, use QCOMPARE on the thread result, use a constexpr name without Hungarian-style 'k' prefix, and include <QtCore/qthread.h> in the right place."
+ ],
+ "model": "haiku",
+ "source": false,
+ "cost_usd": 0.0021967700000000002
+}

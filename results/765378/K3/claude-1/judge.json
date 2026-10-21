@@ -1,0 +1,8 @@
+{
+ "design_match": 0.6,
+ "reviewer_concerns": 0.4,
+ "minimality": 0.6,
+ "hidden_risk": 0.4,
+ "key_difference": "(D) drains in an unbounded loop with no pass cap, so an event whose destructor always posts another event spins forever; (B) stops after MaxPasses with a warning and swaps the list out instead of copying pointers under the lock.",
+ "judge_cost_usd": 0.0611856
+}

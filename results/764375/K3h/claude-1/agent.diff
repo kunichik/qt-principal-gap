@@ -1,0 +1,238 @@
+diff --git a/src/concurrent/qtconcurrentrunbase.h b/src/concurrent/qtconcurrentrunbase.h
+index 4674d7f4..40bcef57 100644
+--- a/src/concurrent/qtconcurrentrunbase.h
++++ b/src/concurrent/qtconcurrentrunbase.h
+@@ -47,6 +47,17 @@ template <typename T>
+ class RunFunctionTaskBase : public QRunnable
+ {
+ public:
++    ~RunFunctionTaskBase() override
++    {
++        // The task may be destroyed without having run, e.g. if it was removed
++        // from the thread pool's queue by QThreadPool::clear(). Make sure that
++        // the future doesn't stay in the running state forever.
++        if (!promise.isFinished()) {
++            promise.reportCanceled();
++            promise.reportFinished();
++        }
++    }
++
+     QFuture<T> start()
+     {
+         return start(TaskStartParameters());
+diff --git a/src/concurrent/qtconcurrentthreadengine.cpp b/src/concurrent/qtconcurrentthreadengine.cpp
+index 48e50682..56bb14d5 100644
+--- a/src/concurrent/qtconcurrentthreadengine.cpp
++++ b/src/concurrent/qtconcurrentthreadengine.cpp
+@@ -4,6 +4,8 @@
+ 
+ #include "qtconcurrentthreadengine.h"
+ 
++#include <utility>
++
+ #if !defined(QT_NO_CONCURRENT) || defined(Q_QDOC)
+ 
+ QT_BEGIN_NAMESPACE
+@@ -146,6 +148,40 @@ void ThreadEngineBase::startSingleThreaded()
+     finish();
+ }
+ 
++// Auto-deleting runnable used for the initial asynchronous start of a
++// ThreadEngine. The engine itself is not auto-deleting, so if it was queued
++// directly and then removed from the queue, e.g. by QThreadPool::clear(), it
++// would never finish its future and never delete itself. If this task gets
++// destroyed without having run, it cancels and finishes the engine instead.
++class ThreadEngineStartTask : public QRunnable
++{
++public:
++    explicit ThreadEngineStartTask(ThreadEngineBase *engine) : engine(engine) {}
++
++    ~ThreadEngineStartTask() override
++    {
++        if (engine) {
++            if (engine->futureInterface)
++                engine->futureInterface->reportCanceled();
++            engine->threadExit(); // may delete the engine
++        }
++    }
++
++    void run() override
++    {
++        // The engine may delete itself in run()
++        std::exchange(engine, nullptr)->run();
++    }
++
++private:
++    ThreadEngineBase *engine;
++};
++
++void ThreadEngineBase::startInThreadPool()
++{
++    threadPool->start(new ThreadEngineStartTask(this));
++}
++
+ void ThreadEngineBase::startThread()
+ {
+     startThreadInternal();
+diff --git a/src/concurrent/qtconcurrentthreadengine.h b/src/concurrent/qtconcurrentthreadengine.h
+index aee2f0db..5f2f8053 100644
+--- a/src/concurrent/qtconcurrentthreadengine.h
++++ b/src/concurrent/qtconcurrentthreadengine.h
+@@ -64,6 +64,9 @@ public:
+     void acquireBarrierSemaphore();
+     void reportIfSuspensionDone() const;
+ 
++protected:
++    void startInThreadPool();
++
+ protected: // The user overrides these:
+     virtual void start() {}
+     virtual void finish() {}
+@@ -76,6 +79,7 @@ protected: // The user overrides these:
+     }
+ 
+ private:
++    friend class ThreadEngineStartTask;
+     bool startThreadInternal();
+     void startThreads();
+     void threadExit();
+@@ -131,7 +135,7 @@ public:
+         start();
+ 
+         acquireBarrierSemaphore();
+-        threadPool->start(this);
++        startInThreadPool();
+         return future;
+     }
+ 
+diff --git a/tests/auto/concurrent/qtconcurrentmap/tst_qtconcurrentmap.cpp b/tests/auto/concurrent/qtconcurrentmap/tst_qtconcurrentmap.cpp
+index ff2c0129..25d6c440 100644
+--- a/tests/auto/concurrent/qtconcurrentmap/tst_qtconcurrentmap.cpp
++++ b/tests/auto/concurrent/qtconcurrentmap/tst_qtconcurrentmap.cpp
+@@ -6,6 +6,7 @@
+ 
+ #include <QThread>
+ #include <QMutex>
++#include <QSemaphore>
+ #include <QTest>
+ #include <QSet>
+ #include <QRandomGenerator>
+@@ -21,6 +22,7 @@ private slots:
+     void mapOnRvalue();
+     void mapped();
+     void mappedThreadPool();
++    void mappedClearThreadPool();
+     void mappedWithMoveOnlyCallable();
+     void mappedWithGenericCallable();
+     void mappedReduced();
+@@ -2252,5 +2254,44 @@ void tst_QtConcurrentMap::persistentResultTest()
+     QCOMPARE(ref.loadAcquire(), 3);
+ }
+ 
++void tst_QtConcurrentMap::mappedClearThreadPool()
++{
++    QThreadPool pool;
++    pool.setMaxThreadCount(1);
++
++    // Block the only thread, so that the map engine stays in the queue
++    QSemaphore started;
++    QSemaphore release;
++    pool.start([&] { started.release(); release.acquire(); });
++    started.acquire();
++
++    std::atomic<bool> isInvoked = false;
++    const QList<int> list { 1, 2, 3 };
++    QFuture<int> future = QtConcurrent::mapped(&pool, list, [&](int i) {
++        isInvoked = true;
++        return i * 2;
++    });
++    bool canceledCalled = false;
++    auto canceled = future.onCanceled([&] { canceledCalled = true; return -1; });
++
++    pool.clear();
++
++    QVERIFY(future.isFinished());
++    QVERIFY(future.isCanceled());
++    future.waitForFinished(); // must not hang
++    QVERIFY(canceledCalled);
++
++    QFuture<int> reduced = QtConcurrent::mappedReduced(&pool, list,
++            [&](int i) { isInvoked = true; return i; },
++            [](int &sum, int i) { sum += i; });
++    pool.clear();
++    QVERIFY(reduced.isFinished());
++    QVERIFY(reduced.isCanceled());
++
++    release.release();
++    QVERIFY(pool.waitForDone());
++    QVERIFY(!isInvoked);
++}
++
+ QTEST_MAIN(tst_QtConcurrentMap)
+ #include "tst_qtconcurrentmap.moc"
+diff --git a/tests/auto/concurrent/qtconcurrentrun/tst_qtconcurrentrun.cpp b/tests/auto/concurrent/qtconcurrentrun/tst_qtconcurrentrun.cpp
+index 0bc29619..304a3e50 100644
+--- a/tests/auto/concurrent/qtconcurrentrun/tst_qtconcurrentrun.cpp
++++ b/tests/auto/concurrent/qtconcurrentrun/tst_qtconcurrentrun.cpp
+@@ -4,6 +4,7 @@
+ #include <QFuture>
+ #include <QMutex>
+ #include <QMutexLocker>
++#include <QSemaphore>
+ #include <QString>
+ #include <QWaitCondition>
+ #include <QTest>
+@@ -45,6 +46,7 @@ private slots:
+     void nonDefaultConstructibleValue();
+     void nullThreadPool();
+     void nullThreadPoolNoLeak();
++    void clearThreadPool();
+ };
+ 
+ void light()
+@@ -1630,5 +1632,45 @@ void tst_QtConcurrentRun::nullThreadPoolNoLeak()
+     QCOMPARE(LifetimeChecker::count, 0);
+ }
+ 
++void tst_QtConcurrentRun::clearThreadPool()
++{
++    QThreadPool pool;
++    pool.setMaxThreadCount(1);
++
++    // Block the only thread, so that the next tasks stay in the queue
++    QSemaphore started;
++    QSemaphore release;
++    auto blocker = run(&pool, [&] { started.release(); release.acquire(); });
++    started.acquire();
++
++    std::atomic<bool> isInvoked = false;
++    bool canceledCalled = false;
++    auto future = run(&pool, [&] { isInvoked = true; return 42; });
++    auto canceled = future.onCanceled([&] { canceledCalled = true; return -1; });
++    auto promiseFuture = run(&pool, [&](QPromise<int> &p) { isInvoked = true; p.addResult(1); });
++    {
++        auto lifetimeFuture = run(&pool, LifetimeChecker());
++        QCOMPARE(LifetimeChecker::count, 1);
++        pool.clear();
++        QVERIFY(lifetimeFuture.isFinished());
++        QVERIFY(lifetimeFuture.isCanceled());
++    }
++    QCOMPARE(LifetimeChecker::count, 0);
++
++    QVERIFY(future.isFinished());
++    QVERIFY(future.isCanceled());
++    future.waitForFinished(); // must not hang
++    QVERIFY(canceledCalled);
++    QCOMPARE(canceled.result(), -1);
++
++    QVERIFY(promiseFuture.isFinished());
++    QVERIFY(promiseFuture.isCanceled());
++    promiseFuture.waitForFinished();
++
++    release.release();
++    blocker.waitForFinished();
++    QVERIFY(!isInvoked);
++}
++
+ QTEST_MAIN(tst_QtConcurrentRun)
+ #include "tst_qtconcurrentrun.moc"

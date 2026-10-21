@@ -1,0 +1,143 @@
+{
+ "duration_api_ms": 176099,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 0.8767757999999998,
+ "usage": {
+  "input_tokens": 36,
+  "cache_creation_input_tokens": 45239,
+  "cache_read_input_tokens": 957355,
+  "output_tokens": 16154,
+  "output_tokens_details": {
+   "thinking_tokens": 5108
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 45239,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1165,
+    "cache_read_input_tokens": 69938,
+    "cache_creation_input_tokens": 498,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 498
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1533,
+   "outputTokens": 31,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001688,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 36,
+   "outputTokens": 16154,
+   "cacheReadInputTokens": 957355,
+   "cacheCreationInputTokens": 45239,
+   "webSearchRequests": 0,
+   "costUSD": 0.8766069999999998,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 5108,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 24,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "`QUrlDecodeForLocalFile` is in, and `qt_urlRecode(out, in, QUrlDecodeForLocalFile)` fully decodes, or returns \u22121 and leaves `out` unchanged when the result would be unsafe as a local path. It builds without errors or warnings, and `tst_qurlinternal` (660 passed), `tst_qurl` (1042) and `tst_qurlquery` (113) all pass. Nothing is committed.\n\n**What changed**\n- **`qurl_p.h`:** `QUrlDecodeForLocalFile` is an `inline constexpr QUrl::ComponentFormattingOptions` made of `QUrl::FullyDecoded` plus an unused private bit, `0x8000000`.\n- **`qurl.h`:** a one-line comment next to the existing `0x4000000` note, saying the new bit is taken. This is a public header, so it triggers a large rebuild; drop it if you'd rather not touch the public header.\n- **`qurlrecode.cpp`:** `qt_urlRecode()` checks for the new mode before the `FullyDecoded` branch and sends it to a new function, `decodeForLocalFile()`. Every other mode runs exactly the code it ran before. The documentation for both functions is updated.\n\n**When it fails**\n- **NUL:** a `%00`, and also a literal NUL already in the input. I added the literal case because it would end up in the path just the same.\n- **Separators:** a `%2F` (either case), and `%5C` on Windows only. A literal `/` passes through, since it's a real path separator.\n- **Bad UTF-8:** any `%80`\u2013`%FF` bytes that aren't valid UTF-8. That includes overlong forms such as `%C0%AF` (an overlong `/`), surrogates, Latin-1 bytes and code points above U+10FFFF.\n\n**Decisions you may want to revisit**\n- **Malformed `%` sequences** (like `%zz` or a trailing `%`) are handled the way `FullyDecoded` handles them: the whole input is copied unchanged, after the NUL check. Nothing is decoded, so nothing unsafe can appear. In practice it doesn't arise, because QUrl stores components with valid encoding.\n- **Unicode non-characters** (e.g. U+FFFE) are decoded rather than rejected. They are valid UTF-8, and the prettier decode modes leave them encoded only for reasons that don't apply to file names.\n- **Raw bit:** someone who passes the undocumented `0x8000000` bit to a public getter like `QUrl::path()` would now get this mode. Its \u22121 return would make the getter return an empty string. Nobody can reach this through documented options.\n\n**Tests** (`tests/auto/corelib/io/qurlinternal/tst_qurlinternal.cpp`): `correctEncodedMistakes` now also checks that the new mode gives the same result as `FullyDecoded`. Four new test functions cover:\n- successful decoding\n- each failure case, checking that the output string is left untouched\n- every row from the shared invalid-UTF-8 test data, alone and inside a path\n- non-characters\n\nThe tests caught one bug during development: a NUL appearing after a malformed `%` wasn't being rejected. That's fixed and covered by a test.",
+ "ttft_ms": 4190,
+ "type": "result",
+ "duration_ms": 237674,
+ "ttft_stream_ms": 3995,
+ "time_to_request_ms": 198,
+ "time_to_request_phases_ms": {
+  "other": 14,
+  "system_prompt": 7,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 8,
+  "input_hooks": 2,
+  "transcript_persist": 1,
+  "tool_pool_refresh": 2,
+  "init_message": 2,
+  "engine_pickup": 0,
+  "message_prep": 1,
+  "model_config_wait": 149,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 4,
+  "message_normalization": 1,
+  "client_creation": 0,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 14,
+ "time_to_request_cpu_ms": 258,
+ "time_to_request_major_faults": 316,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 14,
+  "major_faults": 26
+ },
+ "first_content_frame_ms": 3995,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

@@ -1,0 +1,12 @@
+[PS2 Reviewer 15 /COMMIT_MSG:11]
+Now it is. It wasn't in Qt 4, when this code was written, when QLatin1String didn't have an `m_size` member. Checking for NUL was the way of checking if it was empty.
+
+See f4c07fe72168778cd6ea5a6c07fb6add91b2e3d0.
+
+[PS2 Reviewer 03 tests/auto/corelib/text/qstring/tst_qstring.cpp:3421]
+I don't understand why this gets two '\0' where the preceding gets just one.
+In each case the literal, of course, has a later terminating '\0' aside from the overt one, but the literal is surely just one character long in each case (albeit that character is a UTF-16 one in the second case and a byte in the first).
+A clarifying comment here may save future readers some confusion.
+
+[PS2 Reviewer 03 tests/auto/corelib/text/qstring/tst_qstring.cpp:3421]
+d'oh !  Of course, that makes sense now ;^>

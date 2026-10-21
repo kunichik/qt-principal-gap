@@ -1,0 +1,143 @@
+{
+ "duration_api_ms": 93929,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 0.6820671999999999,
+ "usage": {
+  "input_tokens": 32,
+  "cache_creation_input_tokens": 41455,
+  "cache_read_input_tokens": 774604,
+  "output_tokens": 9760,
+  "output_tokens_details": {
+   "thinking_tokens": 2665
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 41455,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1025,
+    "cache_read_input_tokens": 65215,
+    "cache_creation_input_tokens": 1437,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1437
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1669,
+   "outputTokens": 23,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001784,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 32,
+   "outputTokens": 9760,
+   "cacheReadInputTokens": 774604,
+   "cacheCreationInputTokens": 41455,
+   "webSearchRequests": 0,
+   "costUSD": 0.6818887999999999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 2665,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 17,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "I added `QThreadStorage<T>::clearLocalData()` and switched QCollator's default-collator storage to a value-based `QThreadStorage`. `tst_qthreadstorage` passes (19 passed, 1 skipped) and so does `tst_qcollator` (263 passed). The skipped test is presumably the Windows-only `adoptedWinThreads`. Nothing is committed yet.\n\n**The new function** (`src/corelib/thread/qthreadstorage.h`)\n- **With threads:** it calls the existing `QThreadStorageData::set(nullptr)`. That already destroys whatever the calling thread had stored, for both pointer and value storage, and it already handles a destructor that uses other `QThreadStorage` objects. So there's no new exported symbol and no binary-compatibility impact.\n- **Without threads (`!QT_CONFIG(thread)`):** it calls `data.reset()`. I didn't build a no-thread configuration, so this branch hasn't been compiled.\n\n**Documentation** (`src/corelib/thread/qthreadstorage.cpp`)\n- New entry for `clearLocalData()`, marked `\\since 6.13` to match `.cmake.conf`.\n- For pointer storage it's documented as the same as `setLocalData(nullptr)`; for value storage, a later `localData()` creates a new default-constructed value.\n- I updated the Caveats section and the `hasLocalData()` and `setLocalData()` docs to mention it.\n\n**Where it's used** (`src/corelib/text/qcollator.cpp`)\nCommit 4f3b6f67 had switched the default collator to `QThreadStorage<GenerationalCollator*>` only so it could be cleared, and its message promised a `clearLocalData()` follow-up. This is that follow-up: the storage holds the value directly again, the lazy `new` in `localData()` is gone, and the destructor calls `storage.clearLocalData()`. The `QThreadData::currentThreadData()` check stays, because `clearLocalData()` would otherwise re-create the thread's data during shutdown.\n\nI left the other call sites alone. QFontCache and the HTTP connection cache store non-copyable or shared objects, so they're better off as pointers. The iOS asset-library plugin could use `clearLocalData()` in place of `setLocalData(QString())`, but I can't build it here.\n\n**New autotests** (`tests/auto/corelib/thread/qthreadstorage/tst_qthreadstorage.cpp`)\n- `clearLocalData()`: pointer storage. Clearing when empty does nothing, the stored object is deleted, clearing twice is safe, and you can set data again afterwards.\n- `clearLocalData_valueBased()`: uses `std::shared_ptr<Pointer>` (to check the object is destroyed) and `QString`. After a clear, the const `localData()` doesn't create anything, and the non-const one gives a fresh value, not the old one.\n- `clearLocalData_otherThreads()`: clearing in a worker thread doesn't touch the main thread's data.",
+ "ttft_ms": 2871,
+ "type": "result",
+ "duration_ms": 110726,
+ "ttft_stream_ms": 801,
+ "time_to_request_ms": 231,
+ "time_to_request_phases_ms": {
+  "other": 13,
+  "system_prompt": 6,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 7,
+  "input_hooks": 2,
+  "transcript_persist": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 2,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 186,
+  "autocompact": 0,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 3,
+  "message_normalization": 1,
+  "client_creation": 0,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 50,
+ "time_to_request_cpu_ms": 275,
+ "time_to_request_major_faults": 411,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 8,
+  "major_faults": 20
+ },
+ "first_content_frame_ms": 802,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

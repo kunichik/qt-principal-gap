@@ -1,0 +1,8 @@
+{
+ "design_match": 0.6,
+ "reviewer_concerns": 1.0,
+ "minimality": 0.3,
+ "hidden_risk": 0.5,
+ "key_difference": "(D) adds the same RunFunctionTaskBase destructor as (B), but also rewrites how the ThreadEngine is started for map()/filter(): each start is wrapped in an auto-deleting PoolTask whose destructor cancels the future and calls threadExit() from whichever thread drops it. (B) deliberately left that path out of scope, and this adds per-start allocations, a new exported entry point and cross-thread teardown risks a maintainer would want reviewed separately.",
+ "judge_cost_usd": 0.0456638
+}

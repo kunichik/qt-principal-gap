@@ -1,0 +1,8 @@
+{
+ "design_match": 0.3,
+ "reviewer_concerns": 0.3,
+ "minimality": 0.3,
+ "hidden_risk": 0.25,
+ "key_difference": "(D) keeps the old TypesAreDeclaredMetaType structure and broadens the public QMetaTypeIdQObject specializations (PointerToQObject, IsGadget), which changes QMetaTypeId2::Defined globally; its completeness check also uses a named, non-TU-unique tag rather than an anonymous-namespace UniqueType threaded through is_complete, so it still has the cross-TU ODR/folding problem the reviewer flagged. (B) instead uses a local TypeIsSuitableForMetaType<Args, UniqueType> check with qMetaTypeId on the decayed types.",
+ "judge_cost_usd": 0.074144
+}

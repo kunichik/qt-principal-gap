@@ -1,0 +1,143 @@
+{
+ "duration_api_ms": 84972,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 0.3839071,
+ "usage": {
+  "input_tokens": 20,
+  "cache_creation_input_tokens": 22008,
+  "cache_read_input_tokens": 387206,
+  "output_tokens": 6508,
+  "output_tokens_details": {
+   "thinking_tokens": 2751
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 22008,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 905,
+    "cache_read_input_tokens": 45752,
+    "cache_creation_input_tokens": 1453,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1453
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1464,
+   "outputTokens": 31,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001619,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 20,
+   "outputTokens": 6508,
+   "cacheReadInputTokens": 387206,
+   "cacheCreationInputTokens": 22008,
+   "webSearchRequests": 0,
+   "costUSD": 0.3837452,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 2751,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 10,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "I fixed the stale-lock bug in `src/corelib/io/qlockfile_unix.cpp`. `tst_qlockfile` passes (23 passed, 1 Windows-only skip). I couldn't reproduce the NFS `EBUSY` case itself: neither the local filesystem nor the tests can produce it.\n\n**Root cause.** Both places that delete the lock file do it while still holding the file open and locked:\n- **`QLockFile::unlock()`** deleted the file first and closed the descriptor afterwards. On the NFSv4.2 server the delete fails with `EBUSY`. The code printed a warning, closed the descriptor and never tried again, so the lock file stayed behind.\n- **`QLockFilePrivate::removeStaleLock()`** takes the lock and then deletes the file, so it hits the same `EBUSY`. That means even the stale-lock recovery couldn't clean it up. Other processes waited out the stale timeout and then still couldn't remove the file.\n\n**Fix.** A new helper, `unlinkAndClose()`, does the delete, close and retry for both callers, in the order set out in `CLAUDE.md`:\n1. Delete the file first.\n2. Then close the descriptor, which drops the lock.\n3. Only if the first delete failed with `EBUSY`, `ETXTBSY` or `EPERM`, delete again after the close.\n\nIt returns true only if the file is really gone (`ENOENT`/`ENOTDIR` count as gone). It always closes the descriptor, and it restores `errno` so `unlock()`'s warning reports the real error.\n\nHow the two callers use it:\n- **`unlock()`** calls the helper and no longer closes the handle a second time; it just sets `fileHandle = -1`.\n- **`removeStaleLock()`** still gives up without deleting if it can't take the lock. So a lock held by a live process is never removed just because taking the lock failed.\n- **No busy loop in `lock()`:** `tryLock()` only skips its sleep when `removeStaleLock()` returns true, and that now means the file is really gone. A lock that can't be removed goes through the normal sleep and back-off.\n\nI didn't add any ownership re-checks, as `CLAUDE.md` asks for that in a separate change.\n\n**Test.** I added `tst_QLockFile::unlockClosesHandle` (Unix only). It checks that `unlock()` deletes the file, resets the handle to -1 and closes the descriptor exactly once (it reports `EBADF` afterwards), and that the lock can be taken again. Nothing is committed.",
+ "ttft_ms": 3459,
+ "type": "result",
+ "duration_ms": 180391,
+ "ttft_stream_ms": 3083,
+ "time_to_request_ms": 231,
+ "time_to_request_phases_ms": {
+  "other": 16,
+  "system_prompt": 5,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 10,
+  "input_hooks": 1,
+  "transcript_persist": 10,
+  "tool_pool_refresh": 1,
+  "init_message": 2,
+  "engine_pickup": 0,
+  "message_prep": 1,
+  "model_config_wait": 174,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 4,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 28,
+ "time_to_request_cpu_ms": 268,
+ "time_to_request_major_faults": 413,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 7,
+  "cpu_ms": 15,
+  "major_faults": 29
+ },
+ "first_content_frame_ms": 3083,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

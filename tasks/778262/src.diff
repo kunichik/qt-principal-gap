@@ -1,0 +1,14 @@
+diff --git a/src/corelib/thread/qfutureinterface.cpp b/src/corelib/thread/qfutureinterface.cpp
+index e47cfd34..f8b49987 100644
+--- a/src/corelib/thread/qfutureinterface.cpp
++++ b/src/corelib/thread/qfutureinterface.cpp
+@@ -932,6 +932,9 @@ void QFutureInterfaceBase::setContinuation(std::function<void (const QFutureInte
+     if (isFinished()) {
+         d->continuationExecuted = true;
+ 
++        if (futureData && futureData->nonConcludedParent == d)
++            futureData->nonConcludedParent = nullptr;
++
+         lock.unlock();
+         func(*this);
+         lock.relock();

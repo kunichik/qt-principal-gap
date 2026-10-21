@@ -1,0 +1,143 @@
+{
+ "duration_api_ms": 177502,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 0.9669367,
+ "usage": {
+  "input_tokens": 32,
+  "cache_creation_input_tokens": 51510,
+  "cache_read_input_tokens": 820542,
+  "output_tokens": 19515,
+  "output_tokens_details": {
+   "thinking_tokens": 8469
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 51510,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1237,
+    "cache_read_input_tokens": 75938,
+    "cache_creation_input_tokens": 769,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 769
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1693,
+   "outputTokens": 302,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00032030000000000003,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 271,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 32,
+   "outputTokens": 19515,
+   "cacheReadInputTokens": 820542,
+   "cacheCreationInputTokens": 51510,
+   "webSearchRequests": 0,
+   "costUSD": 0.9666163999999999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 8469,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 18,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "`QUrlDecodeForLocalFile` is added and working. It's declared in `qurl_p.h`, and `qt_urlRecode(out, in, QUrlDecodeForLocalFile)` fully decodes but returns `-1` and leaves `out` unchanged whenever the result would be unsafe as a local path. The new tests pass, along with the existing `tst_qurlinternal`, `tst_qurl`, `tst_qurlquery`, `tst_qdataurl` and `tst_qurluts46`. The library builds with `-Werror`. Nothing is committed yet.\n\n**How the mode is defined**\n- In `qurl_p.h` it is `QUrl::FullyDecoded | QUrl::ComponentFormattingOption(0x8000000)`, so it includes `FullyDecoded`. `0x8000000` is the next unused bit after the `0x4000000` that `FullyDecoded` already uses.\n- I added a comment in `qurl.h` saying that bit is used privately, so nobody takes it for a public flag later.\n\n**What it does** (`decodeForLocalFile()` in `qurlrecode.cpp`)\n- **Fails on:** a decoded NUL or `/` (and `\\` on Windows), and any encoded bytes that aren't valid UTF-8. Invalid UTF-8 covers lone continuation bytes, truncated sequences, encoded surrogates, values above U+10FFFF, `%FE`/`%FF`, and overlong forms like `%C0%AF` (a disguised `/`) or `%C0%80` (a disguised NUL).\n- **Decodes properly:** valid UTF-8 sequences become the real characters. Plain `FullyDecoded` turns those bytes into U+FFFD instead.\n- **Allows non-characters** such as U+FFFE. They are valid UTF-8 and can appear in file names, although the normal QUrl decoding rejects them.\n- **Leaves alone:** an unencoded `/` or NUL already present in the input; only characters produced by decoding are checked.\n- **Bad `%` sequences** (like a lone `%` or `%zz`) behave as in `FullyDecoded`: nothing is decoded and the input is copied unchanged. I check for them before decoding anything, so the outcome doesn't depend on where they sit; for example, `%2F%` is copied as-is rather than failing.\n- **Other modes** behave as before. `qt_urlRecode` checks for the new flag first and otherwise takes the existing paths. Its documentation now covers the flag and the negative return value.\n\n**Tests** (four new data-driven functions in `tst_qurlinternal.cpp`)\n- Successful decodes, compared against `FullyDecoded` where the output is plain ASCII.\n- UTF-8 decoding, reusing the existing non-character test rows.\n- Each failure case, checking the return is negative and the output is unchanged; the backslash rows run only on Windows.\n- The existing invalid-UTF-8 rows, with the bad bytes placed at the start, middle and end.\n- A `static_assert` that the flag includes `FullyDecoded`.\n\n**Decision for you:** with bad `%` sequences, I kept the existing `FullyDecoded` behaviour of copying the input unchanged. That result is still a safe path, but it isn't decoded. If you'd rather this mode reject malformed input outright, it's a one-line change.\n\nThe numeric `756614 K0 2\u2026` lines at the end of your message looked unrelated, so I ignored them.",
+ "ttft_ms": 2035,
+ "type": "result",
+ "duration_ms": 234320,
+ "ttft_stream_ms": 1486,
+ "time_to_request_ms": 256,
+ "time_to_request_phases_ms": {
+  "other": 18,
+  "system_prompt": 4,
+  "resume_other": 1,
+  "process_user_input": 2,
+  "input_attachments": 5,
+  "input_hooks": 2,
+  "transcript_persist": 4,
+  "tool_pool_refresh": 1,
+  "init_message": 2,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 208,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 3,
+  "message_normalization": 1,
+  "client_creation": 0,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 17,
+ "time_to_request_cpu_ms": 282,
+ "time_to_request_major_faults": 416,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 7,
+  "major_faults": 19
+ },
+ "first_content_frame_ms": 1486,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

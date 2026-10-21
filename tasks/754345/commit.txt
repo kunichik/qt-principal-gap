@@ -1,0 +1,15 @@
+QXmlStreamReader: Avoid stack-exhaustion in readElementText
+
+The current algorithm calls the function recursively, which can be
+problematic if one encounters deeply nested elements.
+There is no need for recursion here, though: We can just keep track of
+the nesting level in the loop instead.
+Amends the start of the public history.
+While modifying the control structure anyway, move the result
+declaration out of the conditional, so that NRVO can apply.
+
+Fixes: QTBUG-148482
+Pick-to: 6.12 6.11 6.8 6.5 5.15
+Change-Id: I9ec0aa9339f586737609aa031e882e163ac02caa
+Reviewed-by: Ivan Solovev <ivan.solovev@qt.io>
+Reviewed-by: Marc Mutz <marc.mutz@qt.io>

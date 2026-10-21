@@ -1,0 +1,8 @@
+{
+ "design_match": 1.0,
+ "reviewer_concerns": 1.0,
+ "minimality": 0.95,
+ "hidden_risk": 1.0,
+ "key_difference": "(D) is functionally identical to (B): it adds the same destructor that calls reportCanceled() then reportFinished() on an unfinished promise. The only differences are its placement (before start() instead of after) and an explanatory comment.",
+ "judge_cost_usd": 0.0220108
+}

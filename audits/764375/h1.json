@@ -1,0 +1,10 @@
+{
+ "verdict": "NOT_OK",
+ "problems": [
+  "The card says the map()/filter() family 'is affected too (it also leaks)' and does not say it is out of scope. Reviewer 07's review comment on /COMMIT_MSG:16 states that the task is not closed because this patch does not fix the map()/filter() path, and the commit keeps Task-number QTBUG-149511 open for it. The engineer should be told not to fix that path in this change.",
+  "The card omits the reviewers' request to extend the test to cover the .onCanceled() continuation case (Reviewer 07, PS3 on src/concurrent/qtconcurrentrunbase.h:75). That request was treated as part of the change."
+ ],
+ "model": "haiku",
+ "source": false,
+ "cost_usd": 0.00130357
+}

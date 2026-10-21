@@ -1,0 +1,11 @@
+{
+ "verdict": "NOT_OK",
+ "problems": [
+  "The third bullet contradicts the reviewers' decision. Reviewer 07 said the patch does not fix the map()/filter() path and that the task should therefore stay open. That path was out of scope for this change. The card presents it as something the fix should cover, and it adds claims the review never made: that ThreadEngine is non-auto-deleting, that it is started more than once, and that it leaks. None of this appears in the review.",
+  "The first bullet is partly misleading. Reviewer 10's comment was about not simply removing a check in qthreadpool.cpp (line 318), because non-autoDelete runnables are managed by their creator. The final fix did not touch QThreadPool at all. It reports the future as canceled and finished when the runnable is deleted without having run, in qtconcurrentrunbase.h. The card never says where the fix belongs or what it should do (reportCanceled() then reportFinished() when the runnable is destroyed without having run, guarded by !promise.isFinished()). It also does not say the change is limited to QtConcurrent::run().",
+  "The card omits that the reviewers asked for the test to be extended to cover the .onCanceled() continuation case."
+ ],
+ "model": "sonnet",
+ "source": false,
+ "cost_usd": 0.0121776
+}

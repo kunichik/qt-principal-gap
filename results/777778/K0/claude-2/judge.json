@@ -1,0 +1,8 @@
+{
+ "design_match": 0.95,
+ "reviewer_concerns": 1.0,
+ "minimality": 1.0,
+ "hidden_risk": 1.0,
+ "key_difference": "(D) makes the same core change: a static reload() that invalidates m_lastCheck under the mutex, and qmime_secondsBetweenChecks is no longer exported; the difference is that (D) keeps it as a constexpr int compared in milliseconds, while (B) also converts it to std::chrono (5s with durationElapsed()).",
+ "judge_cost_usd": 0.051980900000000003
+}

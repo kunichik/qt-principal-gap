@@ -1,0 +1,143 @@
+{
+ "duration_api_ms": 90481,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 0.5816453000000001,
+ "usage": {
+  "input_tokens": 30,
+  "cache_creation_input_tokens": 30879,
+  "cache_read_input_tokens": 632395,
+  "output_tokens": 10388,
+  "output_tokens_details": {
+   "thinking_tokens": 2131
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 30879,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1079,
+    "cache_read_input_tokens": 54835,
+    "cache_creation_input_tokens": 1241,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1241
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1528,
+   "outputTokens": 203,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00025430000000000006,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 177,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 30,
+   "outputTokens": 10388,
+   "cacheReadInputTokens": 632395,
+   "cacheCreationInputTokens": 30879,
+   "webSearchRequests": 0,
+   "costUSD": 0.5813910000000001,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 2131,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 15,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "I added `QCborStreamReader::isNumber()` and `QCborStreamReader::toNumber()`, with documentation and autotests. `tst_qcborstreamreader` builds and passes: 3688 passed, 0 failed. Nothing is committed.\n\n**API** (`src/corelib/serialization/qcborstreamreader.h`)\n- **`isNumber()`** is inline next to the other type checks. It returns true when the current element is an integer (unsigned or negative) or a half-, single- or double-precision float.\n- **`toNumber()`** is an out-of-line exported member in `qcborstreamreader.cpp`. It converts each CBOR numeric type to `double`:\n  - **Unsigned integers:** converted with `double(value64)`.\n  - **Negative integers:** the size of the value is computed as a whole number first and converted to `double` once, so it's rounded only once. \u22122\u2076\u2074, the one value that would overflow, returns `-0x1p64` directly. This means it covers the full CBOR integer range (\u22122\u2076\u2074 to 2\u2076\u2074\u22121), which `toInteger()` can't.\n  - **Floats:** half and single precision are widened to `double` with no loss, and doubles pass through unchanged.\n- **Calling `toNumber()` on a non-number** is an error, the same as the other `to*()` accessors: it fails the assert in debug builds. In release builds it returns NaN rather than an arbitrary value.\n\n**Docs:** both functions are marked `\\since 6.13`, the version in `.cmake.conf`. They say that tags (including bignum and decimal tags) and simple types such as booleans are not numbers, and that integers larger than 2\u2075\u00b3 in magnitude get rounded.\n\n**Tests** (`tst_qcborstreamreader.cpp`)\n- **`basics()`:** checks that `isNumber()` is false on an empty reader.\n- **`integers()`:** now also checks `isNumber()` and `toNumber()` against every row of the shared integer test data.\n- **New `numbers()` test:** a table of hand-encoded CBOR covering:\n  - integers around 2\u2075\u00b3, 2\u2076\u00b3 and 2\u2076\u2074, including \u22122\u2076\u2074;\n  - half, single and double values, including denormals, max values, \u00b1inf and NaN, with the sign checked as well;\n  - values that are not numbers: bools, null, undefined, other simple values, strings, containers and tags.\n\n  It also checks that `isNumber()` matches the existing type checks, that `toNumber()` agrees with `toFloat16()`, `toFloat()` and `toDouble()`, and that reading the value doesn't move the stream position.\n\nTwo of my test assertions were wrong on the first run and I fixed them; the library code needed no changes:\n- **`integers()`:** the existing `absolute` variable wraps to 0 for \u22122\u2076\u2074, so I handle that case explicitly.\n- **End of stream:** I had expected an `EndOfFile` error after the last element, but the reader reports `NoError` there, so the test now checks `currentOffset()` instead.",
+ "ttft_ms": 1523,
+ "type": "result",
+ "duration_ms": 149123,
+ "ttft_stream_ms": 877,
+ "time_to_request_ms": 266,
+ "time_to_request_phases_ms": {
+  "other": 11,
+  "system_prompt": 3,
+  "resume_other": 1,
+  "process_user_input": 2,
+  "input_attachments": 7,
+  "input_hooks": 6,
+  "transcript_persist": 4,
+  "tool_pool_refresh": 1,
+  "init_message": 2,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 220,
+  "autocompact": 0,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 3,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 20,
+ "time_to_request_cpu_ms": 284,
+ "time_to_request_major_faults": 402,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 11,
+  "major_faults": 21
+ },
+ "first_content_frame_ms": 877,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

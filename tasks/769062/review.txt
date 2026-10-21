@@ -1,0 +1,8 @@
+[PS2 Reviewer 08 /PATCHSET_LEVEL:0]
+Thanks!
+
+[PS3 Reviewer 08 /PATCHSET_LEVEL:0]
+Why aren't you staging? The window for both 6.12.0 and 6.11.3 is rapidly closing...
+
+[PS3 Reviewer 08 /PATCHSET_LEVEL:0]
+I can't unmark this as private, and elsewhere we had problems staging private changes, but guidance received today is to continue as before, at least for bugs we find ourselves. I guess the QtCreator teams counts as "outselves". So merge, then amend the security ML report/CVE (if any) with the per-branch patches as they merge.

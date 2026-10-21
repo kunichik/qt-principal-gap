@@ -1,0 +1,143 @@
+{
+ "duration_api_ms": 94247,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 0.5260059,
+ "usage": {
+  "input_tokens": 34,
+  "cache_creation_input_tokens": 25411,
+  "cache_read_input_tokens": 683705,
+  "output_tokens": 9279,
+  "output_tokens_details": {
+   "thinking_tokens": 3637
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 25411,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1012,
+    "cache_read_input_tokens": 49200,
+    "cache_creation_input_tokens": 1408,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1408
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1439,
+   "outputTokens": 234,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002609,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 213,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 34,
+   "outputTokens": 9279,
+   "cacheReadInputTokens": 683705,
+   "cacheCreationInputTokens": 25411,
+   "webSearchRequests": 0,
+   "costUSD": 0.525745,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 3637,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 20,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "I found the bug in `QObject::~QObject()` and fixed it. All 129 `tst_QObject` tests pass with the fix, and the new test fails without it. I haven't run the change under ThreadSanitizer or against the QtNetwork tests.\n\n**Root cause** (`src/corelib/kernel/qobject.cpp`, the \"disconnect all senders\" loop in `~QObject`): while tearing down its incoming connections, the receiver called the sender's virtual functions `metaObject()` and `disconnectNotify()`. It did this without holding any lock that guards against the sender being destroyed in its own thread.\n\nThe code comment claimed this was safe because the sender's `~QObject` would block on the receiver's lock. But the sender's subclass destructors (e.g. `~QNetworkReplyHttpImpl`) run *before* `~QObject` and change the object's virtual function table while they do. So the receiver's virtual call races with the sender's subclass destructors. The best case is the race TSan reports; the worst case is calling into a half-destroyed object.\n\n**Fix:** when the receiver is destroyed, it now calls `disconnectNotify()` on a sender only if that sender lives in the current thread. In that case the sender can't be destroyed concurrently. For a sender in another thread there is no safe way to make the virtual call, so it's skipped. I added a `\\note` to the `disconnectNotify()` docs describing this. Explicit `disconnect()` calls are unchanged; there the caller is responsible for keeping the sender alive.\n\n**Behavior change:** a sender in another thread no longer gets `disconnectNotify()` when a connected receiver is destroyed. Two classes in qtbase use it for bookkeeping:\n- **`QBuffer`:** its count of connected signals can now stay too high, so it may emit signals nobody listens to.\n- **`QFutureWatcher`:** the same applies to its `resultReadyAt` counter, so it may post events nobody listens to.\n\nBoth only cost a little performance, not correctness. And `QBuffer`'s count was already being changed from another thread without synchronization in this exact case.\n\n**Test** (`tst_qobject.cpp`, new `disconnectNotify_receiverDestroyedInOtherThread`):\n1. A receiver in the main thread is destroyed while the sender lives in another thread; the sender must not be notified.\n2. A deterministic reproduction of the race: the sender's subclass destructor blocks in its own thread while the main thread destroys the receiver; the test checks the sender isn't called back.\n\nNothing is committed yet.",
+ "ttft_ms": 2082,
+ "type": "result",
+ "duration_ms": 221503,
+ "ttft_stream_ms": 897,
+ "time_to_request_ms": 257,
+ "time_to_request_phases_ms": {
+  "other": 15,
+  "system_prompt": 5,
+  "resume_other": 1,
+  "process_user_input": 1,
+  "input_attachments": 8,
+  "input_hooks": 1,
+  "transcript_persist": 5,
+  "tool_pool_refresh": 1,
+  "init_message": 1,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 210,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 3,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 19,
+ "time_to_request_cpu_ms": 280,
+ "time_to_request_major_faults": 419,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 12,
+  "major_faults": 21
+ },
+ "first_content_frame_ms": 897,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

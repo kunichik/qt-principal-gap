@@ -1,0 +1,8 @@
+{
+ "design_match": 0.4,
+ "reviewer_concerns": 0.85,
+ "minimality": 0.3,
+ "hidden_risk": 0.4,
+ "key_difference": "(D) re-implements UTF-8 decoding inside decode() with new traits and a bad-encoding fallback scan, whereas (B) relies on valid UTF-8 already being folded upstream and simply rejects any decoded byte >= 0x80; (D) also omits (B)'s Windows precheck that rejects literal (already-decoded) backslashes in the input.",
+ "judge_cost_usd": 0.0993455
+}

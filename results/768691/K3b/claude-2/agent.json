@@ -1,0 +1,143 @@
+{
+ "duration_api_ms": 176468,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 0.9737585999999999,
+ "usage": {
+  "input_tokens": 30,
+  "cache_creation_input_tokens": 52536,
+  "cache_read_input_tokens": 829735,
+  "output_tokens": 19356,
+  "output_tokens_details": {
+   "thinking_tokens": 8374
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 52536,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1282,
+    "cache_read_input_tokens": 74814,
+    "cache_creation_input_tokens": 2919,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2919
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1641,
+   "outputTokens": 239,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00028360000000000006,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 208,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 30,
+   "outputTokens": 19356,
+   "cacheReadInputTokens": 829735,
+   "cacheCreationInputTokens": 52536,
+   "webSearchRequests": 0,
+   "costUSD": 0.973475,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 8374,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 15,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "I've added the `QUrlDecodeForLocalFile` mode, with documentation and autotests. It builds without warnings. `tst_qurlinternal` (658 passed, 132 of them new), `tst_qurl` and `tst_qurlquery` all pass. Nothing is committed yet.\n\n**What changed**\n- **`src/corelib/io/qurl_p.h`**: `QUrlDecodeForLocalFile` is an `inline constexpr QUrl::ComponentFormattingOptions` made of `QUrl::FullyDecoded` plus the free bit `0x8000000`. Because it includes `FullyDecoded`, `qt_urlRecode()` sends it down the existing full-decode path.\n- **`src/corelib/io/qurl.h`**: one comment line in the enum saying `0x8000000` is used privately, next to the existing note about `0x4000000`.\n- **`src/corelib/io/qurlrecode.cpp`**: `decode()` takes a new `forLocalFile` flag. When it is set:\n  - It returns `-1` if `%XX` decodes to NUL or `/`, or `\\` on Windows. A literal `/` in the input is still allowed; only decoded characters are checked.\n  - Sequences from `%80` to `%FF` are decoded as UTF-8 and must be valid. Overlong forms such as `%C0%AF`, surrogates, values above U+10FFFF and truncated sequences make it return `-1`. Non-characters such as U+FFFE are accepted, because they are valid UTF-8.\n  - On refusal, `appendTo` is left as it was, and an empty `appendTo` becomes a **null** `QString`. This is stated in the `qt_urlRecode()` docs.\n\n  Every other mode works exactly as before.\n- **`tests/auto/corelib/io/qurlinternal/tst_qurlinternal.cpp`**: three new data-driven tests:\n  - `decodeForLocalFile` covers safe input, unsafe characters, the backslash case on each platform, the null-on-refusal rule and malformed `%`.\n  - `decodeForLocalFileInvalidUtf8` reuses the existing invalid UTF-8 rows.\n  - `decodeForLocalFileNonCharacters` reuses the existing non-character rows.\n\n**Decisions for you**\n- **Valid UTF-8 is decoded in this mode.** Plain `FullyDecoded` replaces `%80`\u2013`%FF` with U+FFFD instead. Without decoding, `%C3%A9` could never come back as `\u00e9`. The difference doesn't matter for QUrl's stored data, because valid UTF-8 is already decoded there.\n- **Malformed `%` sequences are not refused.** `FullyDecoded` copies the whole input unchanged if any `%` sequence is malformed, so nothing is decoded. This mode does the same, so `%2F%zz` comes back as the literal `%2F%zz`. Refusing these inputs instead would only take a small change.\n- **A caller can switch the mode on by accident.** Someone passing the undocumented bit `0x8000000` to a public `QUrl` getter would turn the mode on. Callers treat any non-zero return as \"already appended\", so they would then get an empty or null result. I didn't add masking at the public entry points because it seemed unnecessary for an undocumented bit, but it could be added there.",
+ "ttft_ms": 1771,
+ "type": "result",
+ "duration_ms": 266888,
+ "ttft_stream_ms": 1413,
+ "time_to_request_ms": 216,
+ "time_to_request_phases_ms": {
+  "other": 18,
+  "system_prompt": 7,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 7,
+  "input_hooks": 1,
+  "transcript_persist": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 2,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 167,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 2,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 6,
+ "time_to_request_cpu_ms": 267,
+ "time_to_request_major_faults": 418,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 10,
+  "major_faults": 22
+ },
+ "first_content_frame_ms": 1413,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

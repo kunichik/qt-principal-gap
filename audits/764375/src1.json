@@ -1,0 +1,12 @@
+{
+ "verdict": "NOT_OK",
+ "problems": [
+  "The third bullet reverses the reviewers' scope decision. The reviewers said this patch does not fix the map()/filter() path, and for that reason the commit uses 'Task-number:' instead of closing the bug. The card calls map()/filter() 'affected too' without saying it is out of scope, so an engineer following the card would likely try to fix it in this change.",
+  "The third bullet's details are not supported by the source material. Nothing in the review or the diff says the map()/filter() ThreadEngine is non-auto-deleting, is started more than once, or leaks.",
+  "The card leaves out the reviewers' decision about the bug reference. The commit must reference QTBUG-149511 with 'Task-number:' and not a closing footer, because the bug stays open for the map()/filter() path.",
+  "The card leaves out the reviewer's request to extend the test to cover the .onCanceled() continuation case."
+ ],
+ "model": "opus",
+ "source": true,
+ "cost_usd": 0.030489799999999997
+}

@@ -1,0 +1,82 @@
+[PS1 Reviewer 15 /PATCHSET_LEVEL:0]
+Trying to think of the consequences of this. 
+
+QBuffer tracks a counter up and down. But use of QBuffer outside of its own thread is probably a mistake, if not an outright bug, so I don't think that's a problem.
+
+`QAbstractConnectionInterface` overrides the `disconnectNotify()` to be notified when a receiver disconnect and we no longer need to listen to the signal.
+```
+void QDBusAbstractInterface::disconnectNotify(const QMetaMethod &signal)
+{
+    // someone disconnecting from one of our signals
+    Q_D(QDBusAbstractInterface);
+    if (!d->isValid)
+        return;
+
+    // disconnection is just resource freeing, so it can be delayed;
+    // let's do that later, after all the QObject mutexes have been unlocked.
+    QCoreApplication::postEvent(this, new DisconnectRelayEvent(this, signal));
+}
+```
+We could want to avoid double-posting of events, but we can't have zero events, which is the normal case when one disconnects from the interface's own thread.
+
+QFutureWatcher base has code similar to QBuffer, but that one I don't know whether it could be used from outside its thread. But the worst case is that we have a delay in deciding whether to emit the `resultReadyAt()` calls. I don't think there's harm.
+
+[PS1 Reviewer 15 src/corelib/kernel/qobject.cpp:3630]
+One more use here. Did this one require changes too?
+
+[PS1 Reviewer 15 src/corelib/kernel/qobject_p.h:243]
+Wondering if we should update this instead.
+
+
+Reviewer 16 for opinion. The users are:
+```
+qtdeclarative/src/qml/qml/qqmlnotifierendpoint_p.h:            priv->disconnectNotify(QMetaObjectPrivate::signal(mo, sourceSignal));
+qtscxml/src/scxml/qscxmlstatemachine.cpp:                parentRouter->disconnectNotify(QMetaMethod());
+```
+
+[PS1 Reviewer 15 src/corelib/kernel/qobject_p.h:243]
+The case where we *don't* want to post an event is:
+* we know the receiver will not be deleted (e.g., refcounted and we hold a reference, or the receiver thread's event dispatcher is blocked on a mutex we hold)
+* we want this to happen *now*
+
+
+Reviewer 16: is that the case for QQmlNotifierEndpoint? If not, then I think QtQml should get the same fix: the destination object may suddenly become destroyed.
+
+[PS1 Reviewer 15 tests/auto/corelib/kernel/qobject/tst_qobject.cpp:1225]
+Not public API, but you could use `QLatch` here.
+
+[PS2 Reviewer 10 /PATCHSET_LEVEL:0]
+Otherwise, looks good! I saw this bug a little bit ago and wasn't entirely sure what to do about it, but I think making it async like this is a great solution for it:)
+
+[PS2 Reviewer 10 src/corelib/kernel/qobject.cpp:1162]
+This is not matching what is actually happening now
+
+[PS2 Reviewer 10 tests/auto/corelib/kernel/qobject/tst_qobject.cpp:1281]
+This cast is probably not needed? NotifyObject already inherits SenderObject
+
+[PS4 Reviewer 15 src/corelib/kernel/qobject.cpp:160]
+When re-reading this code, I was wondering why accessing `senderPriv` is not racy. It isn't because this function is called under a mutex that is keeping the sender alive, but only as far as `QObject`: we do not prevent destruction of further-derived classes from proceeding. Can you expand the docs to make this clear?
+
+[PS4 Reviewer 15 src/corelib/kernel/qobject.cpp:3735]
+```suggestion
+    loop there. In every other case it is called right away, from the thread
+    that is disconnecting the signal.
+```
+
+[PS6 Reviewer 10 /PATCHSET_LEVEL:0]
+I got the same on this patch https://codereview.qt-project.org/c/qt/qtbase/+/758034 so I think it's unrelated (maybe related https://qt-project.atlassian.net/browse/QTBUG-146960 )
+
+[PS6 Reviewer 14 /PATCHSET_LEVEL:0]
+I even keep getting that failure with [758225](https://codereview.qt-project.org/c/qt/qtbase/+/758225) which changes only a Readme file.
+
+Seems like there's something rotten in the state of Finland.
+
+[PS6 Reviewer 14 /PATCHSET_LEVEL:0]
+...and now a whole bunch of patches were merged.
+
+[PS6 Reviewer 10 src/corelib/kernel/qobject.cpp:172]
+If the thread doesn't have an event dispatcher, I think we should fall back to direct call (I think it's a fairly unlikely scenario, but happens, sure) - or at least update the documentation to say that the object might not be notified without one
+
+[PS8 Reviewer 09 /PATCHSET_LEVEL:0]
+Seems that this change is triggering a crash in CoAP:
+https://qt-project.atlassian.net/browse/QTBUG-149883

@@ -1,0 +1,8 @@
+{
+ "design_match": 0.6,
+ "reviewer_concerns": 0.8,
+ "minimality": 0.85,
+ "hidden_risk": 0.5,
+ "key_difference": "(D) implements clearLocalData() as an unguarded d.set(nullptr) and leaves the QThreadData::currentThreadData() check in the QCollator caller, whereas (B) adds QThreadStorageData::clear() that does that check inside the API, so (D)'s new public function can re-create thread-local storage during shutdown with nothing left to destroy it (and (D) keeps the qthread_p.h include and a now-misleading comment).",
+ "judge_cost_usd": 0.0694164
+}

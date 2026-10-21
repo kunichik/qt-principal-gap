@@ -1,0 +1,8 @@
+{
+ "design_match": 0.85,
+ "reviewer_concerns": 0.65,
+ "minimality": 0.85,
+ "hidden_risk": 0.9,
+ "key_difference": "(D) unposts the swapped-out batch while still holding the postEventList mutex, using fetchAndSubAcquire, whereas (B) swaps, drops the lock, then unposts with Relaxed, as Thiago asked for in review.",
+ "judge_cost_usd": 0.0660792
+}

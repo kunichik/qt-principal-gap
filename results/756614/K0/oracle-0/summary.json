@@ -1,0 +1,26 @@
+{
+ "task": "756614",
+ "arm": "K0",
+ "rep": "0",
+ "agent": "oracle",
+ "model": "opus",
+ "tests": {
+  "tst_qthreadstorage_warnonexit": {
+   "build": "OK",
+   "passed": null,
+   "failed": null,
+   "fail_names": [],
+   "crashed": true
+  },
+  "tst_qthreadstorage": {
+   "build": "OK",
+   "passed": 17,
+   "failed": 0,
+   "fail_names": [],
+   "crashed": false
+  }
+ },
+ "cost_usd": null,
+ "turns": null,
+ "wall_s": null
+}

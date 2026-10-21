@@ -1,0 +1,8 @@
+{
+ "design_match": 0.4,
+ "reviewer_concerns": 0.6,
+ "minimality": 0.35,
+ "hidden_risk": 0.4,
+ "key_difference": "(B) rejects every percent-encoded byte >= 0x80, because valid UTF-8 is already folded to UTF-16 before decode() runs, and on Windows it also rejects literal backslashes stored in decoded form; (D) instead re-decodes %80-%FF as UTF-8 through a new traits struct, adds a fallback that copies the input undecoded when there is a bad-encoding sequence, and has no Windows literal-'\\\\' check, so a decoded backslash reaches the output on Windows.",
+ "judge_cost_usd": 0.10645289999999999
+}

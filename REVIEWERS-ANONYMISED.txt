@@ -1,0 +1,3 @@
+Names of Gerrit reviewers in review texts, judge notes and audits are replaced by stable aliases
+(Reviewer 01..18). The reviews themselves are public on codereview.qt-project.org; see each
+task's commit.txt for the Change-Id. Commit messages (commit.txt) are kept verbatim as in qtbase.

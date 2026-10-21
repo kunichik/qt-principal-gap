@@ -1,0 +1,143 @@
+{
+ "duration_api_ms": 63233,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 0.4211524,
+ "usage": {
+  "input_tokens": 30,
+  "cache_creation_input_tokens": 21682,
+  "cache_read_input_tokens": 557704,
+  "output_tokens": 6794,
+  "output_tokens_details": {
+   "thinking_tokens": 1743
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 21682,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 924,
+    "cache_read_input_tokens": 44478,
+    "cache_creation_input_tokens": 738,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 738
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1421,
+   "outputTokens": 27,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00015560000000000001,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 30,
+   "outputTokens": 6794,
+   "cacheReadInputTokens": 557704,
+   "cacheCreationInputTokens": 21682,
+   "webSearchRequests": 0,
+   "costUSD": 0.42099680000000006,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 1743,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 17,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "I fixed it: a `QtConcurrent::run()` task that `QThreadPool::clear()` removes from the queue now ends up Canceled and Finished. `waitForFinished()` returns instead of hanging.\n\n**Root cause:** `QThreadPoolPrivate::clear()` (`src/corelib/thread/qthreadpool.cpp:335`) deletes queued auto-delete runnables without running them. For `QtConcurrent::run()`, that runnable is a `RunFunctionTaskBase`, and only its `run()` method ever reports the future as finished. Its destructor didn't, so when the task was deleted unrun, the future stayed Running and nothing ever woke the waiters.\n\nThe variant where the function takes a `QPromise<T>&` didn't hang, because `~QPromise` already cancels and finishes an unfinished promise. The plain function-call variant had no equivalent.\n\n**Fix** (`src/concurrent/qtconcurrentrunbase.h`): I added a destructor to `RunFunctionTaskBase`. If the promise isn't finished yet, it reports Canceled and then Finished. That is the same end state the code already uses when there is no thread pool. After a normal `run()` the promise is already finished, so the destructor does nothing. I put the fix here rather than in `QThreadPool::clear()`, because the pool only knows about generic `QRunnable`s and has no way to reach the future. It also covers any other way the task might be deleted without running.\n\n**Test:** I added `tst_QtConcurrentRun::clearThreadPool`. It fills the pool's only thread with a blocking task, queues a `void`-returning task, an `int`-returning task and a `QPromise` task, then calls `clear()`. It checks that each future is Finished, Canceled and not Running, that `waitForFinished()` returns, and that none of the tasks ran.\n- With the fix reverted, the new test fails at the `isFinished()` check.\n- With the fix, it passed 50 runs in a row.\n- These suites all pass: `tst_qtconcurrentrun` (27), `tst_qfuture` (88), `tst_qthreadpool` (73), `tst_qtconcurrentmap` (30) and `tst_qtconcurrenttask` (13).\n\n**Not fixed:** after the task is deleted, the future still holds a pointer to it. `waitForFinished()` only uses that pointer to look for the task in the pool's queue, and that pointer is also left behind after a task finishes normally.\n\nI couldn't tell what the number lines at the end of your message (`764375 K0 1`, and so on) are for, so I ignored them. Tell me if they matter.",
+ "ttft_ms": 1825,
+ "type": "result",
+ "duration_ms": 241402,
+ "ttft_stream_ms": 890,
+ "time_to_request_ms": 311,
+ "time_to_request_phases_ms": {
+  "other": 16,
+  "system_prompt": 4,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 6,
+  "input_hooks": 2,
+  "transcript_persist": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 1,
+  "engine_pickup": 2,
+  "message_prep": 0,
+  "model_config_wait": 268,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 3,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 15,
+ "time_to_request_cpu_ms": 281,
+ "time_to_request_major_faults": 423,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 7,
+  "major_faults": 19
+ },
+ "first_content_frame_ms": 890,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

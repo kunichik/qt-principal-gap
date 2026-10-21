@@ -1,0 +1,19 @@
+{
+ "task": "772702",
+ "arm": "K0",
+ "rep": "1",
+ "agent": "claude",
+ "model": "opus",
+ "tests": {
+  "tst_qstring": {
+   "build": "OK",
+   "passed": 3219,
+   "failed": 0,
+   "fail_names": [],
+   "crashed": false
+  }
+ },
+ "cost_usd": 0.22441629999999999,
+ "turns": 10,
+ "wall_s": 71
+}

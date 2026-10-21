@@ -1,0 +1,143 @@
+{
+ "duration_api_ms": 120016,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 0.9170263,
+ "usage": {
+  "input_tokens": 46,
+  "cache_creation_input_tokens": 51642,
+  "cache_read_input_tokens": 1299791,
+  "output_tokens": 12178,
+  "output_tokens_details": {
+   "thinking_tokens": 2315
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 51642,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 775,
+    "cache_read_input_tokens": 76366,
+    "cache_creation_input_tokens": 473,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 473
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1751,
+   "outputTokens": 26,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001881,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 46,
+   "outputTokens": 12178,
+   "cacheReadInputTokens": 1299791,
+   "cacheCreationInputTokens": 51642,
+   "webSearchRequests": 0,
+   "costUSD": 0.9168381999999999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 2315,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 32,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "I've added `static void QMimeDatabase::reload()`. After calling it, the next query checks the MIME definition files right away, just as when the five-second check is due. Both test variants (`tst_qmimedatabase-xml-builtin` and `-xml-fdoxml`) build and pass. To make sure the test really depends on `reload()`, I briefly made it a no-op: `installNewLocalMimeType` then failed at the first lookup after installing the files. I put it back and the tests pass again. My last edit was a small wording fix in the doc comment, which I didn't rebuild after.\n\nOn this Mac, only the plain-XML path was tested. `installNewGlobalMimeType` is skipped because it needs `XDG_DATA_DIRS`, and the `mime.cache` row doesn't run because `update-mime-database` isn't installed. Those cases run on Linux CI.\n\n**Library (`src/corelib/mimetypes/`)**\n- **`qmimedatabase.h`:** declares the new public function.\n- **`qmimedatabase.cpp`:** `reload()` locks the shared database and resets the five-second timer, so the next query does the usual check. It doesn't read any files itself.\n- **Delay setting:** `qmime_secondsBetweenChecks` existed only so tests could set the delay to zero. Nothing uses it now, so it is a private constant instead of an exported variable.\n- **Docs:** `reload()` is documented as `\\since 6.13`. Its note says a regenerated `mime.cache` is picked up only if its modification time is newer, which is existing behaviour. The class overview now mentions the delay and points to `reload()`.\n\n**Tests (`tst_qmimedatabase.cpp`)**\n- I removed the `extern` declaration and the two `qmime_secondsBetweenChecks = 0;` lines.\n- `installNewGlobalMimeType` and `installNewLocalMimeType` now call `QMimeDatabase::reload()` after each change on disk: installing files, deleting files, deleting `mime.cache`, and removing the local MIME directory.\n\nBecause the XML reader only compares the list of files in `packages/`, editing an existing XML file in place still isn't detected, even after `reload()`. That was already true before this change, so the docs say \"changes\" rather than promising that modified files are picked up.\n\nNothing is committed.",
+ "ttft_ms": 3208,
+ "type": "result",
+ "duration_ms": 157199,
+ "ttft_stream_ms": 1279,
+ "time_to_request_ms": 203,
+ "time_to_request_phases_ms": {
+  "other": 12,
+  "system_prompt": 4,
+  "resume_other": 1,
+  "process_user_input": 2,
+  "input_attachments": 6,
+  "input_hooks": 2,
+  "transcript_persist": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 1,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 163,
+  "autocompact": 0,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 3,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 12,
+ "time_to_request_cpu_ms": 265,
+ "time_to_request_major_faults": 417,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 7,
+  "major_faults": 20
+ },
+ "first_content_frame_ms": 1279,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

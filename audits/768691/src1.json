@@ -1,0 +1,9 @@
+{
+ "verdict": "NOT_OK",
+ "problems": [
+  "The card leaves out what happens to `appendTo` when the new mode fails, and reviewers treated this as essential. At PS12 a reviewer blocked the change with \"Documentation is contradicted by code\". The doc and the code disagreed on the state `appendTo` is left in on the -1 path. The merged contract is: on failure, `appendTo` is truncated back to its original size, and if it was originally empty it is made null. The reviewer asked that either the docs state this exactly, or the code track `wasNull` / use `Q_PRE` so the documented null-vs-empty state is actually honoured. The engineer needs to implement this consistently on every failure path, including the Windows backslash precheck, and document it accurately."
+ ],
+ "model": "opus",
+ "source": true,
+ "cost_usd": 0.0664338
+}

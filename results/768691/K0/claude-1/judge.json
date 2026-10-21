@@ -1,0 +1,8 @@
+{
+ "design_match": 0.4,
+ "reviewer_concerns": 0.5,
+ "minimality": 0.5,
+ "hidden_risk": 0.4,
+ "key_difference": "(D) adds a separate decodeForLocalFile() that does its own UTF-8 decoding and never rejects a literal (already-decoded) backslash on Windows, whereas (B) extends the existing decode() with a flag, pre-checks the input for '\\' on Windows, treats any decoded byte >= 0x80 as invalid, and resets appendTo to null on failure when it was empty.",
+ "judge_cost_usd": 0.0974656
+}

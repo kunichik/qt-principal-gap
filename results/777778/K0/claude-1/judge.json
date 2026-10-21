@@ -1,0 +1,8 @@
+{
+ "design_match": 0.9,
+ "reviewer_concerns": 1.0,
+ "minimality": 1.0,
+ "hidden_risk": 0.95,
+ "key_difference": "(D) skips the reload when the shared QMimeDatabasePrivate does not exist yet (staticQMimeDatabase.exists()) instead of calling instance() unconditionally, and keeps qmime_secondsBetweenChecks as a constexpr int rather than switching to std::chrono durations; both behave equivalently, since the first query loads everything.",
+ "judge_cost_usd": 0.056506600000000004
+}

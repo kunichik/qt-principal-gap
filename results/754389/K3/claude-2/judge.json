@@ -1,0 +1,8 @@
+{
+ "design_match": 0.7,
+ "reviewer_concerns": 0.75,
+ "minimality": 0.75,
+ "hidden_risk": 0.6,
+ "key_difference": "When the sender lives in another thread that has no event dispatcher, (D) falls back to calling disconnectNotify() (and the virtual metaObject()) inline from the receiver's thread, which keeps the original vptr race for that case, whereas (B) never makes the virtual call cross-thread and drops the notification instead.",
+ "judge_cost_usd": 0.0926129
+}

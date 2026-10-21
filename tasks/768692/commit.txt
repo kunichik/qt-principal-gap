@@ -1,0 +1,34 @@
+QUrl: make toLocalFile() reject paths unsafe as local files
+
+QUrl::toLocalFile() must fully decode the percent-encoded path, which
+was documented as undefined behavior if the path contained a non-UTF-8
+sequence and could silently produce a dangerous path if it contained an
+encoded slash (%2F, or %5C on Windows) or a NUL. The URL RFC is clear
+that encoded %2F is not a path separator, so QUrl does not consider it
+or backslashes in functions like resolve() or for RemoveFileName.
+
+This uses the extra, hidden recode mode (QUrlDecodeForLocalFile) for
+toLocalFile(), which will fail if it sees such a dangerous
+character. This allows QUrl::toLocalFile() to return null on failure and
+toString(QUrl::PreferLocalFile) to fall back to the full file: URL when
+the path is present but cannot be represented as a local
+file. QUrl::path() and its normalization and RemoveFilename variants
+keep accepting these sequences unchanged.
+
+[ChangeLog][QtCore][QUrl] QUrl::toLocalFile() now returns a null
+QString() instead of a dangerous path when either the decoding fails (an
+invalid UTF-8 sequence in percent-encoded form) or the fully-decoded
+path would contain a character that is invalid in a local file path (a
+NUL, an encoded slash or, on Windows, a backslash). For those cases,
+toString(QUrl::PreferLocalFile) returns the full "file:" URL. Note that
+isLocalFile() will still be true.
+
+Note that %2E is not a dangerous character because it's not special: on
+input, any %2E sequences are decoded to ".".
+
+Task-number: QTBUG-150008
+Task-number: QTBUG-150016
+Change-Id: I1abbd1eeeda797f534aefffd0a4ef9abe6d61005
+Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
+Reviewed-by: Oswald Buddenhagen <oswald.buddenhagen@gmx.de>
+Reviewed-by: Edward Welbourne <edward.welbourne@qt.io>

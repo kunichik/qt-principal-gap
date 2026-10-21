@@ -1,0 +1,143 @@
+{
+ "duration_api_ms": 30806,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 0.22441629999999999,
+ "usage": {
+  "input_tokens": 18,
+  "cache_creation_input_tokens": 13825,
+  "cache_read_input_tokens": 292079,
+  "output_tokens": 2759,
+  "output_tokens_details": {
+   "thinking_tokens": 241
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 13825,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 758,
+    "cache_read_input_tokens": 36752,
+    "cache_creation_input_tokens": 607,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 607
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1350,
+   "outputTokens": 27,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001485,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 18,
+   "outputTokens": 2759,
+   "cacheReadInputTokens": 292079,
+   "cacheCreationInputTokens": 13825,
+   "webSearchRequests": 0,
+   "costUSD": 0.2242678,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 241,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 10,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "I fixed `QString::insert(qsizetype, QLatin1StringView)` in `src/corelib/text/qstring.cpp`. After rebuilding, `tst_qstring` passes: 3219 passed, 0 failed, 1 skipped. I didn't rebuild the old code to watch the new test fail there.\n\n**Root cause:** the function decided whether the view was empty by reading its first byte, as if it were a C string ending in a NUL:\n\n```cpp\nconst char *s = str.latin1();\nif (i < 0 || !s || !(*s))\n    return *this;\n```\n\nBut a `QLatin1StringView` has a stored length and doesn't have to end in a NUL. That causes both problems:\n- **Single NUL:** for `\"\\0\"_L1` the first byte is `'\\0'`, so a one-character view counted as empty and nothing was inserted. The same happened with any view starting with a NUL, such as `\"x\\0y\"` inserted at position 0 \u2014 actually that one starts with `'x'`, so only views whose first byte is NUL were affected.\n- **Empty view:** the check reads `*s` even when the length is 0. If the data pointer points past the end of a buffer, or at bytes with no NUL, that read touches memory it shouldn't.\n\n**Fix:** the guard now uses the length, like the other `insert` overloads:\n\n```cpp\nif (i < 0 || str.isEmpty())\n    return *this;\n```\n\n`isEmpty()` also covers a null view, and nothing is read when the length is 0.\n\n**Test:** I added cases to `tst_QString::insert_special_cases()` in `tests/auto/corelib/text/qstring/tst_qstring.cpp`:\n- inserting `\"\\0\"_L1` now gives `u\"A\\0B\"`\n- a view with an embedded NUL (`\"x\\0y\"_L1`) is inserted in full\n- an empty view over a buffer with no NUL changes nothing\n\nThe empty-view case only checks the result. An out-of-bounds read wouldn't make it fail unless the test runs under AddressSanitizer.",
+ "ttft_ms": 2227,
+ "type": "result",
+ "duration_ms": 69753,
+ "ttft_stream_ms": 1214,
+ "time_to_request_ms": 227,
+ "time_to_request_phases_ms": {
+  "other": 13,
+  "system_prompt": 38,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 11,
+  "input_hooks": 1,
+  "transcript_persist": 9,
+  "tool_pool_refresh": 1,
+  "init_message": 2,
+  "engine_pickup": 0,
+  "message_prep": 1,
+  "model_config_wait": 141,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 4,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 47,
+ "time_to_request_cpu_ms": 276,
+ "time_to_request_major_faults": 411,
+ "input_attachments_detail": {
+  "slowest_producer": "skill_listing",
+  "slowest_producer_ms": 6,
+  "cpu_ms": 15,
+  "major_faults": 23
+ },
+ "first_content_frame_ms": 1214,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

@@ -1,0 +1,9 @@
+{
+ "verdict": "NOT_OK",
+ "problems": [
+  "The card says nothing about the regression test, but the reviewer changed its design and the author complied. The test should build deeply nested input (about 100000 levels) and call readElementText(IncludeChildElements) directly in the main thread, letting any stack overflow happen there. It should not run on a QThread with a wait() timeout: on failure that destroys a still-running QThread, and an overflow in the main thread gives a clearer backtrace. Without this, the engineer is likely to repeat the QThread approach the reviewer rejected."
+ ],
+ "model": "opus",
+ "source": true,
+ "cost_usd": 0.0422434
+}

@@ -1,0 +1,212 @@
+diff --git a/src/corelib/io/qlockfile_unix.cpp b/src/corelib/io/qlockfile_unix.cpp
+index 421412f2..3ae49c5a 100644
+--- a/src/corelib/io/qlockfile_unix.cpp
++++ b/src/corelib/io/qlockfile_unix.cpp
+@@ -21,6 +21,9 @@
+ #include "private/qcore_unix_p.h" // qt_safe_open
+ #include "private/qabstractfileengine_p.h"
+ #include "private/qfilesystementry_p.h"
++#include "private/qfilesystemengine_p.h"
++#include "private/qsystemerror_p.h"
++#include "QtCore/qrandom.h"
+ #include "private/qtemporaryfile_p.h"
+ 
+ #if !defined(Q_OS_INTEGRITY)
+@@ -133,6 +136,88 @@ static bool setNativeLocks(int fd)
+     return true;
+ }
+ 
++/*
++ * Removes a lock file whose handle has already been closed, i.e. whose native
++ * locks are no longer held. \a st identifies the file we had open.
++ *
++ * Since another process may have removed the file (as stale) and created a new
++ * lock file between the close() and now, we must not blindly unlink() the name.
++ * Instead, atomically move the file out of the way to a unique name, check that
++ * it is the file we had open, and only then delete it. If it isn't ours, move
++ * it back.
++ *
++ * Returns 0 on success or an errno value; ENOENT means our file no longer
++ * exists under that name.
++ */
++static int removeUnlockedLockFile(const QByteArray &lockFileName, const QT_STATBUF &st)
++{
++    const QFileSystemEntry entry(lockFileName, QFileSystemEntry::FromNativePath());
++    const QFileSystemEntry tmpEntry(lockFileName + ".rm."
++                                            + QByteArray::number(QRandomGenerator::global()->generate64(), 16),
++                                    QFileSystemEntry::FromNativePath());
++    QSystemError error;
++    if (!QFileSystemEngine::renameFile(entry, tmpEntry, error))
++        return error.error();
++
++    const QByteArray tmpName = tmpEntry.nativeFilePath();
++    QT_STATBUF tmpSt;
++    if (QT_LSTAT(tmpName.constData(), &tmpSt) == 0
++            && tmpSt.st_dev == st.st_dev && tmpSt.st_ino == st.st_ino) {
++        return ::unlink(tmpName.constData()) == 0 ? 0 : errno;
++    }
++
++    // Not our file: someone else's lock replaced ours in the meantime. Put it
++    // back, but never over a file that has been created in the meantime.
++    if (!QFileSystemEngine::renameFile(tmpEntry, entry, error)) {
++        qWarning("QLockFile: Could not restore lock file %s from %s: %ls",
++                 lockFileName.constData(), tmpName.constData(),
++                 qUtf16Printable(error.toString()));
++    }
++    return ENOENT;
++}
++
++// For autotests: behave as if unlinking a locked file failed with EBUSY.
++Q_AUTOTEST_EXPORT bool qt_lockfile_simulate_ebusy = false;
++
++static int unlinkLockedFile(const QByteArray &lockFileName)
++{
++    if (Q_UNLIKELY(qt_lockfile_simulate_ebusy)) {
++        errno = EBUSY;
++        return -1;
++    }
++    return ::unlink(lockFileName.constData());
++}
++
++/*
++ * Removes the lock file \a lockFileName while still holding the native locks on
++ * \a fd, then closes \a fd. Returns 0 on success or an errno value.
++ *
++ * Some network file systems (observed with NFSv4.2) refuse to remove or rename a
++ * file that still has an active lock, failing with EBUSY. In that case close the
++ * file first (which drops the locks) and remove it afterwards.
++ */
++static int releaseLockFile(const QByteArray &lockFileName, int fd)
++{
++    if (unlinkLockedFile(lockFileName) == 0) {
++        qt_safe_close(fd);
++        return 0;
++    }
++
++    int err = errno;
++    if (err != EBUSY) {
++        qt_safe_close(fd);
++        return err;
++    }
++
++    QT_STATBUF st;
++    const bool haveStat = QT_FSTAT(fd, &st) == 0;
++    err = errno;
++    qt_safe_close(fd);
++    if (!haveStat)
++        return err;
++    return removeUnlockedLockFile(lockFileName, st);
++}
++
+ QLockFile::LockError QLockFilePrivate::tryLock_sys()
+ {
+     const QByteArray lockFileName = QFile::encodeName(fileName);
+@@ -183,9 +268,12 @@ bool QLockFilePrivate::removeStaleLock()
+     if (fd < 0) // gone already?
+         return errno == ENOENT;
+ 
+-    bool success = setNativeLocks(fd) && (::unlink(lockFileName) == 0);
+-    close(fd);
+-    return success;
++    // Only remove the file if nobody holds the native locks on it anymore.
++    if (!setNativeLocks(fd)) {
++        qt_safe_close(fd);
++        return false;
++    }
++    return releaseLockFile(lockFileName, fd) == 0;
+ }
+ 
+ bool QLockFilePrivate::isProcessRunning(qint64 pid, const QString &appname)
+@@ -310,15 +398,15 @@ void QLockFile::unlock()
+         return;
+ 
+     const QByteArray lockFileName = QFile::encodeName(d->fileName);
+-    int ret = unlink(lockFileName);
+-    if (ret != 0 && errno != ENOENT && errno != ENOTDIR) {
++    // releaseLockFile() closes the handle
++    const int err = releaseLockFile(lockFileName, d->fileHandle);
++    d->fileHandle = -1;
++    if (err != 0 && err != ENOENT && err != ENOTDIR) {
+         qWarning("Could not remove our own lock file %s: %ls (maybe permissions changed meanwhile?)",
+-                 lockFileName.constBegin(), qUtf16Printable(qt_error_string()));
++                 lockFileName.constBegin(), qUtf16Printable(qt_error_string(err)));
+         // This is bad because other users of this lock file will now have to wait for the stale-lock-timeout...
+     }
+ 
+-    close(d->fileHandle);
+-    d->fileHandle = -1;
+     d->lockError = QLockFile::NoError;
+     d->isLocked = false;
+ }
+diff --git a/tests/auto/corelib/io/qlockfile/tst_qlockfile.cpp b/tests/auto/corelib/io/qlockfile/tst_qlockfile.cpp
+index cb116ca4..e504fe16 100644
+--- a/tests/auto/corelib/io/qlockfile/tst_qlockfile.cpp
++++ b/tests/auto/corelib/io/qlockfile/tst_qlockfile.cpp
+@@ -27,6 +27,12 @@
+ 
+ #include <private/qlockfile_p.h>  // for getLockFileHandle()
+ 
++#if defined(QT_BUILD_INTERNAL) && defined(Q_OS_UNIX)
++QT_BEGIN_NAMESPACE
++extern Q_CORE_EXPORT bool qt_lockfile_simulate_ebusy;
++QT_END_NAMESPACE
++#endif
++
+ using namespace std::chrono_literals;
+ 
+ class tst_QLockFile : public QObject
+@@ -47,6 +53,7 @@ private slots:
+     void staleShortLockFromBusyProcess();
+     void staleLongLockFromBusyProcess();
+     void staleLockRace();
++    void busyUnlink();
+     void noPermissions();
+     void noPermissionsWindows();
+     void corruptedLockFile();
+@@ -417,6 +424,46 @@ void tst_QLockFile::staleLockRace()
+ #endif // QT_CONFIG(process)
+ }
+ 
++void tst_QLockFile::busyUnlink()
++{
++#if !defined(QT_BUILD_INTERNAL) || !defined(Q_OS_UNIX)
++    QSKIP("This test requires a developer build on Unix");
++#else
++    // Some network file systems refuse to remove a file holding an active
++    // lock with EBUSY; the lock file must be removed nevertheless.
++    QTemporaryDir busyDir;
++    QVERIFY2(busyDir.isValid(), qPrintable(busyDir.errorString()));
++    const QString fileName = busyDir.path() + "/busyLock";
++    qt_lockfile_simulate_ebusy = true;
++    auto resetSimulation = qScopeGuard([] { qt_lockfile_simulate_ebusy = false; });
++
++    {
++        QLockFile lockFile(fileName);
++        QVERIFY(lockFile.lock());
++        QVERIFY(QFile::exists(fileName));
++        lockFile.unlock();
++        QVERIFY(!lockFile.isLocked());
++        QVERIFY(!QFile::exists(fileName));
++        QCOMPARE(QDir(busyDir.path()).entryList(QDir::NoDotAndDotDot | QDir::AllEntries),
++                 QStringList());
++    }
++
++#if QT_CONFIG(process) && !defined(Q_OS_HARMONY)
++    // Stale lock left behind by a crashed process
++    int ret = QProcess::execute(m_helperApp, QStringList() << fileName << "-uncleanexit");
++    QCOMPARE(ret, int(QLockFile::NoError));
++    QTRY_VERIFY(QFile::exists(fileName));
++    QLockFile secondLock(fileName);
++    QVERIFY(secondLock.removeStaleLockFile());
++    QVERIFY(!QFile::exists(fileName));
++    QVERIFY(secondLock.tryLock());
++    secondLock.unlock();
++    QCOMPARE(QDir(busyDir.path()).entryList(QDir::NoDotAndDotDot | QDir::AllEntries),
++             QStringList());
++#endif
++#endif
++}
++
+ void tst_QLockFile::noPermissions()
+ {
+ #if defined(Q_OS_WIN)

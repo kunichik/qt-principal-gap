@@ -1,0 +1,21 @@
+{
+ "task": "754389",
+ "arm": "K0",
+ "rep": "1",
+ "agent": "claude",
+ "model": "opus",
+ "tests": {
+  "tst_qobject": {
+   "build": "OK",
+   "passed": 129,
+   "failed": 1,
+   "fail_names": [
+    "tst_QObject::disconnectNotify_receiverDestroyedInOtherThread_notifies()"
+   ],
+   "crashed": false
+  }
+ },
+ "cost_usd": 0.5260059,
+ "turns": 20,
+ "wall_s": 223
+}

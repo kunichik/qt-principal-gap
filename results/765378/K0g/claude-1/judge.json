@@ -1,0 +1,8 @@
+{
+ "design_match": 0.45,
+ "reviewer_concerns": 0.55,
+ "minimality": 0.65,
+ "hidden_risk": 0.4,
+ "key_difference": "(D) fixes the duplicated drain loop in both cleanupThreadData() and clearEvents() with an unbounded `while (!isEmpty())`, so an event destructor that always reposts loops forever; (B) consolidates on a single clearEvents() that swaps the list out under the mutex, resets startOffset/insertionOffset, and caps the passes at MaxPasses with a warning.",
+ "judge_cost_usd": 0.0724229
+}

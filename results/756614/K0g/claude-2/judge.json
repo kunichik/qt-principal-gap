@@ -1,0 +1,8 @@
+{
+ "design_match": 0.55,
+ "reviewer_concerns": 0.8,
+ "minimality": 0.85,
+ "hidden_risk": 0.5,
+ "key_difference": "(B) puts the QThreadData::currentThreadData() guard inside a new QThreadStorageData::clear(), so clearLocalData() is safe during shutdown and never re-creates thread-local storage. (D) calls d.set(nullptr) unconditionally, which can re-create and leak TLS at shutdown, leaves the guard (and the qthread_p.h dependency) at the qcollator call site, and documents clearLocalData() as unsafe at shutdown.",
+ "judge_cost_usd": 0.0749445
+}

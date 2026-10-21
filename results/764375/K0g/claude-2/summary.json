@@ -1,0 +1,19 @@
+{
+ "task": "764375",
+ "arm": "K0g",
+ "rep": "2",
+ "agent": "claude",
+ "model": "opus",
+ "tests": {
+  "tst_qtconcurrentrun": {
+   "build": "OK",
+   "passed": 27,
+   "failed": 0,
+   "fail_names": [],
+   "crashed": false
+  }
+ },
+ "cost_usd": 0.40301240000000005,
+ "turns": 16,
+ "wall_s": 1119
+}

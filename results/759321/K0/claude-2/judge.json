@@ -1,0 +1,8 @@
+{
+ "design_match": 0.45,
+ "reviewer_concerns": 0.75,
+ "minimality": 0.6,
+ "hidden_risk": 0.55,
+ "key_difference": "On EBUSY, (D) explicitly unlocks (flock LOCK_UN / F_UNLCK) but keeps the fd open, adds an inode-identity check, and retries unlink only for EBUSY. (B) adds a shared releaseLockFile() helper that closes the fd before retrying the unlink (also for ETXTBSY/EPERM) and returns true only if the file is actually gone. So (D) can still fail where the server rejects unlinking any still-open file, and it leaves a stat-then-unlink race window.",
+ "judge_cost_usd": 0.0628559
+}

@@ -1,0 +1,33 @@
+{
+ "task": "772702",
+ "arm": "K0",
+ "rep": "0",
+ "agent": "oracle",
+ "model": "opus",
+ "tests": {
+  "tst_qstring_restricted_ascii": {
+   "build": "OK",
+   "passed": 2876,
+   "failed": 0,
+   "fail_names": [],
+   "crashed": false
+  },
+  "tst_qstring_no_cast_from_ascii": {
+   "build": "OK",
+   "passed": 2827,
+   "failed": 0,
+   "fail_names": [],
+   "crashed": false
+  },
+  "tst_qstring": {
+   "build": "OK",
+   "passed": 3219,
+   "failed": 0,
+   "fail_names": [],
+   "crashed": false
+  }
+ },
+ "cost_usd": null,
+ "turns": null,
+ "wall_s": null
+}

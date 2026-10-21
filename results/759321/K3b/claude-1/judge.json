@@ -1,0 +1,8 @@
+{
+ "design_match": 0.92,
+ "reviewer_concerns": 0.95,
+ "minimality": 0.97,
+ "hidden_risk": 0.92,
+ "key_difference": "(D) emits the 'could not remove lock file' warning only from unlock() by restoring errno for the caller, while (B) puts the warning inside the shared releaseLockFile() helper, so a failed stale-lock removal in removeStaleLock() is also reported. Otherwise the two changes match: unlink while locked, close, retry on EBUSY/ETXTBSY/EPERM, return true only if the file is gone, and remove only after setNativeLocks() succeeds.",
+ "judge_cost_usd": 0.053695599999999996
+}

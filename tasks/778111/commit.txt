@@ -1,0 +1,16 @@
+QByteArray: Don't preallocate the whole size hint in qUncompress()
+
+qUncompress() preallocates the size declared in the 4-byte big-endian
+header of the data. The header comes from the input, so a ~10-byte blob
+declaring 0xFFFFFFFF triggered a ~4 GiB allocation.
+
+The declared size is only a hint, so don't reject such data. Instead,
+limit the preallocation to what deflate can produce out of the given
+amount of compressed data (its maximum compression ratio is ~1032:1).
+The output buffer still grows as needed, so data with a wrong hint
+decompresses as before.
+
+Fixes: QTBUG-151147
+Pick-to: 6.12 6.8
+Change-Id: I4c4a6ac8849584e366ee68156e82a095b80c5b7a
+Reviewed-by: Thiago Macieira <thiago.macieira@intel.com>

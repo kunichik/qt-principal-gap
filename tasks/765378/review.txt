@@ -1,0 +1,132 @@
+[PS2 Reviewer 08 src/corelib/thread/qthread.cpp:88]
+Why don't we just move out of postEventList (or the QList part of it) into a local variable and iterate that?
+
+[PS2 Reviewer 08 tests/auto/corelib/kernel/qcoreapplication/apphelper.cpp:193]
+```suggestion
+    explicit DeleteLaterEvent(QObject *receiver, QObject *victim, int depth)
+```
+
+[PS2 Reviewer 08 tests/auto/corelib/kernel/qcoreapplication/apphelper.cpp:252]
+```suggestion
+        if (!thread.wait(5s)) {
+```
+
+[PS2 Reviewer 08 tests/auto/corelib/kernel/qcoreapplication/tst_qcoreapplication.cpp:1235]
+I'm not sure anything in Qt calls it on such custom events, but there's clone(), which these classes don't override.
+
+(repeats)
+
+[PS2 Reviewer 08 tests/auto/corelib/kernel/qcoreapplication/tst_qcoreapplication.cpp:1238]
+```suggestion
+        explicit RepostingEvent(QObject *receiver, int depth)
+```
+
+[PS2 Reviewer 08 tests/auto/corelib/kernel/qcoreapplication/tst_qcoreapplication.cpp:1280]
+```suggestion
+        explicit DeleteLaterEvent(QObject *target)
+            : QEvent(QEvent::Type(QEvent::User + 1)), m_target(target)
+```
+
+[PS2 Reviewer 08 tests/auto/corelib/kernel/qcoreapplication/tst_qcoreapplication.cpp:1308]
+Did you mean to use a QPointer there? The `victim` unique_ptr will never compare false.
+
+(There'a also QAutoPointer in some _p.h, in case you need an owning version of QPointer)
+
+[PS3 Reviewer 15 src/corelib/thread/qthread.cpp:89]
+Why the Relaxed/Acquire change? If it is important, move to another commit explaining why. If not, then keep Relaxed.
+
+[PS3 Reviewer 15 src/corelib/thread/qthread.cpp:91]
+Why do this inside of the mutex lock? Just swap, unlock, then operate.
+
+[PS4 Reviewer 05 src/corelib/thread/qthread.cpp:86]
+This is cheap, but loses the allocated capacity of `postEventList`. Not sure about the implications, or how to possibly "fix" this.
+
+(Oh well, ideally events should get allocated in a memory pool, as they're a hideous source of transient allocations in Qt.)
+
+[PS4 Reviewer 05 src/corelib/thread/qthread.cpp:86]
+Ah, ok, sorry. The mention of `sendPostedEvents()` made me worry that this would be "normally" called during dispatching.
+
+[PS4 Reviewer 08 src/corelib/thread/qthread.cpp:86]
+(with the PS4 code, the capacity isn't really lost; it is maintained in `pending`, which gets swapped in again on every even pass)
+
+[PS4 Reviewer 15 src/corelib/thread/qthread.cpp:86]
+Retaining the capacity is a non-goal. This function is only called when the thread is exiting and should hopefully not generate more events. If any event is added, we'll allocate then.
+
+Retaining capacity here would mean always allocating here, even when no event is added.
+
+[PS4 Reviewer 08 src/corelib/thread/qthread.cpp:101]
+I don't understand this comment; At this point, `pending` is already removed from `postEventList`, so it is invisible to anything but this function. Is this a remnant from when the list was drained in-place or something else holding a reference to the QPostEvent element?
+
+[PS4 Reviewer 15 src/corelib/thread/qthread.cpp:101]
+This looks like an optimisation for ~QObjectPrivate:
+```
+    if (postedEvents.loadRelaxed())
+        QCoreApplication::removePostedEvents(q_ptr, 0);
+```
+If the number did get to 0, then if an object is destroyed as a result of sending the event (e.g., DeferredDeleteEvent), then it won't try to scan the list to remove the posted events.
+
+But we're not sending the events; we're just deleting them.
+
+Are we trying to guard against the events' virtual destructors destroying other QObjects with posted events? Why?
+
+I don't know what this code is guarding against, it predates the public history:
+https://github.com/qt/qt/blame/4.8/src/corelib/thread/qthread.cpp#L105-L112
+
+[PS4 Reviewer 15 src/corelib/thread/qthread.cpp:101]
+Acknowledged
+
+[PS4 Reviewer 08 tests/auto/corelib/kernel/qcoreapplication/tst_qcoreapplication.cpp:1312]
+Please use QAutoPointer, or a scope-guard; tests shouldn't leak even in failure mode
+
+[PS5 Reviewer 08 /PATCHSET_LEVEL:0]
+Remove the "smoke grenade" comments, add the absent two comments that actually matter, and this becomes an _obvious_ fix.
+
+[PS5 Reviewer 08 src/corelib/thread/qthread.cpp:77]
+This comment is focusing on the wrong thing: It is standard practice to drop the mutex after swapping a container before processing its content. qPre/PostRoutine do it, the QThreadPool work pump does it, etc. _That_ doesn't need a comment.
+
+What needs a comment is why there's a MaxPasses. And yes, it's there because ~QEvent() may run arbitrary code, incl. code that posts new events. And we limit the passes to avoid an infinite loop. More of less what you say already. But re-focused.
+
+[PS5 Reviewer 15 src/corelib/thread/qthread.cpp:77]
+Done
+
+[PS5 Reviewer 08 src/corelib/thread/qthread.cpp:87]
+what is "it" referring here? "recursion"? There's no such variable visible here?
+
+(but see below)
+
+[PS5 Reviewer 15 src/corelib/thread/qthread.cpp:87]
+Done
+
+[PS5 Reviewer 08 src/corelib/thread/qthread.cpp:89]
+I don't understand this comment, but if I ignore it, the code becomes obvious: if I swap the QList part of decltype(postEventList) with an empty list, it is kinda natural to have to adjust the remaining fields for the new state of the QList part. So the two lines below are clear without comment. The comment, OTOH, talks about functions far away, in another TU, and forces readers to understand stuff that really doesn't matter here.
+
+I would just remove the comment, and then the question about "it" becomes moot, too.
+
+[PS5 Reviewer 15 src/corelib/thread/qthread.cpp:89]
+Done
+
+[PS5 Reviewer 08 src/corelib/thread/qthread.cpp:102]
+This loop doesn't need a comment, either. It's just doing what the old code did already, which also didn't have a comment.
+
+[PS5 Reviewer 15 src/corelib/thread/qthread.cpp:102]
+But I like having an explanation for why we must do this.
+
+[PS5 Reviewer 08 src/corelib/thread/qthread.cpp:109]
+What needs a comment is why _this_ loop is separate from the previous one.
+
+
+
+
+```suggestion
+        // may run arbitrary code (virtual ~QEvent()), so do it last:
+        for (const QPostEvent &pe : std::as_const(pending))
+```
+
+[PS5 Reviewer 15 src/corelib/thread/qthread.cpp:109]
+Done
+
+[PS6 Reviewer 05 src/corelib/kernel/qcoreapplication.cpp:526]
+I don't understand this comment to be honest. What is this bool protecting from exactly?
+
+[PS6 Reviewer 05 src/corelib/thread/qthread.cpp:98]
+Doesn't this "look for these event" also apply if we hit the previous `if` and leak the events? Why isn't that a problem? (In other words: should this loop go before that if?)

@@ -1,0 +1,8 @@
+{
+ "design_match": 0.85,
+ "reviewer_concerns": 0.85,
+ "minimality": 0.85,
+ "hidden_risk": 0.9,
+ "key_difference": "D adds a stricter early-return guard in QThreadStorageData::clear() that inspects data->tls size and slot so tls is never grown, and keeps QThreadStorage as a member with a forwarding localData(); B only checks QThreadData::currentThreadData(), calls set(nullptr), and makes GenerationalCollatorHolder inherit QThreadStorage<GenerationalCollator> with a using-declaration.",
+ "judge_cost_usd": 0.0710965
+}

@@ -1,0 +1,143 @@
+{
+ "duration_api_ms": 82347,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 0.572729,
+ "usage": {
+  "input_tokens": 26,
+  "cache_creation_input_tokens": 32572,
+  "cache_read_input_tokens": 569996,
+  "output_tokens": 9895,
+  "output_tokens_details": {
+   "thinking_tokens": 1733
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 32572,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 937,
+    "cache_read_input_tokens": 57319,
+    "cache_creation_input_tokens": 450,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 450
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1368,
+   "outputTokens": 26,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001498,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 26,
+   "outputTokens": 9895,
+   "cacheReadInputTokens": 569996,
+   "cacheCreationInputTokens": 32572,
+   "webSearchRequests": 0,
+   "costUSD": 0.5725792000000001,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 1733,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 14,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "I added `QCborStreamReader::isNumber()` and `QCborStreamReader::toNumber()`, with documentation and autotests. The test target builds and the whole `tst_qcborstreamreader` suite passes (3670 passed, 0 failed). Nothing is committed yet.\n\n**Code**\n- **`isNumber()`** is an inline one-liner in `qcborstreamreader.h`, next to the other `isXxx()` functions. It returns `isInteger() || isFloat16() || isFloat() || isDouble()`.\n- **`toNumber()`** is exported and defined in `qcborstreamreader.cpp`. It asserts `isNumber()`, then picks the conversion based on `type()`.\n  - Negative integers are converted as `-double(value64 + 1)`. The obvious `-1.0 - double(value64)` rounds twice and can be wrong: for \u2212(2\u2075\u00b3+2) it gives \u22122\u2075\u00b3.\n  - The one value where `value64 + 1` would overflow (\u22122\u2076\u2074) returns `-0x1p64` directly.\n  - Half and single floats convert exactly, including \u00b1inf and NaN.\n  - The default case returns `qQNaN()` in release builds.\n\n**Docs**\n- Both functions are marked `\\since 6.13`, to match `QT_REPO_MODULE_VERSION`. `isNumber()` is documented in the same style as its neighbours.\n- `toNumber()` explains that integers larger than 2\u2075\u00b3 in magnitude get rounded and points to `toInteger()`, `toUnsignedInteger()` and `toNegativeInteger()` for exact values. Like `toInteger()`, it says no conversion from bool or tags is done.\n\n**Tests** (`tst_qcborstreamreader.cpp`, run with both a byte array and a `QBuffer` device)\n- `basics()` now checks `!isNumber()` on an invalid reader.\n- `integers()` now checks `isNumber()` on every integer row, and checks `toNumber()` on those that fit in a qint64.\n- New `numbers()` covers unsigned and negative integers (including 2\u2075\u00b3+1, UINT64_MAX, INT64_MIN and \u22122\u2076\u2074), plus half, single and double values with \u00b1inf and NaN.\n  - Values are compared exactly, sign bit included, because `QCOMPARE` is fuzzy for doubles.\n  - The \u22122\u2075\u00b3\u22122 row fails under the naive double-rounding implementation.\n- New `notNumbers()` checks that bool, null, undefined, other simple types, byte arrays, strings, arrays, maps and tagged values are not numbers. Tagged values count as tags, the same as for `isInteger()`.\n\nBeing a new exported symbol, `toNumber()` is an ABI addition, which is fine for a 6.13 minor release.",
+ "ttft_ms": 1291,
+ "type": "result",
+ "duration_ms": 126128,
+ "ttft_stream_ms": 742,
+ "time_to_request_ms": 212,
+ "time_to_request_phases_ms": {
+  "other": 14,
+  "system_prompt": 7,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 7,
+  "input_hooks": 2,
+  "transcript_persist": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 2,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 166,
+  "autocompact": 0,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 3,
+  "message_normalization": 1,
+  "client_creation": 0,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 11,
+ "time_to_request_cpu_ms": 235,
+ "time_to_request_major_faults": 312,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 13,
+  "major_faults": 27
+ },
+ "first_content_frame_ms": 742,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

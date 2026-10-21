@@ -1,0 +1,59 @@
+diff --git a/src/corelib/io/qlockfile_unix.cpp b/src/corelib/io/qlockfile_unix.cpp
+index 421412f2..3b93e8c0 100644
+--- a/src/corelib/io/qlockfile_unix.cpp
++++ b/src/corelib/io/qlockfile_unix.cpp
+@@ -133,6 +133,36 @@ static bool setNativeLocks(int fd)
+     return true;
+ }
+ 
++static void releaseNativeLocks(int fd)
++{
++#if defined(Q_OS_ANDROID)
++    struct flock fl;
++    fl.l_type = F_UNLCK;
++    fl.l_whence = SEEK_SET;
++    fl.l_start = 0;
++    fl.l_len = 0;
++    fcntl(fd, F_SETLK, &fl);
++#elif defined(LOCK_EX) && defined(LOCK_NB)
++    flock(fd, LOCK_UN);
++#else
++    Q_UNUSED(fd);
++#endif
++}
++
++// Removes the lock file while we still hold the native lock on \a fd.
++// Some network file systems (e.g. some NFSv4.2 servers) refuse to remove a
++// file that has an active lock, failing with EBUSY. In that case, release
++// the native lock and try again.
++static int unlinkLockedFile(const char *fileName, int fd)
++{
++    if (::unlink(fileName) == 0)
++        return 0;
++    if (errno != EBUSY)
++        return -1;
++    releaseNativeLocks(fd);
++    return ::unlink(fileName);
++}
++
+ QLockFile::LockError QLockFilePrivate::tryLock_sys()
+ {
+     const QByteArray lockFileName = QFile::encodeName(fileName);
+@@ -183,7 +213,7 @@ bool QLockFilePrivate::removeStaleLock()
+     if (fd < 0) // gone already?
+         return errno == ENOENT;
+ 
+-    bool success = setNativeLocks(fd) && (::unlink(lockFileName) == 0);
++    bool success = setNativeLocks(fd) && (unlinkLockedFile(lockFileName, fd) == 0);
+     close(fd);
+     return success;
+ }
+@@ -310,7 +340,7 @@ void QLockFile::unlock()
+         return;
+ 
+     const QByteArray lockFileName = QFile::encodeName(d->fileName);
+-    int ret = unlink(lockFileName);
++    int ret = unlinkLockedFile(lockFileName, d->fileHandle);
+     if (ret != 0 && errno != ENOENT && errno != ENOTDIR) {
+         qWarning("Could not remove our own lock file %s: %ls (maybe permissions changed meanwhile?)",
+                  lockFileName.constBegin(), qUtf16Printable(qt_error_string()));

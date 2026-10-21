@@ -1,0 +1,19 @@
+{
+ "task": "768692",
+ "arm": "K3",
+ "rep": "0",
+ "agent": "oracle",
+ "model": "opus",
+ "tests": {
+  "tst_qurl": {
+   "build": "OK",
+   "passed": 1055,
+   "failed": 0,
+   "fail_names": [],
+   "crashed": false
+  }
+ },
+ "cost_usd": null,
+ "turns": null,
+ "wall_s": null
+}

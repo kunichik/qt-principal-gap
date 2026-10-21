@@ -1,0 +1,143 @@
+{
+ "duration_api_ms": 118219,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 0.7110051,
+ "usage": {
+  "input_tokens": 38,
+  "cache_creation_input_tokens": 36672,
+  "cache_read_input_tokens": 863719,
+  "output_tokens": 12224,
+  "output_tokens_details": {
+   "thinking_tokens": 2501
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 36672,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 918,
+    "cache_read_input_tokens": 61394,
+    "cache_creation_input_tokens": 475,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 475
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1528,
+   "outputTokens": 201,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00025330000000000003,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 175,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 38,
+   "outputTokens": 12224,
+   "cacheReadInputTokens": 863719,
+   "cacheCreationInputTokens": 36672,
+   "webSearchRequests": 0,
+   "costUSD": 0.7107517999999999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 2501,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 22,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "I added `QCborStreamReader::isNumber()` and `toNumber()`, with documentation and autotests. The full `tst_qcborstreamreader` suite passes: 3672 passed, 0 failed, in both the QByteArray and QBuffer modes. Nothing is committed.\n\n**API** (`src/corelib/serialization/qcborstreamreader.h`): both functions are inline, like the other `isXxx()`/`toXxx()` getters, so they add nothing to the ABI.\n- `isNumber()` is true for unsigned and negative integers and for half, single and double precision floats.\n- `toNumber()` asserts `isNumber()`, like the existing getters, and returns the value as a double:\n  - **Floats:** converted exactly, including \u00b10, infinities and NaN.\n  - **Unsigned integers:** `double(value64)`, so the whole range up to 2\u2076\u2074\u22121 works.\n  - **Negative integers:** the whole CBOR range down to \u22122\u2076\u2074 is covered, rounded only once. Unlike `toInteger()`, it doesn't wrap around outside the qint64 range. The one value whose internal arithmetic would overflow, \u22122\u2076\u2074, is handled separately because a double holds it exactly.\n- It does not convert booleans, strings or tags; a bignum is a tag, so it is not a number.\n\n**Docs** (`qcborstreamreader.cpp`): both functions are marked `\\since 6.13`, the version in `.cmake.conf`. The `toNumber()` text explains rounding above 2\u2075\u00b3 and states that nothing is converted from non-numeric types.\n\n**Tests** (`tst_qcborstreamreader.cpp`):\n- `basics()` now checks that `isNumber()` is false on an invalid reader.\n- `integers()` checks `isNumber()` and `toNumber()` against every row of the existing integer data, including values outside the qint64 range.\n- A new data-driven `numbers()` test covers:\n  - integers that round (2\u2075\u00b3+1, \u22122\u2075\u00b3\u22121, \u2212UINT64_MAX, \u22122\u2076\u2074);\n  - each float width at \u00b10, max, the smallest denormal, \u00b1inf and NaN, checking the sign of zero;\n  - non-numbers (bool, null, undefined, other simple types, byte array, string, array, map, bignum tag), which must return false.\n\n  Results are compared exactly (`QCOMPARE_EQ`) rather than with `QCOMPARE`'s fuzzy floating-point comparison, so a one-bit rounding error would fail. The test also checks that `toNumber()` agrees with `toFloat16()`, `toFloat()` and `toDouble()`.\n\nI left the shared TinyCBOR test data in `src/3rdparty` unchanged.",
+ "ttft_ms": 2098,
+ "type": "result",
+ "duration_ms": 177789,
+ "ttft_stream_ms": 1558,
+ "time_to_request_ms": 376,
+ "time_to_request_phases_ms": {
+  "other": 16,
+  "system_prompt": 3,
+  "resume_other": 1,
+  "process_user_input": 1,
+  "input_attachments": 8,
+  "input_hooks": 1,
+  "transcript_persist": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 2,
+  "engine_pickup": 0,
+  "message_prep": 1,
+  "model_config_wait": 333,
+  "autocompact": 0,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 3,
+  "message_normalization": 1,
+  "client_creation": 0,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 67,
+ "time_to_request_cpu_ms": 358,
+ "time_to_request_major_faults": 414,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 8,
+  "major_faults": 19
+ },
+ "first_content_frame_ms": 1558,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

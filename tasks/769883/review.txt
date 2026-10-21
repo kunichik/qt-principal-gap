@@ -1,0 +1,34 @@
+[PS1 Reviewer 03 /COMMIT_MSG:13]
+Given the following "also" - which is talking about what's changed, not the prior state - perhaps rephrase this as "This was inconsistent ..., so fix the inconsistency and reject trailing cruft" or something along those lines.
+
+[PS1 Reviewer 03 /COMMIT_MSG:14]
+(Which is peculiarly inconsistent with the ISO parsing for time.
+
+My first thought on the trailing cruft was that it was to let `QDateTime::fromString()` delegate to this without having to create a fresh string to hold the date part, back before we had views to make that free.  However, chasing the history right back to its origin (26 years ago), that recursive call has *always* passed exactly the first ten characters of its string. It also didn't check what was between the parts (could even have been more digits), or even that the string was long enough (but then, it was using `mid()`, which does check its parameters are in range).
+So I think the lack of length limit has just been for backwards compatibility, all these years.)
+
+[PS1 Reviewer 03 /COMMIT_MSG:14]
+The "lenient parsing" was notably refined in response to QTBUG-34141 early in 2014.
+
+[PS1 Reviewer 03 /COMMIT_MSG:14]
+It's a fair thought, but I find the inconsistency with the rest of `TextDate` handling to be a compelling case for fixing it.
+
+[PS1 Reviewer 03 /COMMIT_MSG:16]
+Also applies to `ISODateWithMs`, for all that this is indistinguishable for `QDate`.
+
+[PS1 Reviewer 03 /COMMIT_MSG:20]
+That phrasing feels a bit off ... it's consistent with the corresponding `QDateTime` method, with the handling of the other `Qt::TextDate` forms in `QDate` and (as dangling cruft) to `QTime::fromString()`.  Not worth actually saying all that in the commit message, but perhaps:
+
+   ... consistent with other handling of Qt::TextDate formats.
+
+[PS1 Reviewer 03 src/corelib/time/qdatetime.cpp:1680]
+This would be better said on the doc of `Qt::DateFormat` (in `corelib/global/qnamespace.qdoc`) rather than here, since it's equally true for `QDateTime::fromString()`.  That gives the details for `ISODateWithMs` and refers to that for `ISODate`, so put this with the former.
+
+[PS1 Reviewer 03 tests/auto/corelib/time/qdate/tst_qdate.cpp:1292]
+Interesting that this was already invalid, due to the trailing cruft starting with a digit, which was actively checked for.
+
+[PS2 Reviewer 03 /PATCHSET_LEVEL:0]
+Give Reviewer 15@intel.com a chance to comment overnight, but I do think it's the right thing to do.
+
+[PS2 Reviewer 03 src/corelib/global/qnamespace.qdoc:736]
+(perhaps "allowed" - not crucial)

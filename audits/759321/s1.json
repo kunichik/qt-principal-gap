@@ -1,0 +1,11 @@
+{
+ "verdict": "NOT_OK",
+ "problems": [
+  "The card omits the point the reviewers treated as essential in the later patchsets. removeStaleLock()/releaseLockFile() must return true if and only if the lock file is actually gone. Reviewer 02 objected that returning true when the unlink failed makes lock() `continue` past its sleep, so it busy-loops forever with the default infinite timeout and prints a warning each round. This also covers the sticky-directory and immutable-file cases. When the file cannot be removed, lock() must fall back to sleeping between attempts. The final commit message describes exactly this behavior.",
+  "The card's rename points (renameFile()'s link+unlink fallback for renameat2() returning EINVAL, and 'EEXIST must not be treated as success') come from PS1 comments on rename code. The final change is described as close() then unlink(), with no rename step, so these points are about superseded code. Following them would send the engineer toward a rename-based approach the final design doesn't use.",
+  "The card does not say what is out of scope. The reviewers raised a tryLock_sys() fix: on EWOULDBLOCK for a freshly O_EXCL-created file, close and return LockFailedError, plus an fstat/stat st_dev/st_ino ownership check. That fix was explicitly judged unrelated to EBUSY/NFS and left for a separate commit. The card doesn't tell the engineer to leave it out."
+ ],
+ "model": "sonnet",
+ "source": false,
+ "cost_usd": 0.0266807
+}

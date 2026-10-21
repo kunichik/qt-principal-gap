@@ -1,0 +1,48 @@
+QLockFile/Unix: try harder to release locked files
+
+On some systems, attempting to remove or rename a file with an active
+lock fails with EBUSY (observed on Dell EMC Unity's NFSv4.2 server). We
+must drop the locks first, which close() does, then unlink() the file.
+
+The filesystem's behavior prevents most race conditions: for the
+unlock/tryLock pairing, if we have not yet unlink()ed the file,
+tryLock_sys() will fail due to the O_EXCL flag. If isApparentlyStale()
+is false, then the new locker simply fails at locking and may
+wait. However, if isApparentlyStale() is true, then we race with
+removeStaleLock() in the new locker:
+
+- if the new locker is in removeStaleLocker() and has opened the lock
+  file but has not yet locked it, the original locker may unlink() this
+  file, but then setNativeLocks() will fail and returns false, causing
+  tryLock_sys() to wait then try again
+
+- if the new locker is in removeStaleLocker() and has locked the lock
+  file but not removed it, the original locker will fail at unlink(),
+  which is ok: the lock ownership has transferred to the new locker,
+  which will remove it in releaseLockFile() and recreate after looping
+
+- if the new locker has finished removeStaleLock(), removing the file
+  but not yet recreated it, the old locker's unlink() will fail with
+  ENOENT
+
+- if the new locker has removed the file and has created the new one but
+  not yet locked it, the original locker may unlink() it, which will
+  cause the new locker's attempt at setNativeLocks() to fail, print a
+  warning, but proceed without a native lock. This is a problem.
+
+- if the new locker has removed the file, created the new one, and
+  locked it, unlink() will again fail with EBUSY, which is again ok
+
+The second-to-last case is the only one in which there's a problem:
+QLockFile will hold an open file descriptor to a deleted file, which
+means it thinks it has locked, but from the point of view of any other
+processes/threads, there is no lock.
+
+removeStaleLock() now returns whether the lock file is actually gone;
+if it cannot be removed (e.g. another user's stale lock in a sticky
+directory), lock() falls back to sleeping between attempts.
+
+Fixes: QTBUG-148845
+Pick-to: 6.12 6.11 6.8
+Change-Id: Id7a39975010bf525e016fffd5271da416614aace
+Reviewed-by: David Faure <david.faure@kdab.com>

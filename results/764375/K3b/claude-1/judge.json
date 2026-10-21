@@ -1,0 +1,8 @@
+{
+ "design_match": 1.0,
+ "reviewer_concerns": 1.0,
+ "minimality": 0.95,
+ "hidden_risk": 1.0,
+ "key_difference": "The candidate adds the same destructor logic (reportCanceled + reportFinished if not finished) as the maintainer, differing only in placement within the class and an explanatory comment.",
+ "judge_cost_usd": 0.021457399999999998
+}

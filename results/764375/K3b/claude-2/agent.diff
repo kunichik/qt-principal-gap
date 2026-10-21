@@ -1,0 +1,84 @@
+diff --git a/src/concurrent/qtconcurrentrunbase.h b/src/concurrent/qtconcurrentrunbase.h
+index 4674d7f4..bae878c4 100644
+--- a/src/concurrent/qtconcurrentrunbase.h
++++ b/src/concurrent/qtconcurrentrunbase.h
+@@ -47,6 +47,17 @@ template <typename T>
+ class RunFunctionTaskBase : public QRunnable
+ {
+ public:
++    ~RunFunctionTaskBase() override
++    {
++        // The task may be deleted without having run, e.g. when it is removed
++        // from the pool's queue by QThreadPool::clear(). Finish the future in
++        // that case, so that nobody waits on it forever.
++        if (!promise.isFinished()) {
++            promise.reportCanceled();
++            promise.reportFinished();
++        }
++    }
++
+     QFuture<T> start()
+     {
+         return start(TaskStartParameters());
+diff --git a/tests/auto/concurrent/qtconcurrentrun/tst_qtconcurrentrun.cpp b/tests/auto/concurrent/qtconcurrentrun/tst_qtconcurrentrun.cpp
+index 0bc29619..f4389557 100644
+--- a/tests/auto/concurrent/qtconcurrentrun/tst_qtconcurrentrun.cpp
++++ b/tests/auto/concurrent/qtconcurrentrun/tst_qtconcurrentrun.cpp
+@@ -9,6 +9,7 @@
+ #include <QTest>
+ #include <QTimer>
+ #include <QFutureSynchronizer>
++#include <QSemaphore>
+ 
+ #include <QtTest/private/qemulationdetector_p.h>
+ 
+@@ -45,6 +46,7 @@ private slots:
+     void nonDefaultConstructibleValue();
+     void nullThreadPool();
+     void nullThreadPoolNoLeak();
++    void clearThreadPool();
+ };
+ 
+ void light()
+@@ -1630,5 +1632,41 @@ void tst_QtConcurrentRun::nullThreadPoolNoLeak()
+     QCOMPARE(LifetimeChecker::count, 0);
+ }
+ 
++void tst_QtConcurrentRun::clearThreadPool()
++{
++    QThreadPool pool;
++    pool.setMaxThreadCount(1);
++
++    QSemaphore started;
++    QSemaphore blocker;
++    auto blocking = run(&pool, [&] { started.release(); blocker.acquire(); });
++    started.acquire();
++
++    std::atomic<bool> isInvoked = false;
++    auto future = run(&pool, [&] { isInvoked = true; return 42; });
++    auto withPromise = run(&pool, [&](QPromise<int> &) { isInvoked = true; });
++    std::atomic<bool> canceledHandlerCalled = false;
++    auto continuation = run(&pool, [&] { isInvoked = true; })
++            .onCanceled([&] { canceledHandlerCalled = true; });
++
++    pool.clear();
++    blocker.release();
++
++    QTRY_VERIFY(blocking.isFinished());
++    QVERIFY(!blocking.isCanceled());
++
++    QTRY_VERIFY(future.isFinished());
++    QVERIFY(future.isCanceled());
++
++    QTRY_VERIFY(withPromise.isFinished());
++    QVERIFY(withPromise.isCanceled());
++
++    QTRY_VERIFY(continuation.isFinished());
++    QVERIFY(canceledHandlerCalled);
++
++    QVERIFY(pool.waitForDone());
++    QVERIFY(!isInvoked);
++}
++
+ QTEST_MAIN(tst_QtConcurrentRun)
+ #include "tst_qtconcurrentrun.moc"

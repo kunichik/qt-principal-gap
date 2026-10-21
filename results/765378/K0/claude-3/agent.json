@@ -1,0 +1,143 @@
+{
+ "duration_api_ms": 68529,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 0.4218662,
+ "usage": {
+  "input_tokens": 32,
+  "cache_creation_input_tokens": 21168,
+  "cache_read_input_tokens": 595421,
+  "output_tokens": 6645,
+  "output_tokens_details": {
+   "thinking_tokens": 1202
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 21168,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 825,
+    "cache_read_input_tokens": 45753,
+    "cache_creation_input_tokens": 612,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 612
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1490,
+   "outputTokens": 522,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00041,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 501,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 32,
+   "outputTokens": 6645,
+   "cacheReadInputTokens": 595421,
+   "cacheCreationInputTokens": 21168,
+   "webSearchRequests": 0,
+   "costUSD": 0.4214562,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 1202,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 18,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "I fixed the deadlock in `src/corelib/kernel/qcoreapplication.cpp` and added a test that hangs without the fix and passes with it.\n\n**Root cause:** When the application shuts down, `QCoreApplicationPrivate::cleanupThreadData()` deletes the events still in the main thread's queue. It did this while holding `postEventList.mutex`, which can't be locked twice by the same thread. If one of those events' destructors calls `postEvent()` or `deleteLater()` (which posts a `DeferredDelete` event), it tries to take the same lock again and blocks forever. The Windows Media Foundation backend triggers this.\n\n**Fix:** Under the lock, the cleanup now moves the queued events into a local list, leaves the queue empty and resets its offsets, then releases the lock before deleting them. It repeats until the queue stays empty, because a destructor can queue new events during cleanup. The original code was otherwise left as is.\n\n**Test:** I added `tst_QCoreApplication::pendingEventDestructorPostsOnExit()`. It leaves a chain of three events pending when the application object is destroyed; each event's destructor calls `deleteLater()` and posts the next event. The test checks that all three get destroyed.\n- Without the fix (QtCore rebuilt with the change removed), the test hangs.\n- With the fix, it passes.\n- The full `tst_qcoreapplication` run gives 66 passed and 5 failed. The 5 failures (`exitFromEventLoop`, `exitFromThread`, `exitFromThreadedEventLoop`, `exitWithPlugins`, `mainAppInAThread`) are because the test can't find its `apphelper` program in this build. I saw the same 5 failures before rebuilding with my change, so they aren't caused by it.\n\nI didn't change the other places that delete queued events: `QThreadData::clearEvents()`, `removePostedEvent()`, and the Windows-only `removePostedTimerEvent()`. `clearEvents()` doesn't take the lock at all, and `removePostedTimerEvent()` only deletes timer events. `removePostedEvent()` does delete an event while holding the lock, but I didn't look into whether that path can hit the same deadlock.\n\nNothing is committed.",
+ "ttft_ms": 3214,
+ "type": "result",
+ "duration_ms": 341395,
+ "ttft_stream_ms": 1168,
+ "time_to_request_ms": 216,
+ "time_to_request_phases_ms": {
+  "other": 14,
+  "system_prompt": 6,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 7,
+  "input_hooks": 2,
+  "transcript_persist": 9,
+  "tool_pool_refresh": 1,
+  "init_message": 2,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 163,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 4,
+  "message_normalization": 1,
+  "client_creation": 0,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 10,
+ "time_to_request_cpu_ms": 277,
+ "time_to_request_major_faults": 418,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 13,
+  "major_faults": 27
+ },
+ "first_content_frame_ms": 1168,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

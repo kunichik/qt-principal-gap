@@ -1,0 +1,13 @@
+diff --git a/tests/auto/corelib/text/qstring/tst_qstring.cpp b/tests/auto/corelib/text/qstring/tst_qstring.cpp
+index 2ce4dfd5..417a0d81 100644
+--- a/tests/auto/corelib/text/qstring/tst_qstring.cpp
++++ b/tests/auto/corelib/text/qstring/tst_qstring.cpp
+@@ -3417,6 +3417,8 @@ void tst_QString::insert_special_cases()
+         QCOMPARE(a.insert(3, static_cast<const char *>(0)), montreal);
+ #endif
+         QCOMPARE(a.insert(0, u"a"_s), "aMontreal"_L1);
++        QCOMPARE(a.insert(0, "\0"_L1), "\0aMontreal"_L1);
++        QCOMPARE(a.insert(0, u"\0"_s), "\0\0aMontreal"_L1);
+     }
+     {
+         // Test when string is shared

@@ -1,0 +1,143 @@
+{
+ "duration_api_ms": 216730,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 1.2208133,
+ "usage": {
+  "input_tokens": 50,
+  "cache_creation_input_tokens": 56026,
+  "cache_read_input_tokens": 1560075,
+  "output_tokens": 23012,
+  "output_tokens_details": {
+   "thinking_tokens": 12706
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 56026,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1276,
+    "cache_read_input_tokens": 79875,
+    "cache_creation_input_tokens": 1348,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1348
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1368,
+   "outputTokens": 27,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00015030000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 50,
+   "outputTokens": 23012,
+   "cacheReadInputTokens": 1560075,
+   "cacheCreationInputTokens": 56026,
+   "webSearchRequests": 0,
+   "costUSD": 1.220663,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 12706,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 27,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "`QThreadPool::clear()` no longer leaves QtConcurrent futures stuck. A queued `QtConcurrent::run()` task that gets cleared now ends up canceled and finished, and its `.onCanceled()` continuation runs. The map/filter family had the same bug and is fixed too. Both new tests fail without the fix and pass with it. All the existing concurrent tests and the `tst_qfuture` and `tst_qthreadpool` tests pass, and the two new tests passed 100 repeated runs each. Nothing is committed.\n\n**Root cause:** `clear()` just takes runnables off the queue. It deletes them if they're auto-delete and otherwise drops them, and it has no way to tell anyone. The QFuture only finishes when the task's `run()` reports it finished, which now never happens. `waitForFinished()` can't help either: it tries to take the task back from the queue and run it itself, but the task is already gone, so it waits forever. For map()/filter() the engine isn't auto-delete and normally deletes itself when it finishes. Since it never finishes, it also leaks.\n\n**Fix:** QtConcurrent now gives the pool a small wrapper around each task instead of the task itself:\n- **New wrapper, `QFutureRunnableGuard`** (`src/corelib/thread/qfutureinterface_p.h` / `.cpp`). It is auto-delete, so the pool owns it. If it runs normally, it runs the task. If the pool deletes it without running it, as `clear()` does, it first cancels the future with `reportCanceled()`, the same way `start()` already does when there's no pool. It then runs the task, which sees the cancel and finishes through its normal canceled path. It never deletes or takes over a task that isn't auto-delete; the map/filter engine still finishes and deletes itself.\n- **New internal function, `QFutureInterfaceBase::guardRunnable()`**. It's needed because `run()` and the map/filter engine's start code are templates in public headers, which can't use the private wrapper class directly.\n- **`qtconcurrentrunbase.h`:** `run()` queues the wrapper, and `waitForFinished()` now looks for the wrapper in the queue.\n- **`qtconcurrentthreadengine.h` / `.cpp`:** the map/filter engine's first start uses the wrapper. So do its extra worker threads started with `tryStart()`, because `tryStart()` can briefly queue the engine too and `clear()` could remove it. If `tryStart()` fails, the wrapper is disarmed without canceling anything. Blocking mode, which has no future, keeps the old behavior.\n\n**Things to be aware of:**\n- When `clear()` drops a task, the canceled task finishes inside `clear()`, on the thread that called it. Directly attached continuations, like `.onCanceled()`, run there too.\n- Each task now costs one extra small allocation.\n- `guardRunnable()` is a new exported symbol. Apps built against the old headers keep the old behavior for `run()` until they are rebuilt.\n- I couldn't reliably trigger the brief `tryStart()` queueing in a test, so that path has no test of its own.\n\n**Tests added:**\n- `tst_QtConcurrentRun::clearThreadPool` checks that the future is finished and canceled, `onCanceled` ran, the task never ran, and nothing leaked.\n- `tst_QtConcurrentMap::clearThreadPool` checks the same for `mapped()`, including that the engine isn't leaked.",
+ "ttft_ms": 1684,
+ "type": "result",
+ "duration_ms": 474860,
+ "ttft_stream_ms": 876,
+ "time_to_request_ms": 224,
+ "time_to_request_phases_ms": {
+  "other": 19,
+  "system_prompt": 4,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 8,
+  "input_hooks": 2,
+  "transcript_persist": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 1,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 175,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 4,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 11,
+ "time_to_request_cpu_ms": 279,
+ "time_to_request_major_faults": 410,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 6,
+  "cpu_ms": 12,
+  "major_faults": 23
+ },
+ "first_content_frame_ms": 877,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

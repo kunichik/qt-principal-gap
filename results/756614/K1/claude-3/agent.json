@@ -1,0 +1,143 @@
+{
+ "duration_api_ms": 79963,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 0.7653648,
+ "usage": {
+  "input_tokens": 34,
+  "cache_creation_input_tokens": 49693,
+  "cache_read_input_tokens": 996211,
+  "output_tokens": 8407,
+  "output_tokens_details": {
+   "thinking_tokens": 1657
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 49693,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1044,
+    "cache_read_input_tokens": 73709,
+    "cache_creation_input_tokens": 1181,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1181
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1586,
+   "outputTokens": 288,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0003026,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 264,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 34,
+   "outputTokens": 8407,
+   "cacheReadInputTokens": 996211,
+   "cacheCreationInputTokens": 49693,
+   "webSearchRequests": 0,
+   "costUSD": 0.7650622,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 1657,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 18,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "I added `QThreadStorage<T>::clearLocalData()` for both pointer and value payloads, documented it, added autotests, and switched one piece of existing Qt code (QCollator's per-thread default collator) to a value-based QThreadStorage. `tst_qthreadstorage` passes (19 passed, 1 Windows-only test skipped) and `tst_qcollator` passes (263 passed). Nothing is committed yet.\n\n**API** (`src/corelib/thread/qthreadstorage.h`)\n- **Threaded build:** `clearLocalData()` calls `d.set(nullptr)`. That code path already destroys the old payload safely, even if its destructor uses QThreadStorage again, so pointer and value payloads both work without extra code. For pointers it behaves exactly like `setLocalData(nullptr)`. Calling it when there is no data does nothing.\n- **Build without thread support:** it calls `data.reset()`, which deletes both kinds of payload correctly.\n- **Compatibility:** it's a new inline member of a class template, so binary compatibility is unaffected.\n\n**Docs** (`src/corelib/thread/qthreadstorage.cpp`)\n- New `\\fn` entry marked `\\since 6.13`, the version in `.cmake.conf`. It says `hasLocalData()` is false afterwards, compares it to `setLocalData(nullptr)` for pointers, and notes that other threads' data is unaffected.\n- The class Caveats and `setLocalData()`'s `\\sa` now mention `clearLocalData()`.\n\n**Change to existing code** (`src/corelib/text/qcollator.cpp`)\n`GenerationalCollatorHolder` stored a `GenerationalCollator*` only so it could free it with `setLocalData(nullptr)` during shutdown. It now stores `QThreadStorage<GenerationalCollator>` directly and calls `clearLocalData()`. This also removes its hand-written \"allocate on first use\" code.\n\nI left the other pointer-based uses alone (QFontCache, QHttpThreadDelegate's connection cache, the OpenGL ones and others). Their payloads are QObjects or are handled as pointers in other ways, so this function doesn't remove a workaround there. I also didn't change the iOS assets-library plugin's `setLocalData(QString())`: it isn't a workaround, and I can't build it here.\n\n**Tests** (`tst_qthreadstorage.cpp`)\n- **`clearLocalData`:** pointer payload. Clearing with no data does nothing, clearing deletes the object, the storage works again afterwards, and calling it twice is harmless.\n- **`clearLocalDataValueBased`:** with `QString` and `std::unique_ptr<Pointer>`. It checks that `hasLocalData()` becomes false, that the value is actually destroyed (via the instance counter), and that `localData()` creates a fresh default value afterwards.\n- **`clearLocalDataOtherThreads`:** clearing in one thread doesn't affect another thread's data, in either direction.\n\nThe variant for builds without thread support isn't compiled by this build configuration.",
+ "ttft_ms": 2156,
+ "type": "result",
+ "duration_ms": 104346,
+ "ttft_stream_ms": 1273,
+ "time_to_request_ms": 345,
+ "time_to_request_phases_ms": {
+  "other": 16,
+  "system_prompt": 4,
+  "resume_other": 1,
+  "process_user_input": 2,
+  "input_attachments": 6,
+  "input_hooks": 1,
+  "transcript_persist": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 2,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 301,
+  "autocompact": 0,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 3,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 52,
+ "time_to_request_cpu_ms": 341,
+ "time_to_request_major_faults": 416,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 8,
+  "major_faults": 21
+ },
+ "first_content_frame_ms": 1273,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

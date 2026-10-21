@@ -1,0 +1,20 @@
+QThreadStorage: add clearLocalData()
+
+This functionality was always available for pointer payloads
+(setLocalData(nullptr)), but not for the value wrapper, so add a new
+function.
+
+Since this is a new function, we can change a subtle problem that
+setLocalData() had: if there was no QThreadData for the current thread
+(yet, or anymore), it would (re)create it. We don't need a QThreadData
+to store nullptr, so explicitly write the new function to avoid that.
+
+Use it in QCollator to go back to the pre-QTBUG-135044-fix state of
+using a value-based QThreadStorage.
+
+[ChangeLog][QtCore][QThreadStorage] Added clearLocalData().
+
+Task-number: QTBUG-135044
+Change-Id: Ibeec4b5719d081f6404eb98f3fef385b8d383c23
+Reviewed-by: Edward Welbourne <edward.welbourne@qt.io>
+Reviewed-by: Mårten Nordheim <marten.nordheim@qt.io>

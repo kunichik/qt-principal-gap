@@ -1,0 +1,20 @@
+QObject: restore registering some types during connect()
+
+Amends commit b0f495735c30e400c9749c8b9f9823dbb56dfbd9, which introduced
+this regression. That was intended to fix a problem with *what* we
+registered, not *whether* we registered. However, by removing the
+   { Defined = 1 }
+from the QMetaTypeId2 expansion, that caused this old Qt 5.0 code to
+fail to register the types. It was fine in Qt 5.x because types required
+Q_DECLARE_METATYPE.
+
+In Qt 6, types don't need to be declared (except for a few corner cases
+that we haven't yet properly fixed), but this code was requiring them to
+be so. This commit updates it to query qmetatype.h, using the same
+qTryMetaTypeInterfaceForType() that moc-generated code does.
+
+Pick-to: 6.12
+Task-number: QTBUG-147588
+Fixes: QTBUG-132826
+Change-Id: I11e523a3c42ba0b81f35fffd048c20fb2f924f3e
+Reviewed-by: Fabian Kosmale <fabian.kosmale@qt.io>

@@ -1,0 +1,14 @@
+diff --git a/src/corelib/text/qstring.cpp b/src/corelib/text/qstring.cpp
+index 953d61e..f34f30e 100644
+--- a/src/corelib/text/qstring.cpp
++++ b/src/corelib/text/qstring.cpp
+@@ -3025,8 +3025,7 @@ static void insert_helper(QString &str, qsizetype i, const T &toInsert)
+ */
+ QString &QString::insert(qsizetype i, QLatin1StringView str)
+ {
+-    const char *s = str.latin1();
+-    if (i < 0 || !s || !(*s))
++    if (i < 0 || str.isEmpty())
+         return *this;
+ 
+     insert_helper(*this, i, str);

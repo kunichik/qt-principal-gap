@@ -1,0 +1,149 @@
+{
+ "duration_api_ms": 124315,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 0.6134996999999999,
+ "usage": {
+  "input_tokens": 6,
+  "cache_creation_input_tokens": 3865,
+  "cache_read_input_tokens": 160819,
+  "output_tokens": 1598,
+  "output_tokens_details": {
+   "thinking_tokens": 137
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 3865,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 966,
+    "cache_read_input_tokens": 55265,
+    "cache_creation_input_tokens": 757,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 757
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1573,
+   "outputTokens": 20,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001673,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 44,
+   "outputTokens": 8503,
+   "cacheReadInputTokens": 941202,
+   "cacheCreationInputTokens": 31857,
+   "webSearchRequests": 0,
+   "costUSD": 0.6133323999999999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 1597,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "origin": {
+  "kind": "task-notification",
+  "producer": "session-task",
+  "runId": "0mvgnogtd-3136a575"
+ },
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 4,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "The deadlock is fixed in the library and a new regression test covers it. The test hangs on the old code and passes with the fix.\n\n## Root cause\nAt exit, Qt throws away any events still waiting in the queue. It does this in two places:\n\n- **`QCoreApplicationPrivate::cleanupThreadData()`** (`src/corelib/kernel/qcoreapplication.cpp`) deleted each pending event while holding `postEventList.mutex`. If an event's destructor calls `postEvent()` or `deleteLater()`, that call tries to take the same mutex. `QMutex` isn't recursive, so the thread waits on a lock it already holds and never returns. The Media Foundation backend hits exactly this.\n- **`QThreadData::clearEvents()`** (`src/corelib/thread/qthread.cpp`, used when a `QThread` or its data is destroyed) took no lock at all. If a destructor posted an event there, it changed the queue while the code was still looping over it, which is undefined behaviour.\n\n## Fix\n- **`QThreadData::clearEvents()`** now repeats these steps until the queue is empty:\n  1. Take the mutex, move the whole queue into a local list and reset the queue's position markers.\n  2. Release the mutex.\n  3. Delete the events.\n\n  Events posted from a destructor go into the now-empty queue and get cleaned up on the next pass, so nothing deadlocks or leaks.\n- **`cleanupThreadData()`** now calls `clearEvents()`. Afterwards it still takes the lock to reset the remaining state (`recursion`, `quitNow`).\n\n## Test\nI added `tst_QCoreApplication::postEventFromPendingEventDestructorOnExit()`. It posts an event whose destructor calls both `postEvent()` and `deleteLater()`, then destroys the application with that event still pending. It checks two things: every event, including the ones posted during cleanup, gets deleted, and no object's posted-events counter is left above zero.\n\n## Results\n- **Without the fix:** I rebuilt against the original source and the new test hung right after `initTestCase`.\n- **With the fix:** all tests pass in `tst_qcoreapplication` (71), `tst_qthread` (67), `tst_qobject` (130) and `tst_qeventloop` (14).\n- **Not run:** the GUI and widget application tests. `tst_qguiapplication` isn't a target in this build, so it didn't build, and `tst_qapplication` never got built or run.\n\nOne thing to be aware of: if every event destructor keeps posting a new event, cleanup now loops forever instead of deadlocking.\n\nNothing is committed yet. The changes are in the two source files and in `tst_qcoreapplication.cpp`/`.h`.",
+ "ttft_ms": 3538,
+ "type": "result",
+ "duration_ms": 190179,
+ "ttft_stream_ms": 1995,
+ "time_to_request_ms": 17,
+ "time_to_request_phases_ms": {
+  "other": 6,
+  "system_prompt": 0,
+  "resume_other": 0,
+  "process_user_input": 1,
+  "input_attachments": 2,
+  "input_hooks": 0,
+  "transcript_persist": 0,
+  "tool_pool_refresh": 1,
+  "init_message": 1,
+  "engine_pickup": 0,
+  "message_prep": 0,
+  "model_config_wait": 1,
+  "autocompact": 0,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 2,
+  "client_creation": 0,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 1,
+ "time_to_request_loop_lag_ms": 0,
+ "time_to_request_cpu_ms": 20,
+ "time_to_request_major_faults": 51,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 1,
+  "cpu_ms": 2,
+  "major_faults": 0,
+  "changed_files_reread": 0
+ },
+ "first_content_frame_ms": 1995,
+ "queued_turn_count": 0,
+ "result_index": 2
+}

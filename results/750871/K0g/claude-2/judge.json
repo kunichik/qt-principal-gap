@@ -1,0 +1,8 @@
+{
+ "design_match": 0.45,
+ "reviewer_concerns": 0.35,
+ "minimality": 0.4,
+ "hidden_risk": 0.3,
+ "key_difference": "(D) passes its completeness tag through to is_complete via qTryMetaTypeInterfaceForType, but the tag is the named `QtPrivate::ConnectionTypesDefaultTag`, which is the same in every translation unit; (B) uses an anonymous-namespace `UniqueType`, so (D) still allows the cross-TU folding of the wrong completeness result that the reviewer demonstrated, and it also widens `QMetaTypeIdQObject` with gadget and QObject-pointer specializations that (B) did not need.",
+ "judge_cost_usd": 0.07547000000000001
+}

@@ -1,0 +1,68 @@
+diff --git a/tests/auto/corelib/kernel/qobject/tst_qobject.cpp b/tests/auto/corelib/kernel/qobject/tst_qobject.cpp
+index 1aa8edff..7e5760b6 100644
+--- a/tests/auto/corelib/kernel/qobject/tst_qobject.cpp
++++ b/tests/auto/corelib/kernel/qobject/tst_qobject.cpp
+@@ -61,6 +61,7 @@ private slots:
+     void connectDisconnectNotify();
+     void connectDisconnectNotifyPMF();
+     void disconnectNotify_receiverDestroyed();
++    void disconnectNotify_receiverDestroyedWhileSenderDestroyedInOtherThread();
+     void disconnectNotify_metaObjConnection();
+     void connectNotify_connectSlotsByName();
+     void connectDisconnectNotify_shadowing();
+@@ -1211,6 +1212,55 @@ void tst_QObject::disconnectNotify_receiverDestroyed()
+     QCOMPARE(s.disconnectedSignals.at(0), QMetaMethod::fromSignal(&QObject::destroyed));
+ }
+ 
++class BlockingDestructorSender : public QObject
++{
++    Q_OBJECT
++public:
++    QSemaphore inDestructor;
++    QSemaphore proceed;
++    QAtomicInt disconnectNotifyCalls;
++
++    ~BlockingDestructorSender() override
++    {
++        inDestructor.release();
++        proceed.acquire();
++    }
++
++protected:
++    void disconnectNotify(const QMetaMethod &) override
++    {
++        disconnectNotifyCalls.ref();
++    }
++
++signals:
++    void signal1();
++};
++
++void tst_QObject::disconnectNotify_receiverDestroyedWhileSenderDestroyedInOtherThread()
++{
++    // The sender is being destroyed in its thread while the receiver is
++    // destroyed in this thread. The receiver must not call into the sender,
++    // as it cannot synchronize with the sender's subclass destructors.
++    QThread thread;
++    auto sender = new BlockingDestructorSender;
++    auto receiver = new QObject;
++    QVERIFY(connect(sender, &BlockingDestructorSender::signal1, receiver, &QObject::deleteLater));
++    sender->moveToThread(&thread);
++    thread.start();
++    auto cleanup = qScopeGuard([&] {
++        thread.quit();
++        thread.wait();
++    });
++
++    QMetaObject::invokeMethod(sender, [sender] { delete sender; });
++    QVERIFY(sender->inDestructor.tryAcquire(1, 10s));
++
++    delete receiver;
++    QCOMPARE(sender->disconnectNotifyCalls.loadRelaxed(), 0);
++
++    sender->proceed.release();
++}
++
+ void tst_QObject::disconnectNotify_metaObjConnection()
+ {
+     NotifyObject s;

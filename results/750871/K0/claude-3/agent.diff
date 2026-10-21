@@ -1,0 +1,208 @@
+diff --git a/src/corelib/kernel/qobject.h b/src/corelib/kernel/qobject.h
+index f8a866f8..da343af6 100644
+--- a/src/corelib/kernel/qobject.h
++++ b/src/corelib/kernel/qobject.h
+@@ -259,7 +259,8 @@ public:
+ 
+         const int *types = nullptr;
+         if (type == Qt::QueuedConnection || type == Qt::BlockingQueuedConnection)
+-            types = QtPrivate::ConnectionTypes<typename SignalType::Arguments>::types();
++            types = QtPrivate::ConnectionTypes<typename SignalType::Arguments,
++                                               typename SignalType::Object>::types();
+ 
+         void **pSlot = nullptr;
+         if constexpr (std::is_member_function_pointer_v<std::decay_t<Func2>>) {
+diff --git a/src/corelib/kernel/qobject_impl.h b/src/corelib/kernel/qobject_impl.h
+index 1c27e5fb..b61d3350 100644
+--- a/src/corelib/kernel/qobject_impl.h
++++ b/src/corelib/kernel/qobject_impl.h
+@@ -17,25 +17,51 @@ QT_BEGIN_NAMESPACE
+ namespace QtPrivate {
+     /*
+         Logic to statically generate the array of qMetaTypeId
+-        ConnectionTypes<FunctionPointer<Signal>::Arguments>::types() returns an array
++        ConnectionTypes<FunctionPointer<Signal>::Arguments, Unique>::types() returns an array
+         of int that is suitable for the types arguments of the connection functions.
++        Calling it registers the argument types with the meta-type system.
+ 
+-        The array only exist of all the types are declared as a metatype
+-        (detected using the TypesAreDeclaredMetaType helper struct)
+-        If one of the type is not declared, the function return 0 and the signal
+-        cannot be used in queued connection.
++        The array only exists if all the types can be used as meta types: either
++        they are declared as a metatype (Q_DECLARE_METATYPE, built-in, Q_ENUM, ...)
++        or they are complete types for which a QMetaType can be created (QObject
++        pointers, gadgets, ...). Unique is used for the completeness check and
++        should be a type that is unique to the call site (e.g. the signal's class).
++        Otherwise, the function returns nullptr and the types are looked up from
++        the signal's QMetaMethod when the signal is first emitted.
+     */
+-    template <typename ArgList> struct TypesAreDeclaredMetaType { enum { Value = false }; };
+-    template <> struct TypesAreDeclaredMetaType<List<>> { enum { Value = true }; };
+-    template <typename Arg, typename... Tail> struct TypesAreDeclaredMetaType<List<Arg, Tail...> >
+-    { enum { Value = QMetaTypeId2<Arg>::Defined && TypesAreDeclaredMetaType<List<Tail...>>::Value }; };
++    template <typename Unique, typename Arg>
++    constexpr bool isConnectionTypeAvailable()
++    {
++        if constexpr (bool(QMetaTypeId2<Arg>::Defined))
++            return true;
++        else
++            return qTryMetaTypeInterfaceForType<Unique, Arg>() != nullptr;
++    }
+ 
+-    template <typename ArgList, bool Declared = TypesAreDeclaredMetaType<ArgList>::Value > struct ConnectionTypes
+-    { static const int *types() { return nullptr; } };
+-    template <> struct ConnectionTypes<List<>, true>
++    template <typename Unique, typename Arg>
++    int connectionTypeId()
++    {
++        if constexpr (bool(QMetaTypeId2<Arg>::Defined))
++            return QMetaTypeIdHelper<Arg>::qt_metatype_id();
++        else
++            return QMetaType(qTryMetaTypeInterfaceForType<Unique, Arg>()).id();
++    }
++
++    template <typename ArgList, typename Unique> struct ConnectionTypes;
++    template <typename Unique> struct ConnectionTypes<List<>, Unique>
+     { static const int *types() { return nullptr; } };
+-    template <typename... Args> struct ConnectionTypes<List<Args...>, true>
+-    { static const int *types() { static const int t[sizeof...(Args) + 1] = { (QtPrivate::QMetaTypeIdHelper<Args>::qt_metatype_id())..., 0 }; return t; } };
++    template <typename... Args, typename Unique> struct ConnectionTypes<List<Args...>, Unique>
++    {
++        static const int *types()
++        {
++            if constexpr ((isConnectionTypeAvailable<Unique, Args>() && ...)) {
++                static const int t[sizeof...(Args) + 1] = { connectionTypeId<Unique, Args>()..., 0 };
++                return t;
++            } else {
++                return nullptr;
++            }
++        }
++    };
+ }
+ 
+ 
+diff --git a/src/corelib/kernel/qobject_p.h b/src/corelib/kernel/qobject_p.h
+index 1e0e1b5d..89bf488c 100644
+--- a/src/corelib/kernel/qobject_p.h
++++ b/src/corelib/kernel/qobject_p.h
+@@ -304,7 +304,8 @@ inline QMetaObject::Connection QObjectPrivate::connect(const typename QtPrivate:
+ 
+     const int *types = nullptr;
+     if (type == Qt::QueuedConnection || type == Qt::BlockingQueuedConnection)
+-        types = QtPrivate::ConnectionTypes<typename SignalType::Arguments>::types();
++        types = QtPrivate::ConnectionTypes<typename SignalType::Arguments,
++                                           typename SignalType::Object>::types();
+ 
+     return QObject::connectImpl(sender, reinterpret_cast<void **>(&signal),
+         QtPrivate::getQObject(receiverPrivate), reinterpret_cast<void **>(&slot),
+diff --git a/tests/auto/corelib/kernel/qobject/tst_qobject.cpp b/tests/auto/corelib/kernel/qobject/tst_qobject.cpp
+index 7a8772c0..a61d9354 100644
+--- a/tests/auto/corelib/kernel/qobject/tst_qobject.cpp
++++ b/tests/auto/corelib/kernel/qobject/tst_qobject.cpp
+@@ -128,6 +128,7 @@ private slots:
+     void connectManyArguments();
+     void connectForwardDeclare();
+     void connectNoDefaultConstructorArg();
++    void connectRegistersArgumentTypes();
+     void returnValue_data();
+     void returnValue();
+     void returnValue2_data();
+@@ -5849,6 +5850,97 @@ void tst_QObject::connectNoDefaultConstructorArg()
+     QVERIFY(connect(&ob, &NoDefaultContructorArguments::mySignal, &ob, &NoDefaultContructorArguments::mySlot, Qt::QueuedConnection));
+ }
+ 
++namespace AutoRegistration {
++Q_NAMESPACE
++
++enum class Color { Red, Green };
++Q_ENUM_NS(Color)
++
++class Gadget
++{
++    Q_GADGET
++public:
++    int value = 0;
++};
++
++class PointedGadget
++{
++    Q_GADGET
++};
++
++struct Plain
++{
++    int value = 0;
++};
++
++class Object : public QObject
++{
++    Q_OBJECT
++};
++
++class ConstObject : public QObject
++{
++    Q_OBJECT
++};
++
++class Sender : public QObject
++{
++    Q_OBJECT
++signals:
++    void gadgetSignal(const AutoRegistration::Gadget &);
++    void pointerToGadgetSignal(AutoRegistration::PointedGadget *);
++    void enumSignal(AutoRegistration::Color);
++    void objectSignal(AutoRegistration::Object *);
++    void constObjectSignal(const AutoRegistration::ConstObject *);
++    void plainSignal(AutoRegistration::Plain);
++};
++} // namespace AutoRegistration
++
++void tst_QObject::connectRegistersArgumentTypes()
++{
++    using namespace AutoRegistration;
++    const QByteArrayList names = {
++        "AutoRegistration::Gadget",
++        "AutoRegistration::PointedGadget*",
++        "AutoRegistration::Color",
++        "AutoRegistration::Object*",
++        "const AutoRegistration::ConstObject*",
++        "AutoRegistration::Plain",
++    };
++    for (const QByteArray &name : names)
++        QVERIFY2(!QMetaType::fromName(name).isValid(), name.constData());
++
++    Sender sender;
++    QObject context;
++    const auto queued = Qt::QueuedConnection;
++    QVERIFY(connect(&sender, &Sender::gadgetSignal, &context, [](const Gadget &) {}, queued));
++    QVERIFY(connect(&sender, &Sender::pointerToGadgetSignal, &context, [](PointedGadget *) {}, queued));
++    QVERIFY(connect(&sender, &Sender::enumSignal, &context, [](Color) {}, queued));
++    QVERIFY(connect(&sender, &Sender::objectSignal, &context, [](Object *) {}, queued));
++    QVERIFY(connect(&sender, &Sender::constObjectSignal, &context, [](const ConstObject *) {}, queued));
++    QVERIFY(connect(&sender, &Sender::plainSignal, &context, [](Plain) {}, queued));
++
++    QCOMPARE(QMetaType::fromName("AutoRegistration::Gadget"), QMetaType::fromType<Gadget>());
++    QCOMPARE(QMetaType::fromName("AutoRegistration::PointedGadget*"), QMetaType::fromType<PointedGadget *>());
++    QCOMPARE(QMetaType::fromName("AutoRegistration::Color"), QMetaType::fromType<Color>());
++    QCOMPARE(QMetaType::fromName("AutoRegistration::Object*"), QMetaType::fromType<Object *>());
++    QCOMPARE(QMetaType::fromName("const AutoRegistration::ConstObject*"),
++             QMetaType::fromType<const ConstObject *>());
++    QCOMPARE(QMetaType::fromName("AutoRegistration::Plain"), QMetaType::fromType<Plain>());
++
++    // and the queued connections actually deliver the arguments
++    Gadget receivedGadget;
++    Plain receivedPlain;
++    QVERIFY(connect(&sender, &Sender::gadgetSignal, &context,
++                    [&](const Gadget &g) { receivedGadget = g; }, queued));
++    QVERIFY(connect(&sender, &Sender::plainSignal, &context,
++                    [&](Plain p) { receivedPlain = p; }, queued));
++    emit sender.gadgetSignal(Gadget{42});
++    emit sender.plainSignal(Plain{17});
++    QTRY_COMPARE(receivedGadget.value, 42);
++    QTRY_COMPARE(receivedPlain.value, 17);
++}
++
+ struct MoveOnly
+ {
+     int value;

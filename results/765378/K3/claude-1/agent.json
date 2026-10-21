@@ -1,0 +1,143 @@
+{
+ "duration_api_ms": 93363,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 0.5880943,
+ "usage": {
+  "input_tokens": 36,
+  "cache_creation_input_tokens": 30709,
+  "cache_read_input_tokens": 782949,
+  "output_tokens": 9270,
+  "output_tokens_details": {
+   "thinking_tokens": 2704
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 30709,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 947,
+    "cache_read_input_tokens": 55501,
+    "cache_creation_input_tokens": 405,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 405
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1410,
+   "outputTokens": 295,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002885,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 275,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 36,
+   "outputTokens": 9270,
+   "cacheReadInputTokens": 782949,
+   "cacheCreationInputTokens": 30709,
+   "webSearchRequests": 0,
+   "costUSD": 0.5878058,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 2704,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 23,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "I fixed the deadlock: an application that exits with a pending event whose destructor calls `deleteLater()` or `postEvent()` now shuts down normally. Both test suites pass with the fix, and the new test hangs without it.\n\n**Root cause.** When the application is destroyed, `QCoreApplicationPrivate::cleanupThreadData()` locks the pending-event list's mutex and then deletes each pending event while still holding it. If an event's destructor calls `deleteLater()` or `postEvent()`, that call tries to lock the same mutex. The mutex is non-recursive, so the thread waits on itself forever.\n\nThe other place that discards pending events, `QThreadData::clearEvents()`, had a related bug. It walked the list with no lock while deleting events, so a destructor that posted would change the list during the loop.\n\n**Fix:**\n- **`src/corelib/thread/qthread.cpp`:** I rewrote `QThreadData::clearEvents()` to work the way `removePostedEvents()` does.\n  - Under the lock, it takes every event out of the list, updates each receiver's pending-event count, marks the event as no longer posted, and clears the list.\n  - It also resets `startOffset` and `insertionOffset` to 0, because the application can be destroyed in the middle of event delivery.\n  - It then unlocks and deletes the events. Anything those destructors post is discarded on the next pass, and it repeats until nothing new arrives.\n- **`src/corelib/kernel/qcoreapplication.cpp`:** `cleanupThreadData()` now calls `clearEvents()` instead of its own loop. It still resets `recursion` and `quitNow` under the lock, as before.\n\nOne thing for review: `clearEvents()` used a relaxed decrement on the receiver's pending-event count, while the other two places used an acquire decrement. The shared code now uses the acquire version from `removePostedEvents()`. That only strengthens the thread-path behaviour, and no other atomics were changed.\n\n**Test.** I added `tst_QCoreApplication::pendingEventDestructorPostsOnAppExit()`. It posts an event whose destructor calls `deleteLater()` and posts another event of the same kind, three levels deep. It then destroys the application and checks that the object's pending-event count is back to 0.\n\n**Results:**\n- Without the library change, the new test hangs at application teardown.\n- With it, `tst_qcoreapplication` passes 71/71 and `tst_qthread` passes 67/67.\n- `tst_qcoreapplication` has to be run from its build directory. Run from elsewhere, 5 unrelated tests fail because they can't find the `apphelper` program.\n\nNothing is committed yet.",
+ "ttft_ms": 1447,
+ "type": "result",
+ "duration_ms": 303533,
+ "ttft_stream_ms": 1324,
+ "time_to_request_ms": 259,
+ "time_to_request_phases_ms": {
+  "other": 18,
+  "system_prompt": 5,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 6,
+  "input_hooks": 2,
+  "transcript_persist": 4,
+  "tool_pool_refresh": 1,
+  "init_message": 2,
+  "engine_pickup": 0,
+  "message_prep": 1,
+  "model_config_wait": 209,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 3,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 15,
+ "time_to_request_cpu_ms": 268,
+ "time_to_request_major_faults": 419,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 9,
+  "major_faults": 21
+ },
+ "first_content_frame_ms": 1324,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

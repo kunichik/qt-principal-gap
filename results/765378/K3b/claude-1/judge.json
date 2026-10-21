@@ -1,0 +1,8 @@
+{
+ "design_match": 0.85,
+ "reviewer_concerns": 0.6,
+ "minimality": 0.85,
+ "hidden_risk": 0.85,
+ "key_difference": "(D) runs the unposting loop while still holding the postEventList mutex and switches to fetchAndSubAcquire. Thiago objected to both: B swaps, unlocks, then unposts with the original Relaxed ordering.",
+ "judge_cost_usd": 0.07867429999999999
+}

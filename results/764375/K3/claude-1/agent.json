@@ -1,0 +1,143 @@
+{
+ "duration_api_ms": 175915,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 1.0090018,
+ "usage": {
+  "input_tokens": 50,
+  "cache_creation_input_tokens": 44625,
+  "cache_read_input_tokens": 1331016,
+  "output_tokens": 19266,
+  "output_tokens_details": {
+   "thinking_tokens": 8492
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 44625,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1365,
+    "cache_read_input_tokens": 69160,
+    "cache_creation_input_tokens": 662,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 662
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1421,
+   "outputTokens": 273,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00027860000000000005,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 248,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 50,
+   "outputTokens": 19266,
+   "cacheReadInputTokens": 1331016,
+   "cacheCreationInputTokens": 44625,
+   "webSearchRequests": 0,
+   "costUSD": 1.0087232000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 8492,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 34,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "I fixed it: when `QThreadPool::clear()` removes a queued `QtConcurrent::run()` task, its QFuture now ends up canceled and finished. `waitForFinished()` returns and `.onCanceled()` continuations run. The same fix covers the map/filter family, which also leaked. The new tests and all the related existing suites pass. Nothing is committed.\n\n**Root cause:** `QThreadPoolPrivate::clear()` (`src/corelib/thread/qthreadpool.cpp`) just took runnables off the queue, deleting the auto-delete ones and dropping the rest. A QtConcurrent task's QFuture only reaches Finished from the task's own `run()`, so a removed task left its future Running forever. For map/filter the task is a `ThreadEngine` that isn't auto-delete, so `clear()` dropped it without deleting it: the engine leaked and its future hung too.\n\n**Fix:**\n- **New hook in QtCore** (`qrunnable.h`/`.cpp`): an internal interface, `QtPrivate::QRunnableDiscardHandler`, with one method, `runnableDiscarded()`. Its typeinfo is exported so `dynamic_cast` works across libraries.\n- **`clear()`**: for each removed runnable, it reads `autoDelete()` first, then calls `runnableDiscarded()` if the runnable implements the interface, and only then deletes auto-delete runnables. The pool lock is released around both steps so continuations can't deadlock on it. Non-auto-delete runnables are still never deleted or taken over by the pool.\n- **`RunFunctionTaskBase`** (`qtconcurrentrunbase.h`): on discard it calls `reportCanceled()` then `reportFinished()`, the same way `start()` already handles a null pool, so `.onCanceled()` fires.\n- **`ThreadEngine<T>`**: on discard it calls a new `ThreadEngineBase::discardThread()`, which cancels the future and calls `threadExit()`. The engine can be queued more than once, so a discarded copy counts as one worker leaving. The engine finishes the future and deletes itself only when the last worker exits, so it keeps managing its own lifetime.\n\n**Tests:** I added `clearedFromThreadPool()` to `tst_qtconcurrentrun` and `tst_qtconcurrentmap`. Each one occupies the pool's only thread, queues a task, calls `clear()`, and then checks that:\n- the future is finished and canceled;\n- the `.onCanceled()` continuation ran;\n- the function was never called;\n- no functor copies leaked, which shows the engine was deleted.\n\nWith the hook disabled, both tests fail at `future.isFinished()`. With the fix they passed 50 runs in a row. The full suites pass: qtconcurrentrun (27), qtconcurrentmap (31), qtconcurrentfilter (24), qtconcurrentthreadengine (13), qtconcurrenttask (13) and qthreadpool (73).\n\n**Decision for you:** the exported, non-template `ThreadEngineBase` keeps its layout; it only gains a non-virtual function. However, `RunFunctionTaskBase` and `ThreadEngine<T>` gain a second polymorphic base, which changes their layout. Both are header-only templates compiled into user code. Code built against older headers still works, because `clear()` simply doesn't find the interface on those objects; they just don't get the fix until rebuilt. If that layout change is a problem under Qt 6's binary-compatibility rules, the fallback is a registry inside the pool instead of a base class, which is more code and harder to keep race-free.",
+ "ttft_ms": 1874,
+ "type": "result",
+ "duration_ms": 877292,
+ "ttft_stream_ms": 896,
+ "time_to_request_ms": 310,
+ "time_to_request_phases_ms": {
+  "other": 16,
+  "system_prompt": 4,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 6,
+  "input_hooks": 1,
+  "transcript_persist": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 2,
+  "engine_pickup": 0,
+  "message_prep": 1,
+  "model_config_wait": 268,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 2,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 4,
+ "time_to_request_cpu_ms": 271,
+ "time_to_request_major_faults": 412,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 11,
+  "major_faults": 23
+ },
+ "first_content_frame_ms": 896,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

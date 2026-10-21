@@ -1,0 +1,143 @@
+{
+ "duration_api_ms": 101062,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 0.7300516000000001,
+ "usage": {
+  "input_tokens": 36,
+  "cache_creation_input_tokens": 40670,
+  "cache_read_input_tokens": 872863,
+  "output_tokens": 11491,
+  "output_tokens_details": {
+   "thinking_tokens": 3087
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 40670,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1086,
+    "cache_read_input_tokens": 65289,
+    "cache_creation_input_tokens": 578,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 578
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1410,
+   "outputTokens": 28,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.000155,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 36,
+   "outputTokens": 11491,
+   "cacheReadInputTokens": 872863,
+   "cacheCreationInputTokens": 40670,
+   "webSearchRequests": 0,
+   "costUSD": 0.7298966000000001,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 3087,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 23,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "`QUrl::toLocalFile()` now returns a null `QString` when decoding the path would produce a local path that means something different from the URL. That happens when the path has an encoded `%2F`, an encoded `%00`, or an invalid UTF-8 sequence, and on Windows also `%5C` or a literal backslash. The `qurl`, `qurlinternal` and `qfileselectors` autotests all pass, including the new rows.\n\n**Root cause:** the checks were already written but never called. `qurlrecode.cpp` has a checked decode mode, `QUrlDecodeForLocalFile`, which refuses those bytes and already has its own tests in tst_qurlinternal. But `QUrlPrivate::toLocalFile()` still decoded with plain `QUrl::FullyDecoded`. Even with the flag passed, `appendToUser()` would have ignored the error result.\n\n**Changes in `src/corelib/io/qurl.cpp`:**\n- `appendToUser()` and `appendPath()` now return `bool` and report a decode failure instead of hiding it.\n- `QUrlPrivate::toLocalFile()` decodes with `QUrlDecodeForLocalFile` and returns a null string on failure. It also takes an optional `ok` flag, because a `file:` URL with an empty path can return an empty string even when nothing failed.\n- `toString(QUrl::PreferLocalFile)` uses that flag: for an unsafe URL it returns the full encoded URL (e.g. `file:///a%2Fb`) instead of a decoded path. `file:` still gives `\"\"` as before.\n- Updated the docs for `toLocalFile()` and `PreferLocalFile`, replacing the old note that `%80` gave \"undefined\" behaviour.\n\n**One caller fixed:** in `src/corelib/io/qfileselector.cpp`, `QFileSelector::select(QUrl)` passed the result of `toLocalFile()` straight to `fromLocalFile()`. With the fix, an unsafe URL would have become an empty URL, so it now returns the input URL unchanged.\n\n**Tests:** in `tests/auto/corelib/io/qurl/tst_qurl.cpp` I added `toLocalFile_unsafe`. It covers encoded slashes (including path traversal, lowercase `%2f`, a host and a relative path), embedded NUL, several invalid UTF-8 sequences (continuation byte, truncated, overlong `/`, `%FF`), and `%5C` on Windows. I also added rows to `toString_PreferLocalFile` for the URL fallback and the empty-path case. I didn't add a `QFileSelector` test for unsafe URLs.\n\n**Behaviour change for callers:** code that called `toLocalFile()` on such URLs used to get a decoded string, and now gets an empty one. It also now matches the existing `isLocalFile()`-then-`toLocalFile()` pattern less exactly: `isLocalFile()` is still true for these URLs. I only checked callers in QtCore. Callers elsewhere (QtGui, QtWidgets, other modules) weren't reviewed and may need the same empty-result handling as `QFileSelector`.",
+ "ttft_ms": 1407,
+ "type": "result",
+ "duration_ms": 137510,
+ "ttft_stream_ms": 925,
+ "time_to_request_ms": 290,
+ "time_to_request_phases_ms": {
+  "other": 10,
+  "system_prompt": 9,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 6,
+  "input_hooks": 1,
+  "transcript_persist": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 1,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 250,
+  "autocompact": 0,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 2,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 11,
+ "time_to_request_cpu_ms": 284,
+ "time_to_request_major_faults": 408,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 10,
+  "major_faults": 22
+ },
+ "first_content_frame_ms": 926,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

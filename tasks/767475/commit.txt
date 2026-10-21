@@ -1,0 +1,22 @@
+Add QtTemporalPattern::TemporalFieldFlag::RoundFraction option
+
+The pre-6.12 parser doesn't support supplying more than three digits
+in the fractional part of the seconds field. The new parser does,
+supporting rounding based on the surplus digits. This surprised some
+users, so restore the pre-6.12 behavior for the old formats, while
+retaining the ability to support it in future.
+
+Add a new flag to enable the feature, but don't enable it for the old
+formats. Add some tests that verify the new behavior works and one to
+check the old formats don't support it.
+
+Documented the current behavior of rounding, when applied, which
+prompts me to consider what we actually want to do; see QTBUG-149932,
+but it can wait for after 6.12's release as the rounding isn't yet
+exposed.
+
+Pick-to: 6.12 6.12.0
+Fixes: QTBUG-148713
+Task-number: QTBUG-149932
+Change-Id: I6409358f4dddf78d6dab7e85195fcc2865479334
+Reviewed-by: Mate Barany <mate.barany@qt.io>

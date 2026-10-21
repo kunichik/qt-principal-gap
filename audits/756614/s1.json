@@ -1,0 +1,12 @@
+{
+ "verdict": "NOT_OK",
+ "problems": [
+  "The last bullet misrepresents the outcome. The maintainer's objection (Reviewer 15, PS11) was raised at an intermediate patchset. At PS17 the same maintainer gave final approval, so 'keep the change minimal' is not a reviewer-endorsed constraint. The card presents the objection as an active directive and omits the final approval. The reviewers also accepted the change as it landed, including the QCollator change and the private-to-public change.",
+  "The QCollator bullet is wrong about the direction. It says QCollator 'currently works around the missing function'. In fact, QTBUG-135044 was fixed with a pointer-based workaround, and the change returns QCollator to the pre-fix value-based QThreadStorage. The card does not mention that this was a revert of a workaround for QTBUG-135044, and it omits that the change relies on making the previously private function public. That was done in the change introducing GenerationalCollatorHolder, which is to be backported further than this change, so this change depends on it.",
+  "The test bullet is mostly a style note. It says to avoid single-letter names, which the reviewers flagged as a minor point, while omitting the substantive test guidance. Reviewers asked that the test check that `Pointer::count` is unchanged, and that tests running in a separate thread and using check macros must account for failures only returning from `run()` and marking the test failed. They also questioned whether the multi-thread test should use the thread-safe SPointer variant. The card also leaves out that documentation was reviewed: the docs should state that after the call `hasLocalData()` is false, put the terse summary first, and explain why one might want to store a replacement value.",
+  "The card does not say that the new function should not behave like `setLocalData()` with regard to QThreadData for the case where setting nullptr recreates it. This is covered in the first bullet. However, the card omits the changelog entry ([ChangeLog][QtCore][QThreadStorage] Added clearLocalData()) that the real change included."
+ ],
+ "model": "sonnet",
+ "source": false,
+ "cost_usd": 0.0208427
+}

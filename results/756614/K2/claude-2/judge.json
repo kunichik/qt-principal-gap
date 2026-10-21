@@ -1,0 +1,8 @@
+{
+ "design_match": 0.85,
+ "reviewer_concerns": 0.85,
+ "minimality": 0.85,
+ "hidden_risk": 0.9,
+ "key_difference": "(D) keeps QThreadStorage<GenerationalCollator> as a member with a forwarding localData() instead of privately inheriting it, and its QThreadStorageData::clear() also checks the tls vector size and slot so it does not grow the vector, where (B) only checks that QThreadData exists before calling set(nullptr).",
+ "judge_cost_usd": 0.0723283
+}

@@ -1,0 +1,8 @@
+{
+ "design_match": 0.9,
+ "reviewer_concerns": 1.0,
+ "minimality": 0.85,
+ "hidden_risk": 0.95,
+ "key_difference": "For negative integers (D) computes -double(value64 + 1) and adds a special branch with a hex-float literal for the -2^64 overflow case, where (B) simply uses -double(value64) - 1; otherwise (D) has the same inline isNumber()/toNumber() design, written as a switch on type() instead of an if-chain.",
+ "judge_cost_usd": 0.062472
+}

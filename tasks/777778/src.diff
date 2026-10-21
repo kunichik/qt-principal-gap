@@ -1,0 +1,102 @@
+diff --git a/src/corelib/mimetypes/qmimedatabase.cpp b/src/corelib/mimetypes/qmimedatabase.cpp
+index 8e047719..2aab3c73 100644
+--- a/src/corelib/mimetypes/qmimedatabase.cpp
++++ b/src/corelib/mimetypes/qmimedatabase.cpp
+@@ -54,17 +54,13 @@ QMimeDatabasePrivate::~QMimeDatabasePrivate()
+ {
+ }
+ 
+-Q_CONSTINIT
+-#ifdef QT_BUILD_INTERNAL
+-Q_CORE_EXPORT
+-#else
+-static const
+-#endif
+-int qmime_secondsBetweenChecks = 5;
++using namespace std::chrono_literals;
++
++static constexpr auto qmime_secondsBetweenChecks = 5s;
+ 
+ bool QMimeDatabasePrivate::shouldCheck()
+ {
+-    if (m_lastCheck.isValid() && m_lastCheck.elapsed() < qmime_secondsBetweenChecks * 1000)
++    if (m_lastCheck.isValid() && m_lastCheck.durationElapsed() < qmime_secondsBetweenChecks)
+         return false;
+     m_lastCheck.start();
+     return true;
+@@ -156,6 +152,13 @@ void QMimeDatabasePrivate::loadProviders()
+         (*it)->setOverrideProvider((it - 1)->get());
+ }
+ 
++void QMimeDatabasePrivate::reload()
++{
++    QMutexLocker locker(&mutex);
++    // The next query checks the files, as when the periodic check is due.
++    m_lastCheck.invalidate();
++}
++
+ const QMimeDatabasePrivate::Providers &QMimeDatabasePrivate::providers()
+ {
+ #if QT_CONFIG(thread) // stub implementation always returns true
+@@ -594,6 +597,10 @@ bool QMimeDatabasePrivate::inherits(const QString &mime, const QString &parent)
+     in the above example. Make sure to run this command when installing the MIME type
+     definition file.
+ 
++    A running application sees new or removed MIME type definitions after a few
++    seconds, when QMimeDatabase checks its files again. An application that
++    installs a definition itself can call reload() to see it at once.
++
+     \threadsafe
+ 
+     \snippet code/src_corelib_mimetype_qmimedatabase.cpp 0
+@@ -893,6 +900,24 @@ QList<QMimeType> QMimeDatabase::allMimeTypes() const
+     return d->allMimeTypes();
+ }
+ 
++/*!
++    \since 6.13
++
++    Makes the next query read again the MIME database files that changed since
++    they were read.
++
++    QMimeDatabase checks the files for changes at most every few seconds.
++    Call this function after installing or removing a MIME type definition,
++    for instance with \c update-mime-database, so that the change is seen
++    at once.
++
++    This affects all QMimeDatabase instances, which share the same data.
++*/
++void QMimeDatabase::reload()
++{
++    QMimeDatabasePrivate::instance()->reload();
++}
++
+ /*!
+     \enum QMimeDatabase::MatchMode
+ 
+diff --git a/src/corelib/mimetypes/qmimedatabase.h b/src/corelib/mimetypes/qmimedatabase.h
+index b70e207e..801f68ed 100644
+--- a/src/corelib/mimetypes/qmimedatabase.h
++++ b/src/corelib/mimetypes/qmimedatabase.h
+@@ -51,6 +51,8 @@ public:
+ 
+     QList<QMimeType> allMimeTypes() const;
+ 
++    static void reload();
++
+ private:
+     QMimeDatabasePrivate *d;
+ };
+diff --git a/src/corelib/mimetypes/qmimedatabase_p.h b/src/corelib/mimetypes/qmimedatabase_p.h
+index 2194ed5a..60d37c38 100644
+--- a/src/corelib/mimetypes/qmimedatabase_p.h
++++ b/src/corelib/mimetypes/qmimedatabase_p.h
+@@ -55,6 +55,8 @@ public:
+ 
+     QList<QMimeType> allMimeTypes();
+ 
++    void reload();
++
+     QString resolveAlias(const QString &nameOrAlias);
+     QStringList parents(const QString &mimeName);
+     QMimeType mimeTypeForName(const QString &nameOrAlias);

@@ -1,0 +1,21 @@
+QString/QByteArray: fix UB (signed overflow) in repeated()
+
+The multiplication of size() with times can, naturally, overflow. In
+the common case where overflow wraps around, the result will be
+negative, the QByteArray ctor / reserve() will adjust it to 0
+(qMax(asize, size())), and allocate an array for zero elements (plus
+one for the NUL terminator). The memcpy() that follows will then
+already write out of bounds.
+
+Fix by checking the multiplication, and throwing bad_alloc on
+overflow, which is what reserve() would have done had it been able to
+see the mathematical result of the multiplication.
+
+[ChangeLog][QtCore][QString/QByteArray] Fixed an integer overflow that
+could have caused out-of-bounds access on the result object.
+
+Pick-to: 6.12 6.8 6.5 5.15
+Fixes: QTBUG-150340
+Change-Id: I143bd15be7e9940849ee47837b40cc84b436e563
+Reviewed-by: Ivan Solovev <ivan.solovev@qt.io>
+Reviewed-by: Thiago Macieira <thiago.macieira@intel.com>

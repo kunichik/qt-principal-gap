@@ -1,0 +1,66 @@
+[PS1 Reviewer 02 /PATCHSET_LEVEL:0]
+Nice feature.
+
+[PS1 Reviewer 02 tests/auto/corelib/thread/qthreadstorage/tst_qthreadstorage.cpp:503]
+That comment is only about the first 4 lines of the block below.
+
+The other tests are about other cases.
+
+It would seem more logical to me that this comment moves to inside the opening curly-brace on the next line.
+
+[PS1 Reviewer 02 tests/auto/corelib/thread/qthreadstorage/tst_qthreadstorage.cpp:547]
+Shouldn't this one be using SPointer (multiple threads -> use the threadsafe variant) rather than the previous test (value-based, single-thread) ?
+
+[PS3 Reviewer 02 tests/auto/corelib/thread/qthreadstorage/tst_qthreadstorage.cpp:529]
+Still not sure why this one uses SPointer (while the previous one uses Pointer). I guess it doesn't matter that it's a bit overkill, but it makes the code cleaner if you don't need loadRelaxed() everywhere.
+
+[PS3 Reviewer 02 tests/auto/corelib/thread/qthreadstorage/tst_qthreadstorage.cpp:529]
+Acknowledged
+
+[PS7 Reviewer 03 /COMMIT_MSG:19]
+Thank you ;^>
+
+[PS7 Reviewer 15 src/corelib/thread/qthreadstorage.cpp:135]
+This function is private. How are you calling it?
+
+[PS7 Reviewer 03 src/corelib/thread/qthreadstorage.cpp:135]
+By making it public in the change that introduces `GenerationalCollatorHolder` (and is being picked back further than this can be).
+
+[PS7 Reviewer 03 src/corelib/thread/qthreadstorage.cpp:226]
+(Pre-existing, but ...) This is somewhat clumsy phrasing and the last line of your new doc below says the same thing better, so consider using that phrasing here, too.
+
+[PS7 Reviewer 03 src/corelib/thread/qthreadstorage.cpp:314]
+I'd split the second sentence out, to leave the first as a nice terse summary (that, tacitly, covers what this says by "(if any)" anyway), making this part of the second paragraph, along with "After the call..."
+
+[PS7 Reviewer 03 tests/auto/corelib/thread/qthreadstorage/tst_qthreadstorage.cpp:512]
+(Single-letter names are discouraged by coding style; consider a name like `prior` that captures that it was the prior valu of the count.  Repeats.)
+
+[PS7 Reviewer 03 tests/auto/corelib/thread/qthreadstorage/tst_qthreadstorage.cpp:522]
+Check `Pointer::count` is unchanged ?  Repeats.
+
+[PS7 Reviewer 03 tests/auto/corelib/thread/qthreadstorage/tst_qthreadstorage.cpp:565]
+(Run in a different thread and calling check macros: I take it this test is run using the signal-throwing version of the check macros and that failure's exceptions will propagate back to the parent thread.)
+
+[PS7 Reviewer 15 tests/auto/corelib/thread/qthreadstorage/tst_qthreadstorage.cpp:565]
+It just returns from `run()` and marks the test as having failed.
+
+[PS11 Reviewer 15 /PATCHSET_LEVEL:0]
+Not approving because I don't think we should be touching QThreadStorage, especially not to fix a non-problem. But this looks syntactically correct.
+
+[PS11 Reviewer 15 /PATCHSET_LEVEL:0]
+The change and the set of changes have become more complex, crossing the threshold between "minor, limited splash damage" change to "potentially breaking existing code" change.
+
+[PS12 Reviewer 03 src/corelib/thread/qthreadstorage.cpp:319]
+Might be worth saying *why* one might want to store a replacement, because it sounds like a strange thing to do, and could be problematic in some cases.  Restoring a non-null default, or popping a stack to the previously-stored value remembered by the removed value spring to mind, although I struggle to see those not involve repeat-destruction unless the destructor is doing something poorly described by the name "destructor".
+
+[PS12 Reviewer 03 src/corelib/thread/qthreadstorage.cpp:319]
+Acknowledged
+
+[PS12 Reviewer 03 src/corelib/thread/qthreadstorage.cpp:327]
+(I can't think why I'd separate "any more" in this context, but I would.)
+
+[PS12 Reviewer 03 src/corelib/thread/qthreadstorage.cpp:327]
+Makes sense, although I would be inclined towards "... storage whenit no longer exists for the current thread."  Still, harmless, and just my brain burbling.
+
+[PS17 Reviewer 15 /PATCHSET_LEVEL:0]
+Maintainer-approved based on two +1 (including the maintainer's).

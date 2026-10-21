@@ -1,0 +1,14 @@
+{
+ "verdict": "NOT_OK",
+ "problems": [
+  "The card leaves out that the real change caused a crash in CoAP (QTBUG-149883, raised at PS8). Moving disconnectNotify() off-thread or making it async is known to break at least one downstream module. The engineer needs to know this before copying the approach.",
+  "The card leaves out the reviewer-requested explanation of why reading senderPriv is not racy. The caller holds a mutex that keeps the sender alive only as far as QObject; derived-class destructors can still be running. Thiago asked for this to be documented, and it is the central invariant the fix relies on.",
+  "The card does not say what happens when the sender's thread cannot deliver events (no event dispatcher, or the thread has finished). Mårten asked for a fallback to a direct call, or at least documentation that the sender may not be notified. The card only says 'unless' and never gives the alternative.",
+  "The card does not mention the other disconnectNotify() call site in qobject.cpp (Thiago's 'One more use here' at ~3630). That site needs the same review, so the fix is not limited to ~QObject.",
+  "The card does not state that the inline call is kept when the sender belongs to the current thread. It also does not say that Thiago listed the cases where posting is wrong: the receiver is guaranteed alive, or the notification must happen now.",
+  "The point about outside-qtbase callers is framed as a documentation task. In review, the open question was whether to change QObjectPrivate::disconnectNotify itself, and Thiago suggested QtQml get its own equivalent fix. The card should make clear that external modules (QtQml, QtScxml) are out of scope for this qtbase change, and say whether the private helper's behaviour changes for them."
+ ],
+ "model": "opus",
+ "source": false,
+ "cost_usd": 0.055027900000000005
+}

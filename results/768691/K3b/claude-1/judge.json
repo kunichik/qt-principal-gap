@@ -1,0 +1,8 @@
+{
+ "design_match": 0.45,
+ "reviewer_concerns": 0.7,
+ "minimality": 0.45,
+ "hidden_risk": 0.4,
+ "key_difference": "(D) re-decodes %80–%FF sequences as UTF-8 through a new traits struct and the QUtf8Functions decoder, where (B) treats any remaining byte >= 0x80 as already-invalid UTF-8 and fails; (D) also lacks (B)'s Windows precheck for literal (stored-decoded) backslashes in the input, so a path containing '\\' is not rejected on Windows.",
+ "judge_cost_usd": 0.0930658
+}

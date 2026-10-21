@@ -1,0 +1,143 @@
+{
+ "duration_api_ms": 152116,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 0.8253007000000001,
+ "usage": {
+  "input_tokens": 32,
+  "cache_creation_input_tokens": 42864,
+  "cache_read_input_tokens": 776913,
+  "output_tokens": 16328,
+  "output_tokens_details": {
+   "thinking_tokens": 6611
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 42864,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1185,
+    "cache_read_input_tokens": 67714,
+    "cache_creation_input_tokens": 347,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 347
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1641,
+   "outputTokens": 308,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00031810000000000003,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 283,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 32,
+   "outputTokens": 16328,
+   "cacheReadInputTokens": 776913,
+   "cacheCreationInputTokens": 42864,
+   "webSearchRequests": 0,
+   "costUSD": 0.8249826000000001,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 6611,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 22,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "I added the private `QUrlDecodeForLocalFile` mode. `tst_qurlinternal` (654 passed) and `tst_qurl` (1042 passed) both pass on macOS with no failures. Nothing is committed.\n\n**The option** (`src/corelib/io/qurl_p.h`)\n\n```cpp\ninline constexpr QUrl::ComponentFormattingOptions QUrlDecodeForLocalFile =\n        QUrl::FullyDecoded | QUrl::ComponentFormattingOption(0x8000000);\n```\n\nBit `0x8000000` is the next free high bit, so `qt_urlRecode(out, in, QUrlDecodeForLocalFile)` takes the normal fully-decoding path.\n\n**The decoder** (`src/corelib/io/qurlrecode.cpp`)\n- `decode()` now has a `forLocalFile` flag. `qt_urlRecode()` sets it only when all the bits of `QUrlDecodeForLocalFile` are present. Every other mode works exactly as before, including turning `%80`\u2013`%FF` into U+FFFD in `FullyDecoded`.\n- In local-file mode it returns `-1` if a percent-escape decodes to NUL or `/`, or to `\\` on Windows. Literal `/` in the input is still fine.\n- `%80`\u2013`%FF` sequences are decoded as UTF-8 using Qt's existing UTF-8 decoder. Overlong forms (such as `%C0%AF` for `/`), surrogates, code points above U+10FFFF and cut-off sequences are refused.\n- **Your call:** I allow Unicode non-characters such as U+FFFE. They are valid UTF-8 and legitimate in file names, although QUrl's normal pretty-decoding leaves them encoded. If you want them refused too, it is a one-line change in the new UTF-8 settings struct (`QUrlLocalFileUtf8Traits`).\n- On refusal, `appendTo` goes back to its original contents. If it started empty, it becomes a null `QString`, as the next `toLocalFile()` change needs. This is documented in the comments for both `decode()` and `qt_urlRecode()`.\n- A malformed `%` (such as a trailing `a%`) is still copied through undecoded, as in `FullyDecoded`. The result cannot contain a decoded unsafe character, so I did not treat it as a refusal.\n\n**Autotests** (`tests/auto/corelib/io/qurlinternal/tst_qurlinternal.cpp`) \u2014 three new test functions:\n- `decodeForLocalFile`: plain and percent-decoded input, valid 2/3/4-byte UTF-8, NUL, upper- and lower-case `%2F`/`%5C` (with Windows and non-Windows expectations), invalid UTF-8 cases, and malformed `%`. For refused rows it also checks that the original text is kept, that an empty string becomes null, and that `FullyDecoded` and `PrettyDecoded` still accept the same input.\n- `decodeForLocalFileUtf8`: runs the existing non-character data and expects it to decode.\n- `decodeForLocalFileInvalidUtf8`: runs the existing invalid-UTF-8 data and expects every row to be refused.\n\nThe Windows backslash rows were not run, since I only built on macOS. Your message ended with some unrelated lines (`765378 K3b 1` \u2026); I ignored them.",
+ "ttft_ms": 2495,
+ "type": "result",
+ "duration_ms": 620143,
+ "ttft_stream_ms": 1426,
+ "time_to_request_ms": 272,
+ "time_to_request_phases_ms": {
+  "other": 14,
+  "system_prompt": 5,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 8,
+  "input_hooks": 1,
+  "transcript_persist": 9,
+  "tool_pool_refresh": 1,
+  "init_message": 2,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 221,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 3,
+  "message_normalization": 1,
+  "client_creation": 0,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 21,
+ "time_to_request_cpu_ms": 297,
+ "time_to_request_major_faults": 437,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 11,
+  "major_faults": 22
+ },
+ "first_content_frame_ms": 1426,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

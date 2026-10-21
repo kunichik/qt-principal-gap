@@ -1,0 +1,26 @@
+{
+ "task": "777778",
+ "arm": "K0",
+ "rep": "0",
+ "agent": "oracle",
+ "model": "opus",
+ "tests": {
+  "tst_qmimedatabase-xml-fdoxml": {
+   "build": "OK",
+   "passed": 73,
+   "failed": 0,
+   "fail_names": [],
+   "crashed": false
+  },
+  "tst_qmimedatabase-xml-builtin": {
+   "build": "OK",
+   "passed": 57,
+   "failed": 0,
+   "fail_names": [],
+   "crashed": false
+  }
+ },
+ "cost_usd": null,
+ "turns": null,
+ "wall_s": null
+}

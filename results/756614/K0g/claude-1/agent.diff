@@ -1,0 +1,226 @@
+diff --git a/src/corelib/text/qcollator.cpp b/src/corelib/text/qcollator.cpp
+index 68dc69ec..a95d03e9 100644
+--- a/src/corelib/text/qcollator.cpp
++++ b/src/corelib/text/qcollator.cpp
+@@ -37,7 +37,7 @@ public:
+ };
+ class GenerationalCollatorHolder
+ {
+-    QThreadStorage<GenerationalCollator*> storage;
++    QThreadStorage<GenerationalCollator> storage;
+ public:
+     GenerationalCollatorHolder() = default;
+     ~GenerationalCollatorHolder()
+@@ -46,19 +46,13 @@ public:
+         // QThreadStorage's own cleanup for it runs too late, so we'd
+         // "leak" in an appless program. Skip if this thread doesn't have
+         // a QThreadData (anymore): there's nothing to clear, then, and
+-        // setLocalData() would otherwise re-create it, here, during
++        // clearLocalData() would otherwise re-create it, here, during
+         // shutdown, with nothing left to destroy it again.
+         if (QThreadData::currentThreadData())
+-            storage.setLocalData(nullptr);
++            storage.clearLocalData();
+     }
+ 
+-    GenerationalCollator &localData()
+-    {
+-        auto &d = storage.localData();
+-        if (!d)
+-            d = new GenerationalCollator();
+-        return *d;
+-    }
++    GenerationalCollator &localData() { return storage.localData(); }
+ };
+ }
+ Q_GLOBAL_STATIC(GenerationalCollatorHolder, defaultCollator)
+diff --git a/src/corelib/thread/qthreadstorage.cpp b/src/corelib/thread/qthreadstorage.cpp
+index 45e26c0b..70b25fa5 100644
+--- a/src/corelib/thread/qthreadstorage.cpp
++++ b/src/corelib/thread/qthreadstorage.cpp
+@@ -215,13 +215,14 @@ void QThreadStoragePrivate::finish(QList<void *> *tls, bool suppressWarnings)
+ 
+     \list
+ 
+-    \li Calling hasLocalData(), localData() or setLocalData() during thread or
+-    program shutdown may re-create the thread-local storage for the current
+-    thread with nothing left to destroy it afterwards.
++    \li Calling hasLocalData(), localData(), setLocalData() or clearLocalData()
++    during thread or program shutdown may re-create the thread-local storage
++    for the current thread with nothing left to destroy it afterwards.
+ 
+     \li The QThreadStorage destructor does not delete per-thread data.
+-    QThreadStorage only deletes per-thread data when the thread exits
+-    or when setLocalData() is called multiple times.
++    QThreadStorage only deletes per-thread data when the thread exits,
++    when setLocalData() is called multiple times, or when clearLocalData()
++    is called.
+ 
+     \li QThreadStorage can be used to store data for the \c main()
+     thread. QThreadStorage deletes all data set for the \c main()
+@@ -294,7 +295,26 @@ void QThreadStoragePrivate::finish(QList<void *> *tls, bool suppressWarnings)
+     and deletes it automatically either when the thread exits (either
+     normally or via termination) or when setLocalData() is called again.
+ 
+-    \sa localData(), hasLocalData()
++    \sa localData(), hasLocalData(), clearLocalData()
++*/
++
++/*!
++    \fn template <class T> void QThreadStorage<T>::clearLocalData()
++    \since 6.13
++
++    Destroys the local data of the calling thread, if any. Afterwards,
++    hasLocalData() returns \c false, until the data is re-created by a call
++    to setLocalData() or (non-const) localData().
++
++    If T is a pointer type, the object pointed to is deleted. This is
++    equivalent to calling \c{setLocalData(nullptr)}.
++
++    If T is a value type, the stored value is destroyed. Unlike
++    \c{setLocalData(T())}, which merely replaces the stored value with a
++    default-constructed one, this function makes hasLocalData() return
++    \c false again.
++
++    \sa setLocalData(), hasLocalData()
+ */
+ 
+ QT_END_NAMESPACE
+diff --git a/src/corelib/thread/qthreadstorage.h b/src/corelib/thread/qthreadstorage.h
+index 9e64b882..6fe82961 100644
+--- a/src/corelib/thread/qthreadstorage.h
++++ b/src/corelib/thread/qthreadstorage.h
+@@ -122,6 +122,9 @@ public:
+ 
+     inline void setLocalData(T t)
+     { qThreadStorage_setLocalData(d, &t); }
++
++    void clearLocalData()
++    { (void) d.set(nullptr); }
+ };
+ 
+ #else // !QT_CONFIG(thread)
+@@ -193,6 +196,11 @@ public:
+     {
+         data.reset(new T(t));
+     }
++
++    void clearLocalData()
++    {
++        data.reset();
++    }
+ };
+ 
+ #endif // QT_CONFIG(thread)
+diff --git a/tests/auto/corelib/thread/qthreadstorage/tst_qthreadstorage.cpp b/tests/auto/corelib/thread/qthreadstorage/tst_qthreadstorage.cpp
+index 00ed7ec9..eaa4460b 100644
+--- a/tests/auto/corelib/thread/qthreadstorage/tst_qthreadstorage.cpp
++++ b/tests/auto/corelib/thread/qthreadstorage/tst_qthreadstorage.cpp
+@@ -54,6 +54,7 @@ private Q_SLOTS:
+     void localData();
+     void localData_const();
+     void setLocalData();
++    void clearLocalData();
+     void autoDelete();
+     void adoptedPThreads();
+     void adoptedWinThreads();
+@@ -129,6 +130,99 @@ void tst_QThreadStorage::setLocalData()
+     QVERIFY(!pointers.hasLocalData());
+ }
+ 
++namespace {
++struct Counted
++{
++    static inline int count = 0;
++    int value = 0;
++    Counted() { ++count; }
++    Counted(const Counted &other) : value(other.value) { ++count; }
++    ~Counted() { --count; }
++};
++} // unnamed namespace
++
++void tst_QThreadStorage::clearLocalData()
++{
++    // pointer-based
++    {
++        QThreadStorage<Pointer *> pointers;
++        pointers.clearLocalData(); // no data: must be a no-op
++        QVERIFY(!pointers.hasLocalData());
++
++        const int c = Pointer::count;
++        pointers.setLocalData(new Pointer);
++        QVERIFY(pointers.hasLocalData());
++        QCOMPARE(Pointer::count, c + 1);
++
++        pointers.clearLocalData();
++        QVERIFY(!pointers.hasLocalData());
++        QCOMPARE(Pointer::count, c);
++        QCOMPARE(std::as_const(pointers).localData(), nullptr);
++
++        pointers.clearLocalData(); // repeated: must be a no-op
++        QVERIFY(!pointers.hasLocalData());
++    }
++
++    // value-based
++    {
++        QThreadStorage<Counted> values;
++        values.clearLocalData(); // no data: must be a no-op
++        QVERIFY(!values.hasLocalData());
++        QCOMPARE(Counted::count, 0);
++
++        values.localData().value = 42;
++        QVERIFY(values.hasLocalData());
++        QCOMPARE(Counted::count, 1);
++
++        values.clearLocalData();
++        QVERIFY(!values.hasLocalData());
++        QCOMPARE(Counted::count, 0);
++
++        // re-created, default-constructed, on next access:
++        QCOMPARE(values.localData().value, 0);
++        QVERIFY(values.hasLocalData());
++        QCOMPARE(Counted::count, 1);
++
++        values.setLocalData(Counted{});
++        QVERIFY(values.hasLocalData());
++        QCOMPARE(Counted::count, 1);
++        values.clearLocalData();
++        QVERIFY(!values.hasLocalData());
++        QCOMPARE(Counted::count, 0);
++
++        values.clearLocalData(); // repeated: must be a no-op
++        QVERIFY(!values.hasLocalData());
++    }
++
++    // only affects the calling thread
++    {
++        QThreadStorage<QString> strings;
++        strings.setLocalData(u"main"_s);
++
++        bool otherHadData = true;
++        bool otherHasDataAfterSet = false;
++        bool otherHasDataAfterClear = true;
++        QScopedPointer<QThread> thread(QThread::create([&] {
++            otherHadData = strings.hasLocalData();
++            strings.setLocalData(u"other"_s);
++            otherHasDataAfterSet = strings.hasLocalData();
++            strings.clearLocalData();
++            otherHasDataAfterClear = strings.hasLocalData();
++        }));
++        thread->start();
++        QVERIFY(thread->wait());
++
++        QVERIFY(!otherHadData);
++        QVERIFY(otherHasDataAfterSet);
++        QVERIFY(!otherHasDataAfterClear);
++        QVERIFY(strings.hasLocalData());
++        QCOMPARE(strings.localData(), u"main"_s);
++
++        strings.clearLocalData();
++        QVERIFY(!strings.hasLocalData());
++    }
++}
++
+ class Thread : public QThread
+ {
+     Q_OBJECT

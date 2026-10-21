@@ -1,0 +1,23 @@
+QFuture: don't keep a link to a finished parent in setContinuation()
+
+When a continuation is attached to a future that is already finished,
+setContinuation() runs it immediately, but leaves the continuation's
+nonConcludedParent pointing to the parent. runContinuation() resets the
+link in this case, setContinuation() did not.
+
+As a result, cancelChain() on the continuation walked up to the finished
+parent and canceled it, and if the parent was already released, it
+accessed freed memory. The stale link also triggered the "futureData
+already has a parent" assert in unwrap() on a finished future.
+
+Reset the link before running the continuation, same as
+runContinuation() does.
+
+[ChangeLog][QtCore][QFuture] Fixed a crash when cancelChain() was called
+on a continuation that had been attached to an already-finished future.
+
+Fixes: QTBUG-151272
+Fixes: QTBUG-148551
+Pick-to: 6.12
+Change-Id: I789479e362e8ab647dcd4c1b875c9a5ff547c4e5
+Reviewed-by: Thiago Macieira <thiago.macieira@intel.com>

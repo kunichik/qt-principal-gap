@@ -1,0 +1,12 @@
+{
+ "verdict": "NOT_OK",
+ "problems": [
+  "The third bullet leaves out the scope decision and so misleads the engineer. The reviewers said the map()/filter() path is not fixed by this change. The commit uses 'Task-number' rather than 'Fixes' because that path is out of scope and remains open. The card says only that map()/filter() is 'affected too', which invites the engineer to fix it here. It should say plainly that map()/filter() is out of scope for this change.",
+  "The third bullet also makes claims the review does not support. Nothing in the source says the map()/filter() ThreadEngine is non-auto-deleting, is started more than once, or leaks. Those are unsupported assertions the engineer may act on.",
+  "The card omits the shape of the agreed fix. When a QtConcurrent::run() runnable is deleted without having run, its future must be reported canceled and then finished. This happens in the run-task base (qtconcurrentrunbase.h), guarded by `!promise.isFinished()`. It is not done by changing QThreadPool::clear() or by removing the autoDelete check in qthreadpool.cpp.",
+  "The card omits the reviewer's request to extend the test to cover an attached `.onCanceled()` continuation running after clear()."
+ ],
+ "model": "opus",
+ "source": false,
+ "cost_usd": 0.017526800000000002
+}

@@ -1,0 +1,33 @@
+[PS2 Reviewer 04 /PATCHSET_LEVEL:0]
+That should be safe (thanks to the UniqueType trick), and as the tests show, fixes some issues.
+
+Did you check if that has any impact on compilation time or codegen? I wonder if the compiler can manage to eliminate the loop for the null check
+
+[PS2 Reviewer 04 /PATCHSET_LEVEL:0]
+I believe we had that multiple times, and had to replace the check with `is_nullptr_t`, but that won't work here because the type is fixed.
+
+[PS2 Reviewer 04 /PATCHSET_LEVEL:0]
+Okay, that doesn't look too bad; doing the change to use the union is a good idea, but can be done as a follow-up.
+
+[PS4 Reviewer 17 src/corelib/kernel/qobject_impl.h:21]
+I don't see this type being used anymore.
+
+[PS4 Reviewer 04 src/corelib/kernel/qobject_impl.h:21]
+The question is how this behaves when we have multiple connect calls with the same Args (potentially in different TUs), where the completeness changes.
+
+[PS4 Reviewer 04 src/corelib/kernel/qobject_impl.h:21]
+After some probing, I got the AI to spit out https://codereview.qt-project.org/c/qt/qtbase/+/753471, which (on my system, with 22.1.7 and gcc 15.3.0) shows that we potentially fold the wrong version in.
+
+If you channel UniqueType trough TypeIsSuitableForMetaType into is_complete, the issue should go away though.
+
+[PS6 Reviewer 04 /COMMIT_MSG:23]
+I believe we can only target 6.12+, the other branches don't have b0f495735c30e400c9749c8b9f9823dbb56dfbd9, and this is somewhat larger.
+
+[PS6 Reviewer 04 /COMMIT_MSG:25]
+```suggestion
+
+Task-number: QTBUG-147588
+Fixes: QTBUG-132826
+```
+
+as far as I can tell

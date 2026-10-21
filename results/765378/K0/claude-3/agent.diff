@@ -1,0 +1,94 @@
+diff --git a/src/corelib/kernel/qcoreapplication.cpp b/src/corelib/kernel/qcoreapplication.cpp
+index 4fcd8834..e1e0a18c 100644
+--- a/src/corelib/kernel/qcoreapplication.cpp
++++ b/src/corelib/kernel/qcoreapplication.cpp
+@@ -527,15 +527,26 @@ void QCoreApplicationPrivate::cleanupThreadData()
+ #endif
+ 
+         // need to clear the state of the mainData, just in case a new QCoreApplication comes along.
+-        const auto locker = qt_scoped_lock(thisThreadData->postEventList.mutex);
+-        for (const QPostEvent &pe : std::as_const(thisThreadData->postEventList)) {
+-            if (pe.event) {
+-                pe.receiver->d_func()->postedEvents.fetchAndSubAcquire(1);
+-                pe.event->m_posted = false;
+-                delete pe.event;
++        // Delete the pending events without holding the mutex: an event's
++        // destructor may post new events (or call deleteLater()), which would
++        // otherwise deadlock on the non-recursive mutex. Loop, since such
++        // destructors can append further events to the list.
++        auto locker = qt_unique_lock(thisThreadData->postEventList.mutex);
++        while (!thisThreadData->postEventList.isEmpty()) {
++            QList<QPostEvent> events;
++            events.swap(thisThreadData->postEventList);
++            thisThreadData->postEventList.startOffset = 0;
++            thisThreadData->postEventList.insertionOffset = 0;
++            locker.unlock();
++            for (const QPostEvent &pe : std::as_const(events)) {
++                if (pe.event) {
++                    pe.receiver->d_func()->postedEvents.fetchAndSubAcquire(1);
++                    pe.event->m_posted = false;
++                    delete pe.event;
++                }
+             }
++            locker.lock();
+         }
+-        thisThreadData->postEventList.clear();
+         thisThreadData->postEventList.recursion = 0;
+         thisThreadData->quitNow = false;
+         threadData_clean = true;
+diff --git a/tests/auto/corelib/kernel/qcoreapplication/tst_qcoreapplication.cpp b/tests/auto/corelib/kernel/qcoreapplication/tst_qcoreapplication.cpp
+index a06b883b..882fffee 100644
+--- a/tests/auto/corelib/kernel/qcoreapplication/tst_qcoreapplication.cpp
++++ b/tests/auto/corelib/kernel/qcoreapplication/tst_qcoreapplication.cpp
+@@ -1235,6 +1235,39 @@ void tst_QCoreApplication::QTBUG31606_QEventDestructorDeadLock()
+     QVERIFY(spy.recordedEvents.contains(QEvent::User + 2));
+ }
+ 
++void tst_QCoreApplication::pendingEventDestructorPostsOnExit()
++{
++    // An event still pending when the application is destroyed gets deleted
++    // during cleanup; its destructor must be able to post events and call
++    // deleteLater() without deadlocking.
++    static int destroyed = 0;
++    destroyed = 0;
++
++    class MyEvent : public QEvent
++    { public:
++        MyEvent(QObject *obj, int depth)
++            : QEvent(QEvent::Type(QEvent::User + 1)), obj(obj), depth(depth) {}
++        ~MyEvent() override {
++            ++destroyed;
++            obj->deleteLater();
++            if (depth > 0)
++                QCoreApplication::postEvent(obj, new MyEvent(obj, depth - 1));
++        }
++        QObject *obj;
++        int depth;
++    };
++
++    std::unique_ptr<QObject> obj;
++    {
++        int argc = 1;
++        char *argv[] = { const_cast<char*>(QTest::currentAppName()) };
++        TestApplication app(argc, argv);
++        obj = std::make_unique<QObject>();
++        QCoreApplication::postEvent(obj.get(), new MyEvent(obj.get(), 2));
++    }
++    QCOMPARE(destroyed, 3);
++}
++
+ // this is almost identical to sendEventsOnProcessEvents
+ void tst_QCoreApplication::applicationEventFilters_mainThread()
+ {
+diff --git a/tests/auto/corelib/kernel/qcoreapplication/tst_qcoreapplication.h b/tests/auto/corelib/kernel/qcoreapplication/tst_qcoreapplication.h
+index 13dc68bf..663d161a 100644
+--- a/tests/auto/corelib/kernel/qcoreapplication/tst_qcoreapplication.h
++++ b/tests/auto/corelib/kernel/qcoreapplication/tst_qcoreapplication.h
+@@ -46,6 +46,7 @@ private slots:
+     void customEventDispatcher();
+     void testQuitLock();
+     void QTBUG31606_QEventDestructorDeadLock();
++    void pendingEventDestructorPostsOnExit();
+     void applicationEventFilters_mainThread();
+     void applicationEventFilters_auxThread();
+     void threadedEventDelivery_data();

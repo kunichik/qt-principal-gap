@@ -1,0 +1,143 @@
+{
+ "duration_api_ms": 80780,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 0.5022309,
+ "usage": {
+  "input_tokens": 32,
+  "cache_creation_input_tokens": 26973,
+  "cache_read_input_tokens": 611674,
+  "output_tokens": 8191,
+  "output_tokens_details": {
+   "thinking_tokens": 2305
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 26973,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 866,
+    "cache_read_input_tokens": 48207,
+    "cache_creation_input_tokens": 2300,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2300
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1501,
+   "outputTokens": 28,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001641,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 32,
+   "outputTokens": 8191,
+   "cacheReadInputTokens": 611674,
+   "cacheCreationInputTokens": 26973,
+   "webSearchRequests": 0,
+   "costUSD": 0.5020668000000001,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 2305,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 18,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "I fixed it: when `QThreadPool::clear()` removes a queued `QtConcurrent::run()` task, its future now ends up Finished and Canceled, so `waitForFinished()` returns. The new test fails without the fix and passes with it, and the related test suites all pass.\n\n**Root cause:** `QThreadPoolPrivate::clear()` (`src/corelib/thread/qthreadpool.cpp:335`) deletes auto-delete runnables that haven't started yet. For a plain `QtConcurrent::run()` task, that runnable is a `RunFunctionTaskBase`, which holds the future's state. The only place that marks that state finished is `run()`, and a removed task never runs. So the task was deleted with its future still Running, and `waitForFinished()` waited for a signal that never came. The variant where the function takes a `QPromise&` argument didn't have this problem, because `~QPromise()` already cancels and finishes an unfinished promise.\n\n**Fix** (`src/concurrent/qtconcurrentrunbase.h`): I gave `RunFunctionTaskBase` a destructor. If the future isn't finished yet, it marks it canceled and then finished. This is the same thing `start()` already does when there is no thread pool, and it also triggers any attached continuations. When a task runs normally, its future is already finished by the time it's deleted, so the destructor does nothing. Because the fix is in the task rather than in `clear()`, it covers any way a queued task gets deleted without running.\n\n**Test:** I added `tst_QtConcurrentRun::clearThreadPool` in `tests/auto/concurrent/qtconcurrentrun/tst_qtconcurrentrun.cpp`. It sets up a pool with one thread, keeps that thread busy, and queues three tasks: a plain `run()`, a `run()` with a `QPromise`, and a `run()` with an `.onCanceled()` continuation. It then calls `clear()` and checks that:\n- each future is finished and canceled;\n- `waitForFinished()` returns;\n- the continuation runs;\n- none of the removed functions ran.\n\nA scope guard releases the busy thread if a check fails early, so a failure can't hang the test.\n\n**Results:**\n- Without the library fix, the new test fails at `future.isFinished()`.\n- With it, these all pass: `tst_qtconcurrentrun` (27), `tst_qthreadpool` (73), `tst_qfuture` (88), `tst_qtconcurrentmap` (30) and `tst_qtconcurrentfilter` (24).\n\nThe changes are uncommitted in the working tree.",
+ "ttft_ms": 2498,
+ "type": "result",
+ "duration_ms": 297255,
+ "ttft_stream_ms": 1310,
+ "time_to_request_ms": 256,
+ "time_to_request_phases_ms": {
+  "other": 19,
+  "system_prompt": 10,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 13,
+  "input_hooks": 1,
+  "transcript_persist": 6,
+  "tool_pool_refresh": 1,
+  "init_message": 3,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 193,
+  "autocompact": 0,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 3,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 30,
+ "time_to_request_cpu_ms": 272,
+ "time_to_request_major_faults": 400,
+ "input_attachments_detail": {
+  "slowest_producer": "skill_listing",
+  "slowest_producer_ms": 8,
+  "cpu_ms": 22,
+  "major_faults": 35
+ },
+ "first_content_frame_ms": 1310,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

@@ -1,0 +1,143 @@
+{
+ "duration_api_ms": 78459,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 0.49778230000000007,
+ "usage": {
+  "input_tokens": 38,
+  "cache_creation_input_tokens": 25513,
+  "cache_read_input_tokens": 760290,
+  "output_tokens": 7065,
+  "output_tokens_details": {
+   "thinking_tokens": 1475
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 25513,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 769,
+    "cache_read_input_tokens": 50281,
+    "cache_creation_input_tokens": 429,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 429
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1573,
+   "outputTokens": 22,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001683,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 38,
+   "outputTokens": 7065,
+   "cacheReadInputTokens": 760290,
+   "cacheCreationInputTokens": 25513,
+   "webSearchRequests": 0,
+   "costUSD": 0.49761400000000006,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 1475,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 23,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "I fixed the shutdown deadlock, and the new regression test hangs without the fix and passes with it. All 71 tests in tst_QCoreApplication pass. I haven't tested on Windows or with the Media Foundation backend.\n\n**Root cause:** when the application object is destroyed, `QCoreApplicationPrivate::cleanupThreadData()` (`src/corelib/kernel/qcoreapplication.cpp`) deletes any events still waiting in the queue. It did this while holding the queue's lock. If an event's destructor calls `deleteLater()` or `postEvent()`, those calls try to take the same lock. The lock isn't recursive, so the thread waits forever on itself.\n\nOther places already avoid this: `removePostedEvents()` releases the lock before deleting events, and an earlier deadlock test (`QTBUG31606_QEventDestructorDeadLock`) covers the same problem while the app is running. This path, at exit, was the one that didn't.\n\n**Fix:** the cleanup now moves the pending events out of the queue while holding the lock, releases the lock, and then deletes them. Events posted by those destructors land in the now-empty queue and are removed the same way, so the loop repeats until the queue is empty.\n\n**Test:** I added `tst_QCoreApplication::QEventDestructorDeadLockOnExit()`. It posts an event whose destructor calls both `deleteLater()` and `postEvent()`, destroys the application without processing it, and checks that the destructor ran.\n\n- **Without the fix:** I reverted the library change, rebuilt and ran the test; it hung and I had to kill it after 10 seconds.\n- **With the fix:** it passes.\n- **Earlier failures:** an earlier run had 5 failures only because the `apphelper` program those tests launch hadn't been built. After building it, everything passed.\n\nOne limitation remains: a destructor that deletes the object it called `deleteLater()` on is no longer deadlocked, but the object isn't deleted either. That's because there's no event loop left at that point to process it, and it was already the case for anything posted during shutdown.",
+ "ttft_ms": 4029,
+ "type": "result",
+ "duration_ms": 416833,
+ "ttft_stream_ms": 1721,
+ "time_to_request_ms": 450,
+ "time_to_request_phases_ms": {
+  "other": 15,
+  "system_prompt": 7,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 10,
+  "input_hooks": 3,
+  "transcript_persist": 1,
+  "tool_pool_refresh": 2,
+  "init_message": 2,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 397,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 4,
+  "message_normalization": 1,
+  "client_creation": 0,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 20,
+ "time_to_request_cpu_ms": 315,
+ "time_to_request_major_faults": 412,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 7,
+  "cpu_ms": 11,
+  "major_faults": 20
+ },
+ "first_content_frame_ms": 1722,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

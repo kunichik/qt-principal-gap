@@ -1,0 +1,143 @@
+{
+ "duration_api_ms": 187169,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 1.0218548,
+ "usage": {
+  "input_tokens": 46,
+  "cache_creation_input_tokens": 51277,
+  "cache_read_input_tokens": 1282473,
+  "output_tokens": 17739,
+  "output_tokens_details": {
+   "thinking_tokens": 10441
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 51277,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 977,
+    "cache_read_input_tokens": 75744,
+    "cache_creation_input_tokens": 730,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 730
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1672,
+   "outputTokens": 26,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00018020000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 46,
+   "outputTokens": 17739,
+   "cacheReadInputTokens": 1282473,
+   "cacheCreationInputTokens": 51277,
+   "webSearchRequests": 0,
+   "costUSD": 1.0216746,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 10441,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 29,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "I fixed this in `src/corelib/kernel/qobject.cpp`. With the fix, the new test and the full `tst_qobject` suite pass (124 tests), as do `tst_qmetaobject` and `tst_qmetamethod`. Before the fix, the new test failed.\n\n**Root cause:** for a queued or blocking-queued connection, the member-function-pointer `connect()` uses `QtPrivate::ConnectionTypes` (`qobject_impl.h`) to register the signal's argument types. It only does so when every argument has `QMetaTypeId2<T>::Defined` set; otherwise it passes `nullptr`, and the types are only worked out at the first queued emission.\n\n- Until commit b0f49573 (\"QMetaType: remove legacy automatic name registrations for QObject-like\"), `QMetaTypeIdQObject` gave gadgets, QObject pointers and Q_ENUMs `Defined = 1`.\n- That commit removed those cases to fix a bug where registering `const MyObject *` also registered `MyObject *` (QTBUG-147588). After it, these types were no longer registered at connect time, so `QMetaType::fromName()` couldn't find them.\n- Types that are complete but not declared with `Q_DECLARE_METATYPE` were never covered by this path.\n- In this tree, Q_ENUM types already work again, because commit a3fbe82c restored the enum case. My test confirms this.\n\n**Fix:** in `QObjectPrivate::connectImpl()`, for a queued or blocking-queued connection where the caller passed no types array, I now call `method.parameterMetaType(i)` for each signal parameter. That function already registers the type. It reads the types moc recorded for the signal, so it handles gadgets, Q_ENUMs, `T*` and `const T*` correctly. It covers every type moc saw as complete, which is the same set the string-based `connect()` uses.\n\nI chose this over putting back the removed `QMetaTypeIdQObject` cases, because those would bring back the const-pointer bug. It also doesn't add a compile-time completeness check in a header template, which could give different answers in different source files. The types array is still built lazily on the first queued emission, as before, so the \"Cannot queue arguments\" warnings still appear at the same time.\n\n**Test:** I added `tst_QObject::connectFunctorQueuedRegistersMetaTypes`. It checks that a gadget, a Q_ENUM, `Object*`, `const Object*` and a plain complete struct are all unknown to `QMetaType::fromName()` before the queued `connect()` and resolve to the right type afterwards.\n\nI couldn't run `tst_qmetatype`: it isn't a build target in this build directory.",
+ "ttft_ms": 4934,
+ "type": "result",
+ "duration_ms": 595707,
+ "ttft_stream_ms": 3316,
+ "time_to_request_ms": 594,
+ "time_to_request_phases_ms": {
+  "other": 36,
+  "system_prompt": 18,
+  "resume_other": 1,
+  "process_user_input": 4,
+  "input_attachments": 20,
+  "input_hooks": 5,
+  "transcript_persist": 18,
+  "tool_pool_refresh": 4,
+  "init_message": 5,
+  "engine_pickup": 2,
+  "message_prep": 2,
+  "model_config_wait": 453,
+  "autocompact": 3,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 11,
+  "message_normalization": 2,
+  "client_creation": 2,
+  "request_build": 7
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 188,
+ "time_to_request_cpu_ms": 947,
+ "time_to_request_major_faults": 372,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 14,
+  "cpu_ms": 33,
+  "major_faults": 21
+ },
+ "first_content_frame_ms": 3316,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

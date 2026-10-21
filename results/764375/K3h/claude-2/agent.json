@@ -1,0 +1,143 @@
+{
+ "duration_api_ms": 206483,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 1.0835245,
+ "usage": {
+  "input_tokens": 50,
+  "cache_creation_input_tokens": 48034,
+  "cache_read_input_tokens": 1360811,
+  "output_tokens": 21337,
+  "output_tokens_details": {
+   "thinking_tokens": 12078
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 48034,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1137,
+    "cache_read_input_tokens": 72363,
+    "cache_creation_input_tokens": 868,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 868
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1368,
+   "outputTokens": 27,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00015030000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 50,
+   "outputTokens": 21337,
+   "cacheReadInputTokens": 1360811,
+   "cacheCreationInputTokens": 48034,
+   "webSearchRequests": 0,
+   "costUSD": 1.0833742,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 12078,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 28,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "It's fixed. After `QThreadPool::clear()`, futures for tasks that hadn't started yet now finish as canceled, so `waitForFinished()` returns and `.onCanceled()` handlers run. The fix is in QtConcurrent; `QThreadPool` itself is unchanged.\n\n**Root cause.** `clear()` takes the waiting tasks off the queue without running them. Nothing then tells their futures they're done, in two ways:\n\n1. **`QtConcurrent::run()`**: the task deletes itself after running (`autoDelete`), so `clear()` deletes it. Its destructor never reported the future finished, so the future stayed Running. Tasks taking a `QPromise&` were already fine, because `~QPromise` cancels and finishes.\n2. **map/filter/mapped/filtered**: the engine object is queued once at start and again for each extra thread. It isn't auto-deleting, so `clear()` just drops it. Each queued copy holds a count in the engine's internal barrier that is never given back, so the engine never finishes and is never freed. The future hangs and the engine leaks.\n\n**Fix:**\n- **`src/concurrent/qtconcurrentrunbase.h`**: `~RunFunctionTaskBase()` now marks the future canceled and then finished if it hadn't finished yet. That is the same order `start()` already uses for a null pool, so `.onCanceled()` continuations run.\n- **`src/concurrent/qtconcurrentthreadengine.{h,cpp}`**: the engine is no longer put on the pool queue directly. Each thread start queues a small auto-deleting `ThreadEngineRunner` that calls the engine's `run()`.\n  - If the runner is destroyed without having run (as `clear()` does) and other threads are still running the engine, it just gives back its count and they finish normally.\n  - If it was the last one, it cancels the future and then finishes the engine the same way `run()` does for a canceled engine, which reports finished and deletes it.\n  - The pool never deletes or takes over the engine itself. A new protected `startFirstThread()` replaces the inline `threadPool->start(this)` in `ThreadEngine::startAsynchronously()`.\n\n**Tests.** I added `clearedThreadPool()` to `tst_qtconcurrentrun` and `tst_qtconcurrentmap`. They block the only pool thread, queue several tasks, call `clear()`, and check:\n- every future is finished and canceled;\n- `.onCanceled()` ran;\n- no user function was called;\n- the stored function object was destroyed (run test only).\n\nThe map test covers `map`, `mapped` and `filtered`.\n\n**Results:**\n- Without the library fix, both new tests fail (`isFinished()` returns false) and then hang until the test runner's 300-second timeout.\n- With the fix, all concurrent autotests pass: run, map, filter, threadengine, task and iteratekernel.\n\n**Binary compatibility:** I added one exported non-virtual function and a `friend` declaration to `ThreadEngineBase`, so the class layout and vtable are unchanged. Code built against the old header still queues the engine directly, so it keeps the old map/filter behaviour until it's recompiled. Nothing is committed yet.",
+ "ttft_ms": 1744,
+ "type": "result",
+ "duration_ms": 842137,
+ "ttft_stream_ms": 900,
+ "time_to_request_ms": 194,
+ "time_to_request_phases_ms": {
+  "other": 8,
+  "system_prompt": 6,
+  "resume_other": 1,
+  "process_user_input": 0,
+  "input_attachments": 5,
+  "input_hooks": 1,
+  "transcript_persist": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 2,
+  "engine_pickup": 0,
+  "message_prep": 0,
+  "model_config_wait": 161,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 3,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 8,
+ "time_to_request_cpu_ms": 254,
+ "time_to_request_major_faults": 1,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 8,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 900,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

@@ -1,0 +1,102 @@
+diff --git a/src/corelib/parse/qtparsetemporal.cpp b/src/corelib/parse/qtparsetemporal.cpp
+index 83e5eef6..6a33170d 100644
+--- a/src/corelib/parse/qtparsetemporal.cpp
++++ b/src/corelib/parse/qtparsetemporal.cpp
+@@ -315,6 +315,7 @@ class TemporalFieldMatcher
+         qsizetype maxDigits = 0; // <= 0 means unbounded
+         // If unbounded, beyond max(width, roundAfter, -maxDigits) prefer fewer digits to more.
+         qsizetype roundAfter = -1; // >= 0: is fractional part: round to this many digits
++        // (Values with fewer than roundAfter digits will also be *=10'd up to match.)
+         bool allowSign = false;
+     };
+     // For use as FieldConfig::target:
+@@ -856,8 +857,11 @@ TemporalFieldMatcher::continuations(const PartialParse &base, QStringView text,
+ 
+         // case Cat::MillisecondInDay: break;
+     case Cat::SecondFraction:
++        // QTime, QDateTime only support millisecond precision, so use 3 as roundAfter.
++        // That's also maxDigits, unless RoundFraction => unlimited.
+         matches = numericExtend(base, text, field.options,
+-                                {millisTarget, 999, -1, field.width, 0, 3});
++                                {millisTarget, 999, -1, field.width,
++                                 field.options.testFlag(Flag::RoundFraction) ? 0 : 3, 3});
+         break;
+     case Cat::Second:
+         matches = numericExtend(base, text, field.options, {secondTarget, 59, -1, field.width, 2});
+diff --git a/src/corelib/time/qttemporalpattern.cpp b/src/corelib/time/qttemporalpattern.cpp
+index b2c2cabe..04b3644f 100644
+--- a/src/corelib/time/qttemporalpattern.cpp
++++ b/src/corelib/time/qttemporalpattern.cpp
+@@ -98,19 +98,23 @@ namespace QtTemporalPattern {
+ 
+     As QTime and QDateTime only handle times to millisecond precision, normally
+     their allowed range of values runs from 0 to 999 and no more than three
+-    digits are accepted, or the field width if greater. (If fewer than three
+-    digits are parsed, the value is implicitly extended on the right with zeros
+-    to obtain milliseconds precision. Whether such a field is accepted will
+-    depend on the setting of the \c width of the field and the absence of \l
++    digits are accepted, or the field width if greater. If the \l
++    {QtTemporalPattern::TemporalFieldFlag} {RoundFraction} flag is passed,
++    digits beyond this are accepted and will affect the result only via
++    appropriate rounding. (If fewer than three digits are parsed, the value is
++    implicitly extended on the right with zeros to obtain milliseconds
++    precision. Whether such a field is accepted will depend on the setting of
++    the \c width of the field and the absence of \l
+     {QtTemporalPattern::TemporalFieldFlag} {ZeroPad} from its \l
+     {QtTemporalPattern::TemporalField} {\c options}, in the usual ways.)
+ 
+-    Where a SecondFraction field accepts more than three digits, the resulting
+-    fractional part is rounded to three significant digits. If rounding would
+-    require increasing the Second field, however, the Second field is retained
+-    unchanged and the fractional part is rounded to 999 milliseconds.  For
+-    example, 29.9997 seconds is rounded to 29.999 seconds, to preserve the fact
+-    that the time is strictly before the 30 second mark.
++    Where a SecondFraction field accepts more than three digits (either because
++    its field width exceeds three or because the RoundFraction flag is
++    specified), the resulting fractional part is rounded to three significant
++    digits. If rounding would require increasing the Second field, however, the
++    Second field is retained unchanged and the fractional part is rounded to 999
++    milliseconds.  For example, 29.9997 seconds is rounded to 29.999 seconds, to
++    preserve the fact that the time is strictly before the 30 second mark.
+ 
+     \note For negative years, the YearWithinCentury will be understood as the
+     number of completed years since the start of the most recent year that is a
+@@ -290,12 +294,19 @@ namespace QtTemporalPattern {
+ 
+     \section2 Extended fields
+ 
+-    The following option modifies the handling of the year field, where there is
+-    no intrinsic limit to the number of significant digits in a valid value. It
+-    is described in more detail below.
++    The following options modify the handling of specific fields where there is
++    no intrinsic limit to the number of significant digits in a valid value.
++    They are described in more detail below.
+ 
++    \value RoundFraction Allows excess precision in a fractional part.
+     \value YearSignIso8601 Requires a sign if there are extra digits in a year.
+ 
++    By default a \l {QtTemporalPattern::TemporalFieldCategory} {SecondFraction}
++    field only accepts up to three digits or as many digits as its field width
++    specifies. The RoundFraction modifies the field to allow more digits than
++    this, using the excess precision only to resolve rounding to the appropriate
++    precision, as described above for the SecondFraction field.
++
+     Modern revisions of ISO 8601 permit years outside the range from 0 through
+     9999 but require that they have a sign. By default a + sign on a positive
+     year is allowed and silently ignored (without counting towards its \c
+diff --git a/src/corelib/time/qttemporalpattern_p.h b/src/corelib/time/qttemporalpattern_p.h
+index 0a7dfd5b..05f03c28 100644
+--- a/src/corelib/time/qttemporalpattern_p.h
++++ b/src/corelib/time/qttemporalpattern_p.h
+@@ -71,8 +71,10 @@ namespace QtTemporalPattern {
+         // Qt used to impose case on am/pm fields:
+         LowerCase = 0x1000, UpperCase = 0x2000, // Otherwise follow locale-supplied case.
+         IgnoreCase = 0x4000, // Parsing Literal or Verbal: match case insensitively
++        // (0x8000 free)
+         // Special cases:
+-        // (0x8000, 0x01'0000, 0x02'0000, 0x04'0000 free)
++        RoundFraction = 0x01'0000, // Fractional part accepts extra digits, rounding suitably
++        // (0x02'0000, 0x04'0000 free)
+         YearSignIso8601 = 0x08'0000, // Require sign when excess digits
+         // Zone-specific:
+         LocalizedZone = 0x10'0000, // Localized forms, various.

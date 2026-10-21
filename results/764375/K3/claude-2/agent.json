@@ -1,0 +1,143 @@
+{
+ "duration_api_ms": 162081,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 0.8675101999999998,
+ "usage": {
+  "input_tokens": 40,
+  "cache_creation_input_tokens": 39329,
+  "cache_read_input_tokens": 1023273,
+  "output_tokens": 17395,
+  "output_tokens_details": {
+   "thinking_tokens": 8414
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 39329,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1358,
+    "cache_read_input_tokens": 63719,
+    "cache_creation_input_tokens": 807,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 807
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1501,
+   "outputTokens": 27,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00016360000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 40,
+   "outputTokens": 17395,
+   "cacheReadInputTokens": 1023273,
+   "cacheCreationInputTokens": 39329,
+   "webSearchRequests": 0,
+   "costUSD": 0.8673465999999997,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 8414,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 22,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "I fixed it, and both `QtConcurrent::run()` and the `map()`/`filter()` family now finish as canceled when `QThreadPool::clear()` drops their queued work.\n\n**Root cause.** `QThreadPool::clear()` deletes queued runnables that have auto-delete on and simply drops the others from the queue. Nothing tells the future, so neither kind of task ever reports finished:\n\n- **`run()`**: its task (`RunFunctionTaskBase`) is deleted without running, so `reportFinished()` never happens. The future stays Running and `waitForFinished()` blocks forever.\n- **`map()`/`filter()`**: the engine (`ThreadEngineBase`) is not auto-deleting and is handed to the pool several times: once at start, and again for each extra worker thread through `tryStart(this)`, which can briefly sit in the queue. Each start reserves a slot in the engine's thread counter. When `clear()` drops one, that slot is never released, so the future never finishes and the engine leaks.\n\n**Fix** (all in `src/concurrent`; `QThreadPool` itself is unchanged):\n\n- **`qtconcurrentrunbase.h`**: `RunFunctionTaskBase` now has a destructor. If the task is destroyed before its future finished, it reports canceled and then finished, the same way `start()` does with no pool. So an attached `.onCanceled()` runs. This also covers a task removed with `tryTake()` and then deleted.\n- **`qtconcurrentthreadengine.{h,cpp}`**: the engine no longer goes into the pool itself. Each start hands the pool a small auto-deleting wrapper (`PoolTask`), and the engine keeps its own lifetime rules. When the wrapper runs, it runs the engine as before. If it is destroyed without running, it cancels the future and releases the thread slot. That finishes the future as canceled and deletes the engine, so it no longer leaks. A new protected `startFirstThread()` replaces the inline `acquireBarrierSemaphore(); threadPool->start(this);`. Code compiled against the old header keeps the old behaviour until it is recompiled.\n\n**One behaviour change:** if `clear()` happens to drop one of the extra worker starts while the computation is already running, the whole computation is canceled. I chose this over just releasing that slot: during suspension, the other threads may already have exited on the assumption that the dropped one would carry on. Releasing only the slot could then report the future finished with only part of the results.\n\n**Tests.** I added `clearThreadPool()` to `tst_qtconcurrentrun` and `tst_qtconcurrentmap`. Each fills a one-thread pool with a blocked task, queues the job, calls `clear()`, and checks that the future is finished and canceled, that `onCanceled()` ran, and that the work never ran. Both fail without the fix and pass with it.\n\nThese suites pass with the fix: `qtconcurrentrun`, `qtconcurrentmap`, `qtconcurrentfilter`, `qtconcurrentthreadengine`, `qtconcurrentiteratekernel`, `qtconcurrentmedian`, `qtconcurrenttask`, `qfuture` and `qthreadpool`. There is no test for a dropped extra worker start, because that timing can't be reproduced reliably.\n\n**Not fixed, related:** continuations attached with `.then(pool, \u2026)` (`CompactContinuation` in `qfuture_impl.h`) queue a non-auto-deleting runnable that `clear()` also drops. Their future hangs and the continuation leaks in the same way. It's in QtCore rather than QtConcurrent, so I left it out; I can fix it the same way if you want.\n\nThe numbers at the end of your message didn't seem related to the bug, so I ignored them. Nothing is committed yet.",
+ "ttft_ms": 2463,
+ "type": "result",
+ "duration_ms": 420361,
+ "ttft_stream_ms": 748,
+ "time_to_request_ms": 209,
+ "time_to_request_phases_ms": {
+  "other": 13,
+  "system_prompt": 7,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 7,
+  "input_hooks": 2,
+  "transcript_persist": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 2,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 165,
+  "autocompact": 0,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 2,
+  "message_normalization": 1,
+  "client_creation": 0,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 4,
+ "time_to_request_cpu_ms": 246,
+ "time_to_request_major_faults": 413,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 10,
+  "major_faults": 22
+ },
+ "first_content_frame_ms": 748,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

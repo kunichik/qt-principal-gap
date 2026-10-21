@@ -1,0 +1,8 @@
+{
+ "design_match": 0.35,
+ "reviewer_concerns": 0.6,
+ "minimality": 0.45,
+ "hidden_risk": 0.4,
+ "key_difference": "(D) adds a separate decodeForLocalFile() that decodes percent-encoded UTF-8 sequences. (B) instead adds the checks to the existing decode() and relies on the QUrl invariant that valid UTF-8 is already stored decoded, so it rejects every byte >= 0x80; (D) also omits (B)'s Windows pre-check for literal backslashes that are stored in decoded form, so such paths pass unchecked on Windows.",
+ "judge_cost_usd": 0.1033538
+}

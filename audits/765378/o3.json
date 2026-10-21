@@ -1,0 +1,12 @@
+{
+ "verdict": "NOT_OK",
+ "problems": [
+  "The card never says to consolidate. The real change moves the single correct implementation into QThreadData::clearEvents() and has cleanupThreadData() use it instead of keeping its own deletion loop. The card only lists the two sites, so the engineer might patch both separately.",
+  "The card does not mention that draining must be bounded. Reviewers treated the MaxPasses limit as the essential, comment-worthy part: ~QEvent() runs arbitrary code that can keep posting new events, so the drain loop is capped to avoid an infinite loop. 'Drain whatever those destructors post in turn' with no cap invites an unbounded loop.",
+  "The card does not say the event deletion must be the last step. Because virtual ~QEvent() runs arbitrary code, deleting events is done in its own loop after all other bookkeeping, such as the postedEvents counter adjustments. Reviewers asked for exactly this ordering and its comment.",
+  "The card says a correct implementation 'already exists in removePostedEvents()'. The source only says removePostedEvents() already uses the collect-under-lock, delete-unlocked pattern; it is not a ready implementation to reuse for clearing all pending events at thread exit."
+ ],
+ "model": "opus",
+ "source": false,
+ "cost_usd": 0.0218379
+}

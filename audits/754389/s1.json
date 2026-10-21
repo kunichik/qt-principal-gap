@@ -1,0 +1,13 @@
+{
+ "verdict": "NOT_OK",
+ "problems": [
+  "The third bullet misstates the outcome for out-of-qtbase callers. The reviewers did not settle on documenting inline vs. deferred for QQmlNotifierEndpoint and qtscxml. Thiago asked Ulf whether those callers need the same fix (post to the sender's thread), because the destination object may be destroyed suddenly. The card turns an open question about whether those callers are also racy into a documentation task.",
+  "The card omits the reviewers' criterion for when posting is not wanted: the receiver is known to outlive the call (e.g. refcounted and referenced, or the thread's dispatcher is blocked on a held mutex), and the notification must happen immediately. This is what decides whether a caller can keep the direct call.",
+  "The card leaves out the central behavioural consequence of the change: `disconnectNotify()` becomes asynchronous for cross-thread senders, so existing overrides must tolerate delay or double-posting. Thiago reviewed QBuffer (counter), QFutureWatcher (a delayed decision about emitting results) and QDBusAbstractInterface (which already posts its own event). Overrides that expect a synchronous call are at risk, and a later crash in CoAP (QTBUG-149883) was attributed to this change.",
+  "The card omits the reviewers' explanation of why accessing `senderPriv` in the disconnect path is not racy. The mutex keeps the sender alive only as a `QObject`; it does not stop destruction of further-derived classes. Thiago asked for the docs to say this, and the card's first bullet does not capture it.",
+  "The card does not mention the case where the sender's thread has no event dispatcher. Mårten asked for a fallback to a direct call, or at least documentation that the object may not be notified. The card's 'cannot deliver events' wording does not make this fallback explicit."
+ ],
+ "model": "sonnet",
+ "source": false,
+ "cost_usd": 0.026581700000000003
+}

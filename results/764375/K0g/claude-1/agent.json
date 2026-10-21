@@ -1,0 +1,143 @@
+{
+ "duration_api_ms": 91122,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 0.35992940000000007,
+ "usage": {
+  "input_tokens": 26,
+  "cache_creation_input_tokens": 18515,
+  "cache_read_input_tokens": 482945,
+  "output_tokens": 5747,
+  "output_tokens_details": {
+   "thinking_tokens": 1999
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 18515,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 856,
+    "cache_read_input_tokens": 42772,
+    "cache_creation_input_tokens": 940,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 940
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1584,
+   "outputTokens": 36,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001764,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 26,
+   "outputTokens": 5747,
+   "cacheReadInputTokens": 482945,
+   "cacheCreationInputTokens": 18515,
+   "webSearchRequests": 0,
+   "costUSD": 0.35975300000000004,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 1999,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 14,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "Fixed. `QThreadPool::clear()` (in `QThreadPoolPrivate::clear()`) deletes every queued runnable that has `autoDelete()` set, without ever running it. For `QtConcurrent::run()`, that runnable is a `RunFunctionTaskBase`. It holds the promise behind the returned future, and that promise gets marked Started in `start()`. Only `run()` ever reported it as finished, and the class had no destructor. So deleting the task while it was still queued left the future Running forever, and `waitForFinished()` kept waiting for a finish that never comes.\n\n**Fix** (`src/concurrent/qtconcurrentrunbase.h`): I added a destructor to `RunFunctionTaskBase`. If the promise isn't finished yet, it reports it as canceled and finished, the same way `start()` already does for a null thread pool. Futures removed from the queue now end up Canceled and Finished, waiters wake up, and continuations (including `onCanceled` handlers) run. After a normal `run()` the promise is already finished, so the destructor does nothing. The `QPromise`-based tasks were already covered by `QPromise`'s own destructor.\n\n**Test** (`tests/auto/concurrent/qtconcurrentrun/tst_qtconcurrentrun.cpp`): I added `clearedFromThreadPool()`. It keeps a one-thread pool busy, queues a plain task, a `QPromise` task and a continuation, then calls `clear()`. It checks that:\n- both futures are finished and canceled;\n- waiting on them returns;\n- the `onCanceled` continuation runs;\n- neither queued function ever ran.\n\nWithout the fix, the new test fails on `queued.isFinished()`. With it, the whole `tst_qtconcurrentrun` suite passes (27/27). I didn't run any other test suites.\n\nOne related issue I didn't change: the future keeps a raw pointer to its runnable, which `waitForFinished()` uses to take a still-queued task and run it on the calling thread. If a waiter reads that pointer just before the task is deleted, it can end up comparing a dangling pointer. The same race already exists when a task finishes normally, so I left it alone.",
+ "ttft_ms": 10021,
+ "type": "result",
+ "duration_ms": 221922,
+ "ttft_stream_ms": 8590,
+ "time_to_request_ms": 587,
+ "time_to_request_phases_ms": {
+  "other": 35,
+  "system_prompt": 17,
+  "resume_other": 1,
+  "process_user_input": 4,
+  "input_attachments": 20,
+  "input_hooks": 4,
+  "transcript_persist": 8,
+  "tool_pool_refresh": 4,
+  "init_message": 5,
+  "engine_pickup": 2,
+  "message_prep": 1,
+  "model_config_wait": 461,
+  "autocompact": 2,
+  "query_setup": 1,
+  "model_gates": 1,
+  "tool_schema_build": 10,
+  "message_normalization": 2,
+  "client_creation": 2,
+  "request_build": 7
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 122,
+ "time_to_request_cpu_ms": 981,
+ "time_to_request_major_faults": 360,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 14,
+  "cpu_ms": 35,
+  "major_faults": 20
+ },
+ "first_content_frame_ms": 8590,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

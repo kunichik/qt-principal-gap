@@ -1,0 +1,11 @@
+{
+ "verdict": "NOT_OK",
+ "problems": [
+  "The card omits the decision reviewers treated as essential and that ended up in the final commit message: removeStaleLock()/releaseLockFile() must return true only if the lock file is actually gone. If removal fails, for example another user's stale lock in a sticky /tmp-style directory or an immutable file, lock() must fall back to sleeping between attempts. Otherwise lock() busy-loops forever without sleeping, printing a warning each round, because the default timeout is infinite.",
+  "The card states the renameFile() link+unlink fallback as a neutral fact without the reviewer's point. The reviewer raised it as a reason to call renameat2() directly so the code avoids that fallback. As written, the engineer might reuse QFileSystemEngine::renameFile() and get the very fallback the reviewer wanted to avoid.",
+  "The card leaves out the review note that the existing staleShortLockFromBusyProcess and staleLongLockFromBusyProcess tests do not catch a busy process's lock being wrongly deleted. The tests should also verify that the lock file still exists after the failed tryLock()."
+ ],
+ "model": "opus",
+ "source": false,
+ "cost_usd": 0.0197991
+}

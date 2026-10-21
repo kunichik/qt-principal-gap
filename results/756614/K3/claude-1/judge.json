@@ -1,0 +1,8 @@
+{
+ "design_match": 0.85,
+ "reviewer_concerns": 0.9,
+ "minimality": 0.85,
+ "hidden_risk": 0.9,
+ "key_difference": "(D) keeps the QThreadStorage as a member wrapped by a forwarding localData() instead of privately inheriting and using-declaring it as (B) does, and its QThreadStorageData::clear() also inspects the thread's tls vector to avoid growing it, where (B) only checks that QThreadData exists.",
+ "judge_cost_usd": 0.0157699
+}

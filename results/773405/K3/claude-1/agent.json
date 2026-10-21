@@ -1,0 +1,143 @@
+{
+ "duration_api_ms": 118945,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 0.7433859,
+ "usage": {
+  "input_tokens": 32,
+  "cache_creation_input_tokens": 39860,
+  "cache_read_input_tokens": 778508,
+  "output_tokens": 13421,
+  "output_tokens_details": {
+   "thinking_tokens": 4699
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 39860,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1002,
+    "cache_read_input_tokens": 64426,
+    "cache_creation_input_tokens": 631,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 631
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1528,
+   "outputTokens": 207,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002563,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 181,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 32,
+   "outputTokens": 13421,
+   "cacheReadInputTokens": 778508,
+   "cacheCreationInputTokens": 39860,
+   "webSearchRequests": 0,
+   "costUSD": 0.7431296000000001,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 4699,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 19,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "I added `QCborStreamReader::isNumber()` and `toNumber()`, with documentation and autotests. `tst_qcborstreamreader` passes (3680 tests, 0 failures), and `tst_qcborvalue` still passes. Nothing is committed.\n\n**API** (`src/corelib/serialization/qcborstreamreader.h`), written inline like the other `isX()`/`toX()` functions:\n- **`isNumber()`** is true for unsigned and negative integers and for half-, single- and double-precision floats.\n- **`toNumber()`** asserts `isNumber()`, like the other `toX()` functions. It reads floats with the existing `toFloat16()`, `toFloat()` and `toDouble()`, and converts integers itself.\n\n**Negative integers:** CBOR stores a negative integer as `value64`, meaning the value \u22121 \u2212 `value64`. The obvious conversion, `-1 - double(value64)`, rounds twice and can give the wrong answer: for \u2212(2^53+2) it returns \u22122^53. Instead I compute `-double(value64 + 1)`, which rounds only once. The one case where `value64 + 1` overflows is \u22122^64, which is handled separately. This also covers values below the qint64 range, as CLAUDE.md requires.\n\n**Docs** (`qcborstreamreader.cpp`): both functions are documented with `\\since 6.13`. The `toNumber()` docs say that integers larger than 2^53 in absolute value are rounded. I also linked the new functions from the \"see also\" lists of the related functions. I haven't run qdoc.\n\n**Tests:**\n- `basics()` checks that an invalid reader isn't a number.\n- `fixed()` (which the `tags` and `strings` tests also run) checks `isNumber()` against the element's type.\n- `integers()` checks `toNumber()` on all the existing integer data.\n- New `floatingPoint()` runs TinyCBOR's existing floating-point data, which includes NaN, \u00b1inf and half precision.\n- New `numbers()` covers rounding cases near 2^53, 2^63 and 2^64, \u22122^64, \u22120, the smallest half-precision subnormal and non-integer floats. It compares exactly (`QCOMPARE_EQ`), because plain `QCOMPARE` on doubles is fuzzy and would miss rounding errors.\n\n**Possible bug in QCborValue (not fixed, not tested):** `integerOutOfRange()` in `qcborvalue.cpp` seems to return `-0.0` for \u22122^64. Its callers would treat that as \"in range\", so `QCborValue` would decode \u22122^64 as 0. It's outside this change, so I left it alone; I can write a test to confirm it if you want.",
+ "ttft_ms": 1855,
+ "type": "result",
+ "duration_ms": 178394,
+ "ttft_stream_ms": 968,
+ "time_to_request_ms": 324,
+ "time_to_request_phases_ms": {
+  "other": 16,
+  "system_prompt": 7,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 7,
+  "input_hooks": 1,
+  "transcript_persist": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 1,
+  "engine_pickup": 2,
+  "message_prep": 0,
+  "model_config_wait": 278,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 3,
+  "message_normalization": 1,
+  "client_creation": 0,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 12,
+ "time_to_request_cpu_ms": 259,
+ "time_to_request_major_faults": 407,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 11,
+  "major_faults": 23
+ },
+ "first_content_frame_ms": 968,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

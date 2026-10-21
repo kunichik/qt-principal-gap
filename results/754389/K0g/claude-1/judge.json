@@ -1,0 +1,8 @@
+{
+ "design_match": 0.3,
+ "reviewer_concerns": 0.3,
+ "minimality": 1.0,
+ "hidden_risk": 0.2,
+ "key_difference": "When the sender lives in another thread, (D) silently skips disconnectNotify() instead of posting a QDisconnectNotifyEvent so it runs later in the sender's own thread, so overrides like QDBusAbstractInterface, QBuffer and QFutureWatcher never learn the connection is gone and leak relays or keep stale receiver counts.",
+ "judge_cost_usd": 0.0683852
+}

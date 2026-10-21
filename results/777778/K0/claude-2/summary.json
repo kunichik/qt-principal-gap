@@ -1,0 +1,26 @@
+{
+ "task": "777778",
+ "arm": "K0",
+ "rep": "2",
+ "agent": "claude",
+ "model": "opus",
+ "tests": {
+  "tst_qmimedatabase-xml-fdoxml": {
+   "build": "OK",
+   "passed": 72,
+   "failed": 0,
+   "fail_names": [],
+   "crashed": false
+  },
+  "tst_qmimedatabase-xml-builtin": {
+   "build": "OK",
+   "passed": 57,
+   "failed": 0,
+   "fail_names": [],
+   "crashed": false
+  }
+ },
+ "cost_usd": 0.7616697000000001,
+ "turns": 28,
+ "wall_s": 131
+}

@@ -1,0 +1,10 @@
+{
+ "verdict": "NOT_OK",
+ "problems": [
+  "The card says that on Windows a literal backslash in the input is also a problem. Nothing in the source supports this. The task and commit message only make a decoded backslash (%5C) on Windows unsafe. Following the card would make the new mode reject literal backslashes, which goes beyond what was decided.",
+  "The card leaves out the failure-path contract for `appendTo`, which the reviewers treated as essential. Reviewer 03 blocked a patchset with 'Documentation is contradicted by code'. On a negative return, the documented state of `appendTo` (null vs. empty vs. truncated to its original size) must match what the code does. Either document that it is cleared or set to a null QString, or keep its original null-ness (e.g. `const bool wasNull = appendTo.isNull()`, since `origSize` cannot tell null from empty). If it is assumed to be null on entry, document that and check it with Q_PRE. The engineer needs this to get the failure semantics right."
+ ],
+ "model": "opus",
+ "source": false,
+ "cost_usd": 0.0192298
+}

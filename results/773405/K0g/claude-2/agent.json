@@ -1,0 +1,143 @@
+{
+ "duration_api_ms": 148109,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 0.9865205,
+ "usage": {
+  "input_tokens": 50,
+  "cache_creation_input_tokens": 50820,
+  "cache_read_input_tokens": 1299597,
+  "output_tokens": 15980,
+  "output_tokens_details": {
+   "thinking_tokens": 5773
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 50820,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1058,
+    "cache_read_input_tokens": 75481,
+    "cache_creation_input_tokens": 536,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 536
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1611,
+   "outputTokens": 160,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002411,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 134,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 50,
+   "outputTokens": 15980,
+   "cacheReadInputTokens": 1299597,
+   "cacheCreationInputTokens": 50820,
+   "webSearchRequests": 0,
+   "costUSD": 0.9862794,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 5773,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 27,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "I added `QCborStreamReader::isNumber()` and `QCborStreamReader::toNumber()` with documentation and autotests. The full `tst_QCborStreamReader` suite passes: 3686 passed, 0 failed, run with both QByteArray and QBuffer input.\n\n**API** (`src/corelib/serialization/qcborstreamreader.h`), written inline like the other getters:\n- **`isNumber()`** is true when the current element is any integer (unsigned or negative) or a half-, single- or double-precision float.\n- **`toNumber()`** returns the value as a `double` and asserts `isNumber()`, like the other `toXxx()` getters.\n  - **Floats:** half and single precision convert exactly, including \u00b10, infinities, NaNs and denormals.\n  - **Unsigned integers:** these are just `double(value64)`.\n  - **Negative integers:** these are converted from their absolute value in one step. The obvious way, `-1.0 - double(value64)`, rounds twice and can give the wrong answer: \u2212(2\u2075\u2075+5) comes out as \u22122\u2075\u2075 instead of \u2212(2\u2075\u2075+8). The edge case \u22122\u2076\u2074, where the absolute value overflows to 0, returns `-0x1p64`. Unlike `toInteger()`, nothing overflows outside the `qint64` range; large values only lose precision.\n\n**Docs** (`qcborstreamreader.cpp`): both functions have qdoc marked `\\since 6.13`, since `.cmake.conf` gives the version as 6.13.0. The `toNumber()` docs cover the precision loss above 2\u2075\u00b3 and point to the exact getters. `isInteger()` and `toInteger()` now link to the new functions.\n\n**Tests** (`tst_qcborstreamreader.cpp`):\n- **`integersToNumber`** checks exact values and rounded large ones: \u22122\u2076\u2074, `UINT64_MAX`, `INT64_MIN-1`, and the double-rounding case above. I chose values that don't fall exactly halfway between two doubles, so the expected results don't depend on how ties are rounded.\n- **`floatingPoint`** reuses TinyCBOR's floating-point test data and adds rows for \u22120, denormals and 0.1. It checks `type()`, `isNumber()`, the value and its sign, and that the result matches `toFloat16()`, `toFloat()` or `toDouble()`.\n- **Existing tests:** `integers` now also checks `isNumber()`/`toNumber()`, and `basics` checks that an invalid reader isn't a number. `parseOne()` checks that every parsed element reports the right `isNumber()`, which covers all non-numeric types through the `fixed`, `strings`, `tags`, array and map data.\n\nNothing is committed. If you want a commit, the message should include a line like `[ChangeLog][QtCore][QCborStreamReader] Added isNumber() and toNumber().`\n\nYour message ended with some lines like `756614 K0g 1` that didn't relate to the task, so I ignored them.",
+ "ttft_ms": 2479,
+ "type": "result",
+ "duration_ms": 238170,
+ "ttft_stream_ms": 1485,
+ "time_to_request_ms": 712,
+ "time_to_request_phases_ms": {
+  "other": 40,
+  "system_prompt": 61,
+  "resume_other": 50,
+  "process_user_input": 6,
+  "input_attachments": 22,
+  "input_hooks": 5,
+  "transcript_persist": 95,
+  "tool_pool_refresh": 5,
+  "init_message": 13,
+  "engine_pickup": 3,
+  "message_prep": 3,
+  "model_config_wait": 376,
+  "autocompact": 3,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 15,
+  "message_normalization": 3,
+  "client_creation": 3,
+  "request_build": 8
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 205,
+ "time_to_request_cpu_ms": 822,
+ "time_to_request_major_faults": 383,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 15,
+  "cpu_ms": 30,
+  "major_faults": 20
+ },
+ "first_content_frame_ms": 1485,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

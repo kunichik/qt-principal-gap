@@ -1,0 +1,143 @@
+{
+ "duration_api_ms": 102997,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 0.5770772,
+ "usage": {
+  "input_tokens": 26,
+  "cache_creation_input_tokens": 32308,
+  "cache_read_input_tokens": 555338,
+  "output_tokens": 10359,
+  "output_tokens_details": {
+   "thinking_tokens": 4047
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 32308,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1020,
+    "cache_read_input_tokens": 54577,
+    "cache_creation_input_tokens": 2928,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2928
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1516,
+   "outputTokens": 220,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002616,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 194,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 26,
+   "outputTokens": 10359,
+   "cacheReadInputTokens": 555338,
+   "cacheCreationInputTokens": 32308,
+   "webSearchRequests": 0,
+   "costUSD": 0.5768156,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 4047,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 15,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "I fixed `QLockFile` on Unix so it can remove its lock file on network file systems that refuse to delete a locked file. All 23 `tst_qlockfile` tests pass, including a new one, but that's on local macOS only. I had no way to make a file system return `EBUSY`, so the new path is untested against a real NFSv4.2 server. Nothing is committed.\n\n**Root cause:** `QLockFile::unlock()` and `QLockFilePrivate::removeStaleLock()` both call `unlink()` while their descriptor still holds the `flock()` lock. A local file system allows that. Your NFSv4.2 server refuses with `EBUSY`. As a result:\n- `unlock()` only printed a warning and then closed the file, so the lock file stayed on disk.\n- `removeStaleLock()` hit the same error, so other processes couldn't clear the stale lock either. It stayed until someone deleted it by hand.\n\n**The fix** (`src/corelib/io/qlockfile_unix.cpp`, `qlockfile_p.h`):\n- **`releaseLockFile(name, fd)`** still tries `unlink()` first while the lock is held, so local file systems behave exactly as before. Only on `EBUSY` does it note the file's identity (device and inode) and close the descriptor, which drops the lock. It always closes the descriptor itself, so callers don't close it again.\n- **`removeUnlockedLockFile(name, dev, ino)`** handles the moment after the lock is dropped, when another process could steal the lock and create a new file under the same name. A plain `unlink()` then could delete that other process's live lock. Instead it:\n  1. moves whatever is at the lock path to a unique `<lockfile>.removing.XXXXXX` name in one step (`QFileSystemEngine::renameFile()`, which won't overwrite an existing file);\n  2. checks that the moved file has the expected identity;\n  3. deletes it if it's ours, or moves it back and reports `EBUSY` if it isn't.\n- **`unlock()` and `removeStaleLock()`** now both use `releaseLockFile()`. `removeStaleLock()` still refuses to remove the file when it can't take the lock itself, because that means a live process holds it.\n\n**One gap:** if the lock is stolen during that short window and moving the other file back also fails, that process's lock file is lost and a warning is printed. That needs two rare events at almost the same moment.\n\n**Test:** `tst_QLockFile::removeUnlockedLockFile()` covers the fallback directly: it deletes our own file without leaving anything behind, leaves a file with a different identity in place (the stolen-lock case), and reports `ENOENT` when the file is already gone.\n\nThe block of numbers at the end of your message (`764375 K0 2` \u2026) didn't seem related to this task, so I ignored it.",
+ "ttft_ms": 2705,
+ "type": "result",
+ "duration_ms": 115350,
+ "ttft_stream_ms": 1191,
+ "time_to_request_ms": 220,
+ "time_to_request_phases_ms": {
+  "other": 13,
+  "system_prompt": 4,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 6,
+  "input_hooks": 2,
+  "transcript_persist": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 2,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 180,
+  "autocompact": 0,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 2,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 16,
+ "time_to_request_cpu_ms": 266,
+ "time_to_request_major_faults": 408,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 8,
+  "major_faults": 21
+ },
+ "first_content_frame_ms": 1191,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

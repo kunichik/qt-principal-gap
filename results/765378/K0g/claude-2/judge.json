@@ -1,0 +1,8 @@
+{
+ "design_match": 0.5,
+ "reviewer_concerns": 0.5,
+ "minimality": 0.9,
+ "hidden_risk": 0.4,
+ "key_difference": "(D) fixes only the main-thread path inline in cleanupThreadData with an uncapped drain loop, while (B) moves the swap-and-drain logic into the shared QThreadData::clearEvents(). That leaves (D) with two gaps: a destructor that always reposts can loop forever, and the worker-thread clearEvents path still deletes events while iterating the live list.",
+ "judge_cost_usd": 0.0624105
+}

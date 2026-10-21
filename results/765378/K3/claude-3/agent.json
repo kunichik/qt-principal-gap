@@ -1,0 +1,143 @@
+{
+ "duration_api_ms": 146380,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 0.6383360000000001,
+ "usage": {
+  "input_tokens": 40,
+  "cache_creation_input_tokens": 30436,
+  "cache_read_input_tokens": 863245,
+  "output_tokens": 11086,
+  "output_tokens_details": {
+   "thinking_tokens": 3074
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 30436,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1139,
+    "cache_read_input_tokens": 54891,
+    "cache_creation_input_tokens": 742,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 742
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1490,
+   "outputTokens": 340,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00031900000000000006,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 319,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 40,
+   "outputTokens": 11086,
+   "cacheReadInputTokens": 863245,
+   "cacheCreationInputTokens": 30436,
+   "webSearchRequests": 0,
+   "costUSD": 0.6380170000000001,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 3074,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 26,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "I fixed the exit deadlock and added three regression tests. They pass, and the full `tst_qcoreapplication` (73), `tst_qthread` (67) and `tst_qobject` (130) suites pass with no failures. Nothing is committed.\n\n## Root cause\nPending events are destroyed in two places, and both break if an event's destructor posts another event:\n\n1. **`QCoreApplicationPrivate::cleanupThreadData()`** (runs from `~QCoreApplication`) deleted each pending event while holding `postEventList.mutex`. That mutex can't be locked twice by the same thread. If an event's destructor calls `postEvent()` or `deleteLater()`, `postEvent()` tries to take the same mutex and the thread waits on itself. This is the deadlock you saw with the Media Foundation backend.\n2. **`QThreadData::clearEvents()`** (runs when a thread or its data is destroyed) went through the list without the lock. An event posted from a destructor was added to the list while it was being read, which can corrupt it, and the new event was then lost by `clear()`, so it leaked.\n\n## Fix\n- **`src/corelib/thread/qthread.cpp`**: `clearEvents()` now works in rounds, following the approach `removePostedEvents()` already uses. Under the lock it moves the whole list into a local copy, resets `startOffset` and `insertionOffset`, and updates each receiver's pending-event count. It then unlocks and deletes the events. It repeats until the list stays empty, so events posted by destructors are destroyed too.\n- **`src/corelib/kernel/qcoreapplication.cpp`**: `cleanupThreadData()` now just calls `clearEvents()`, then resets `recursion` under the lock as before.\n\nResetting the offsets matters because the application can be destroyed in the middle of event delivery. Old offsets would make `sendPostedEvents()` erase past the end of the now-empty list.\n\nOne change to note: the pending-event counter in the `cleanupThreadData()` path used to be decremented with acquire ordering and now uses relaxed, as `clearEvents()` always did. That counter is only changed under the mutex, so the ordering makes no difference. No other atomics changed.\n\n## Tests\nAdded to `tests/auto/corelib/kernel/qcoreapplication/`:\n- **`postEventFromEventDestructorAtExit`**: the application is destroyed with a pending event whose destructor posts a chain of further events and calls `deleteLater()`.\n- **`postEventFromEventDestructorAtThreadExit`**: the same situation on a `QThread` that never ran.\n- **`destroyApplicationDuringEventDelivery`**: the application is deleted from inside `sendPostedEvents()` while other events are still queued. A new application is then created to check it starts with a clean event list.\n\nWith the library change reverted, the first and third tests hang (the deadlock) and the second fails on the leaked event.\n\n## Possible follow-up\n`cleanupThreadData()` sets `recursion = 0` even when it runs inside `sendPostedEvents()`, whose cleanup then decrements the counter again, leaving it at -1. I left this as it was because it's a separate problem from the deadlock.",
+ "ttft_ms": 3424,
+ "type": "result",
+ "duration_ms": 408916,
+ "ttft_stream_ms": 3092,
+ "time_to_request_ms": 263,
+ "time_to_request_phases_ms": {
+  "other": 15,
+  "system_prompt": 5,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 6,
+  "input_hooks": 1,
+  "transcript_persist": 5,
+  "tool_pool_refresh": 1,
+  "init_message": 1,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 217,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 3,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 9,
+ "time_to_request_cpu_ms": 283,
+ "time_to_request_major_faults": 408,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 9,
+  "major_faults": 20
+ },
+ "first_content_frame_ms": 3092,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

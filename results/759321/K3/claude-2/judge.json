@@ -1,0 +1,8 @@
+{
+ "design_match": 0.4,
+ "reviewer_concerns": 0.6,
+ "minimality": 0.3,
+ "hidden_risk": 0.45,
+ "key_difference": "On EBUSY, (D) adds a rename-to-random-name, inode-check and rename-back dance built on QFileSystemEngine::renameFile, plus an autotest global hook; (B) simply closes the handle and retries unlink() (also on ETXTBSY/EPERM). The rename path is exactly the NFS link+unlink fallback the reviewer questioned, and it can briefly move another process's live lock out of place or strand it under a temporary name.",
+ "judge_cost_usd": 0.0722396
+}

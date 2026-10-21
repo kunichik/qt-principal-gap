@@ -1,0 +1,32 @@
+{
+ "task": "765378",
+ "arm": "K0",
+ "rep": "3",
+ "agent": "claude",
+ "model": "opus",
+ "tests": {
+  "tst_static_qcoreapplication": {
+   "build": "OK",
+   "passed": 3,
+   "failed": 0,
+   "fail_names": [],
+   "crashed": false
+  },
+  "tst_qcoreapplication": {
+   "build": "OK",
+   "passed": 74,
+   "failed": 2,
+   "fail_names": [
+    "tst_QCoreApplication::deleteLaterFromEventDestructorInThread()",
+    "tst_QCoreApplication::deleteReceiverFromEventDestructor()"
+   ],
+   "crashed": false
+  },
+  "tests/auto/widgets/kernel/qapplication": {
+   "build": "NOT-IN-BUILD"
+  }
+ },
+ "cost_usd": 0.4218662,
+ "turns": 18,
+ "wall_s": 342
+}

@@ -1,0 +1,8 @@
+{
+ "design_match": 0.35,
+ "reviewer_concerns": 0.2,
+ "minimality": 0.3,
+ "hidden_risk": 0.2,
+ "key_difference": "(D) checks completeness with is_complete<T, void> instead of threading a TU-unique type through it, so a ConnectionTypes instantiation can differ between translation units (an ODR violation where the linker may fold in the wrong version, the exact issue reviewers raised); it also adds global PointerToQObject/IsGadget QMetaTypeIdQObject specializations that change QMetaTypeId2::Defined everywhere, which (B) did not need.",
+ "judge_cost_usd": 0.07507119999999999
+}

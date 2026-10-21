@@ -1,0 +1,91 @@
+[PS1 Reviewer 08 /COMMIT_MSG:14]
+Amends... (the start of the public history, I guess?)
+
+[PS1 Reviewer 08 /COMMIT_MSG:16]
+what about 5.15? Not affected?
+
+[PS1 Reviewer 08 /PATCHSET_LEVEL:0]
+Given it's marked as private, I guess you see this as a security problem, and I agree. But then the missing 5.15 pick is inconsistent.
+
+[PS1 Reviewer 08 /PATCHSET_LEVEL:0]
+Done
+
+[PS1 Reviewer 08 src/corelib/serialization/qxmlstream.cpp:2461]
+do-while(nestingLevel)?
+
+[PS1 Reviewer 08 src/corelib/serialization/qxmlstream.cpp:2461]
+Because in
+
+    qsizetype n = 1;
+    while (n) {
+
+
+we know it's 1 on entry. Testing a constant is silly. It's when we come _out_ of the loop body that we don't know. So do-while is the better construct here.
+
+[PS1 Reviewer 08 tests/auto/corelib/serialization/qxmlstream/tst_qxmlstream.cpp:18]
+```suggestion
+#include <QtCore/qthread.h>
+```
+
+[PS1 Reviewer 08 tests/auto/corelib/serialization/qxmlstream/tst_qxmlstream.cpp:20]
+wrong location
+
+[PS1 Reviewer 08 tests/auto/corelib/serialization/qxmlstream/tst_qxmlstream.cpp:20]
+Done
+
+[PS1 Reviewer 08 tests/auto/corelib/serialization/qxmlstream/tst_qxmlstream.cpp:3176]
+un-Qt-ish Hungarian-ish Notation (k-)
+
+
+
+```suggestion
+    constexpr qsizetype Depth = 100000;
+```
+
+[PS1 Reviewer 08 tests/auto/corelib/serialization/qxmlstream/tst_qxmlstream.cpp:3190]
+should be
+```suggestion
+    QVERIFY(thread.wait(1min));
+
+```
+
+BUT: The problem with using a thread is that, upon failure, you destroy the QThread instance while it's still running.
+
+Honestly, I'd just let the stack overflow in the main thread. Should also be easier on the logging side (backtrace).
+
+[PS1 Reviewer 08 tests/auto/corelib/serialization/qxmlstream/tst_qxmlstream.cpp:3190]
+The failure case is not quadratic, though. It's running off the stack, and whether you do that in 500µs for 500KiB on QThread or 8ms for 8MiB on Linux, who cares? How long does it teke, on your machine, to crash?
+
+[PS1 Reviewer 08 tests/auto/corelib/serialization/qxmlstream/tst_qxmlstream.cpp:3190]
+Done
+
+[PS1 Reviewer 08 tests/auto/corelib/serialization/qxmlstream/tst_qxmlstream.cpp:3193]
+```suggestion
+    QCOMPARE(thread.result, "x"_L1);
+
+```
+
+[PS2 Reviewer 08 src/corelib/serialization/qxmlstream.cpp:2491]
+good (NRVO-enabling), but unrelated
+
+[PS2 Reviewer 08 src/corelib/serialization/qxmlstream.cpp:2491]
+It's a security-fix, as such it should be minimal. So I have to insist. It's the commit policy.
+
+[PS2 Reviewer 08 src/corelib/serialization/qxmlstream.cpp:2491]
+Done
+
+[PS3 Reviewer 06 /PATCHSET_LEVEL:0]
+I do not have a strong opinion on whether NRVO-related code should be split in a separate patch or not.
+
+[PS4 Reviewer 08 /PATCHSET_LEVEL:0]
+Don't forget to un-private and rebase, before staging, so Sanity Bot can have its go.
+
+[PS4 Reviewer 08 src/corelib/serialization/qxmlstream.cpp:2469]
+Could safe the new return at the end of the big if by saying here
+
+
+```suggestion
+                if (--nestingLevel)
+                    break; // return to parent element
+                return result;
+```

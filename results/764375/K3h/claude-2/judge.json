@@ -1,0 +1,8 @@
+{
+ "design_match": 0.6,
+ "reviewer_concerns": 1.0,
+ "minimality": 0.25,
+ "hidden_risk": 0.6,
+ "key_difference": "(D) adds the same cancel-then-finish destructor to RunFunctionTaskBase as (B), but also reworks ThreadEngineBase to queue a new auto-deleting ThreadEngineRunner wrapper (with new exported protected API, a friend, and changed inline header code) to cover the map()/filter() path, which (B) deliberately left out of scope.",
+ "judge_cost_usd": 0.057860999999999996
+}

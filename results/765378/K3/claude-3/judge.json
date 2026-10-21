@@ -1,0 +1,8 @@
+{
+ "design_match": 0.75,
+ "reviewer_concerns": 0.45,
+ "minimality": 0.8,
+ "hidden_risk": 0.4,
+ "key_difference": "(D) loops until the post-event list stays empty with no pass cap, so an event whose destructor always posts another event hangs shutdown forever; (B) stops after MaxPasses, warns and leaks the remaining events.",
+ "judge_cost_usd": 0.060721300000000006
+}

@@ -1,0 +1,143 @@
+{
+ "duration_api_ms": 106029,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 0.49664959999999997,
+ "usage": {
+  "input_tokens": 34,
+  "cache_creation_input_tokens": 24999,
+  "cache_read_input_tokens": 689743,
+  "output_tokens": 7910,
+  "output_tokens_details": {
+   "thinking_tokens": 2064
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 24999,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 765,
+    "cache_read_input_tokens": 49514,
+    "cache_creation_input_tokens": 682,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 682
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1490,
+   "outputTokens": 448,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.000373,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 428,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 34,
+   "outputTokens": 7910,
+   "cacheReadInputTokens": 689743,
+   "cacheCreationInputTokens": 24999,
+   "webSearchRequests": 0,
+   "costUSD": 0.4962765999999999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 2064,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 20,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "Fixed. The new test hung without the fix (killed after 20 s) and passes with it. The full suites for `tst_qcoreapplication` (71), `tst_qthread` (67), `tst_qobject` (130) and `tst_qeventloop` (14) all pass. Nothing is committed.\n\n**Root cause.** When the application is destroyed, `QCoreApplicationPrivate::cleanupThreadData()` (`src/corelib/kernel/qcoreapplication.cpp`) throws away the events that were never delivered. It did this while holding the posted-events mutex, which is not recursive, and it deleted each event inside the loop. If an event's destructor calls `postEvent()` (which is what `deleteLater()` does internally), that call tries to take the same mutex the thread already holds, and the thread deadlocks against itself. That matches the Media Foundation case: its events release objects in their destructors.\n\n`QThreadData::clearEvents()` (`src/corelib/thread/qthread.cpp`), used when a thread is destroyed, had a related bug. It didn't lock at all, so the same situation there would add to the list while the loop was walking it, which is undefined behaviour.\n\n**Fix.**\n- `QThreadData::clearEvents()` now moves all pending events out of the list while holding the mutex, unlocks, and only then deletes them. Events posted by those destructors land in the now-empty list, so it repeats until the list stays empty. They have nobody left to deliver them, so they are discarded too.\n- `cleanupThreadData()` now calls `clearEvents()` instead of running its own loop under the lock, then resets its remaining state as before.\n\n**Test.** I added `tst_QCoreApplication::eventDestructorPostsEventAtExit`. It leaves an event pending when the app is destroyed, and that event's destructor calls both `postEvent()` and `deleteLater()`. The test checks that shutdown finishes, that the object scheduled for deletion is not deleted, and that no object is left with a non-zero pending-event count.\n\nOne behaviour to be aware of: an event whose destructor keeps posting another such event every time would now loop at shutdown instead of deadlocking. That seems unlikely in practice.",
+ "ttft_ms": 3639,
+ "type": "result",
+ "duration_ms": 446850,
+ "ttft_stream_ms": 2137,
+ "time_to_request_ms": 229,
+ "time_to_request_phases_ms": {
+  "other": 14,
+  "system_prompt": 5,
+  "resume_other": 0,
+  "process_user_input": 1,
+  "input_attachments": 7,
+  "input_hooks": 1,
+  "transcript_persist": 5,
+  "tool_pool_refresh": 1,
+  "init_message": 2,
+  "engine_pickup": 0,
+  "message_prep": 1,
+  "model_config_wait": 184,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 3,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 21,
+ "time_to_request_cpu_ms": 273,
+ "time_to_request_major_faults": 404,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 11,
+  "major_faults": 20
+ },
+ "first_content_frame_ms": 2137,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

@@ -1,0 +1,58 @@
+{
+ "verdict": "NOT_OK",
+ "problems": [
+  "The card states that map()/filter() 'is affected too (it also leaks)' and implies this is in scope, but the reviewer explicitly noted the patch does NOT fix the map()/filter() path, which is why the task number was changed from 'Fixes:' to 'Task-number:' — that path is out of scope for this change.",
+  "The card omits the essential fix behavior: when a queued runnable is deleted without having run, the future must be reported as both canceled AND finished (not just finished), so that waitForFinished() returns and any .onCanceled() continuation fires correctly."
+ ],
+ "judge": "kapt.ai qtcs_card_collegium",
+ "strategies_seen": [],
+ "cost_usd": null,
+ "wall_s": 13,
+ "team": {
+  "generator": {
+   "agent": "generator",
+   "content": "{\"verdict\":\"NOT_OK\",\"problems\":[\"The card incorrectly states that the map()/filter() family 'is affected too (it also leaks)' as if that were part of the reviewed change's decided scope. The review explicitly says the patch does not fix the map()/filter() path yet and therefore the task should not be closed; that path was treated as out of scope for this change.\",\"The card omits an essential point from the change/review: when a queued QtConcurrent::run() task is removed by QThreadPool::clear() before it runs, its associated future must be reported both canceled and finished so it does not remain Running forever / make waitForFinished() hang.\"]}",
+   "reasoningEffort": "medium",
+   "reasoningFormat": "hidden",
+   "latencyMs": 3078,
+   "truncated": false,
+   "chunks": 142
+  },
+  "critic": {
+   "agent": "critic",
+   "content": ""
+  },
+  "judge": {
+   "agent": "judge",
+   "content": "{\"verdict\":\"NOT_OK\",\"problems\":[\"The card states that map()/filter() 'is affected too (it also leaks)' and implies this is in scope, but the reviewer explicitly noted the patch does NOT fix the map()/filter() path, which is why the task number was changed from 'Fixes:' to 'Task-number:' — that path is out of scope for this change.\",\"The card omits the essential fix behavior: when a queued runnable is deleted without having run, the future must be reported as both canceled AND finished (not just finished), so that waitForFinished() returns and any .onCanceled() continuation fires correctly.\"]}",
+   "reasoningFormat": "parsed",
+   "latencyMs": 3886,
+   "truncated": false,
+   "chunks": 6
+  },
+  "finalAnswer": "{\"verdict\":\"NOT_OK\",\"problems\":[\"The card states that map()/filter() 'is affected too (it also leaks)' and implies this is in scope, but the reviewer explicitly noted the patch does NOT fix the map()/filter() path, which is why the task number was changed from 'Fixes:' to 'Task-number:' — that path is out of scope for this change.\",\"The card omits the essential fix behavior: when a queued runnable is deleted without having run, the future must be reported as both canceled AND finished (not just finished), so that waitForFinished() returns and any .onCanceled() continuation fires correctly.\"]}",
+  "confidence": 0.8,
+  "totalCredits": 2,
+  "allAgents": {
+   "generator": {
+    "agent": "generator",
+    "content": "{\"verdict\":\"NOT_OK\",\"problems\":[\"The card incorrectly states that the map()/filter() family 'is affected too (it also leaks)' as if that were part of the reviewed change's decided scope. The review explicitly says the patch does not fix the map()/filter() path yet and therefore the task should not be closed; that path was treated as out of scope for this change.\",\"The card omits an essential point from the change/review: when a queued QtConcurrent::run() task is removed by QThreadPool::clear() before it runs, its associated future must be reported both canceled and finished so it does not remain Running forever / make waitForFinished() hang.\"]}",
+    "reasoningEffort": "medium",
+    "reasoningFormat": "hidden",
+    "latencyMs": 3078,
+    "truncated": false,
+    "chunks": 142
+   },
+   "judge": {
+    "agent": "judge",
+    "content": "{\"verdict\":\"NOT_OK\",\"problems\":[\"The card states that map()/filter() 'is affected too (it also leaks)' and implies this is in scope, but the reviewer explicitly noted the patch does NOT fix the map()/filter() path, which is why the task number was changed from 'Fixes:' to 'Task-number:' — that path is out of scope for this change.\",\"The card omits the essential fix behavior: when a queued runnable is deleted without having run, the future must be reported as both canceled AND finished (not just finished), so that waitForFinished() returns and any .onCanceled() continuation fires correctly.\"]}",
+    "reasoningFormat": "parsed",
+    "latencyMs": 3886,
+    "truncated": false,
+    "chunks": 6
+   }
+  },
+  "finalAgentId": "judge",
+  "routerAgentIds": []
+ }
+}

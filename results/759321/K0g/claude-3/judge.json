@@ -1,0 +1,8 @@
+{
+ "design_match": 0.6,
+ "reviewer_concerns": 0.85,
+ "minimality": 0.85,
+ "hidden_risk": 0.75,
+ "key_difference": "On EBUSY, (D) explicitly releases the native lock (flock LOCK_UN / F_UNLCK) and retries the unlink while the fd is still open, rather than closing the fd first like (B); (D) also retries only on EBUSY (not ETXTBSY/EPERM), keeps unlock() and removeStaleLock() on separate paths instead of sharing one releaseLockFile() helper, and treats ENOENT/ENOTDIR from the retry as failure in removeStaleLock().",
+ "judge_cost_usd": 0.06492990000000001
+}

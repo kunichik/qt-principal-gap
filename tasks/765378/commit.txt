@@ -1,0 +1,18 @@
+Delete pending events without holding the post event list mutex
+
+QCoreApplicationPrivate::cleanupThreadData() destroyed the still-pending
+events while holding QThreadData::postEventList.mutex, and
+QThreadData::clearEvents() did so while iterating the list unlocked. An
+event destructor that calls deleteLater() or postEvent() re-enters that
+non-recursive mutex, so an application with such an event queued at exit
+self-deadlocked; seen with the Windows Media Foundation backend.
+
+Move the single correct implementation into clearEvents(): collect under
+the lock, delete unlocked, and drain whatever those destructors post, as
+removePostedEvents() already does. Resetting startOffset/insertionOffset
+also fixes an out-of-bounds erase when the application is destroyed from
+inside event delivery.
+
+Pick-to: 6.12
+Change-Id: Icfbe6c32c33b6f83c4de2c52747be42edf188587
+Reviewed-by: Thiago Macieira <thiago.macieira@intel.com>

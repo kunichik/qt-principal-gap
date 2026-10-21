@@ -1,0 +1,8 @@
+{
+ "design_match": 0.5,
+ "reviewer_concerns": 0.35,
+ "minimality": 0.6,
+ "hidden_risk": 0.35,
+ "key_difference": "(D) uses the signal's class as the completeness-check discriminator, which is shared across translation units, so the cross-TU folding of different completeness results that the reviewer flagged can still happen; (B) avoids this with an anonymous-namespace UniqueType (unique per TU) threaded through is_complete, without changing the ConnectionTypes call sites in qobject.h and qobject_p.h.",
+ "judge_cost_usd": 0.06846819999999999
+}

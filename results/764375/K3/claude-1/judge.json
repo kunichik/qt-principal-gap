@@ -1,0 +1,8 @@
+{
+ "design_match": 0.2,
+ "reviewer_concerns": 0.85,
+ "minimality": 0.15,
+ "hidden_risk": 0.45,
+ "key_difference": "(B) fixes the bug locally with a destructor in RunFunctionTaskBase that cancels and finishes the unfinished promise, while (D) adds a new exported QtCore interface (QRunnableDiscardHandler), a per-runnable dynamic_cast hook in QThreadPool::clear(), and extra ThreadEngine discard logic for the map()/filter() path that (B) deliberately left out of scope.",
+ "judge_cost_usd": 0.054017899999999994
+}

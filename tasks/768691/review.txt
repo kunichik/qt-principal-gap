@@ -1,0 +1,83 @@
+[PS3 Reviewer 12 /COMMIT_MSG:15]
+questionable tense.
+
+[PS3 Reviewer 03 /COMMIT_MSG:15]
+Inconsistent tense or mixed-up statements: may be worth splitting the long sentence.
+
+[PS3 Reviewer 12 /COMMIT_MSG:17]
+wrong tense throughout.
+
+[PS3 Reviewer 12 /COMMIT_MSG:21]
+i found this structure hard to follow. it's easier when you start out with what you are adding this for, and delve into the details only later.
+
+[PS4 Reviewer 12 /COMMIT_MSG:16]
++is
+
+[PS4 Reviewer 03 /COMMIT_MSG:16]
+This *is* necessary
+
+(An alternative could be: "The need for this results from the requirement to fully decode QUrl::toLocalFile()'s percent-encoded path, turning ..." - but you be the judge of which you find reads better.  I can get a bit wordy in my phrasing.)
+
+[PS4 Reviewer 12 /COMMIT_MSG:18]
+"those" maybe?
+
+[PS4 Reviewer 03 src/corelib/io/qurl.h:129]
+(leaving four bits still for future expansion.)
+
+[PS4 Reviewer 03 src/corelib/io/qurlrecode.cpp:548]
+(Pre-existing: neglects to say out loud that a return of 0 means there was nothing to convert, leaving the caller to append the whole of `in` verbatim to `appendTo`, when relevant.  It's caller does say that, though, so this shouldn't be a problem.)
+
+[PS4 Reviewer 03 src/corelib/io/qurlrecode.cpp:569]
+`encoding.testFlags(QUrlDecodeForLocalFile)` ?  It is, at least, terser.
+
+[PS8 Reviewer 12 src/corelib/io/qurlrecode.cpp:547]
+that sounds rather weird to me. maybe s/behavior/mode/?
+
+[PS8 Reviewer 12 src/corelib/io/qurlrecode.cpp:685]
+don't use contractions in user-visible text.
+
+[PS8 Reviewer 12 src/corelib/io/qurlrecode.cpp:688]
+such redundancy isn't very elegant. use "the caller both ... and ..." or something like that.
+
+[PS9 Reviewer 12 src/corelib/io/qurlrecode.cpp:547]
+not sure if the omission was an accident or you think it's unimportant after all, but you could insert "the default" here (or in parens after the enum) to restore the previous mention.
+
+[PS9 Reviewer 12 src/corelib/io/qurlrecode.cpp:683]
++e
+
+[PS9 Reviewer 12 src/corelib/io/qurlrecode.cpp:686]
+"by themselves", assuming that refers to "the caller".
+
+[PS9 Reviewer 12 src/corelib/io/qurlrecode.cpp:686]
+here you could use "them" as well to avoid the redundancy.
+
+[PS9 Reviewer 12 src/corelib/io/qurlrecode.cpp:686]
+as you certainly know, "them" is also a gender-neutral singular. and yes, this is historically legitimate english.
+
+though in this case the use of passive may lead to an even better formulation.
+
+[PS9 Reviewer 12 src/corelib/io/qurlrecode.cpp:686]
+sure, but that makes the reference ambiguous. making "the caller" "kinda human" avoids this. anyway, doesn't matter.
+
+[PS10 Reviewer 03 src/corelib/io/qurlrecode.cpp:685]
+The word "mode" seems stray here; is this a hybrid of
+* ... detected if \encoding is QUrlDecodeForLocale
+* ... detected in QUrlDecodeForLocale mode
+
+perhaps ?
+
+[PS12 Reviewer 03 /PATCHSET_LEVEL:0]
+Documentation is contradicted by code.
+
+[PS12 Reviewer 03 src/corelib/io/qurlrecode.cpp:565]
+So not null unless it previously was null.
+
+[PS12 Reviewer 03 src/corelib/io/qurlrecode.cpp:583]
+Contradicts documentation if `appendTo` wasn't previously null.  Repeats at the `// make null` below.  Either change the doc to say "clears `appendTo`, setting it to a null `QString`" in the failure mode, or you need a `const bool wasNull = appendTo.isNull()` at the top of the function, to distinguish empty from null, which `origSize` does not do for us.
+Unless, of course, it's expected that `appendTo` is always null when this function is called, in which case *that* should be documented and `Q_PRE()`'d.
+
+[PS13 Reviewer 03 src/corelib/io/qurlrecode.cpp:565]
+(There's an implicit "in this case" missing here (since the following only applies on a return of -1).  But it's an internal doc, so I'm willing to believe future readers will successfully interpolate that.)
+
+[PS13 Reviewer 03 src/corelib/io/qurlrecode.cpp:693]
+(No mention of the special use of null string as `appendTo` - but internal doc and the doc of `decode()` covers it.)

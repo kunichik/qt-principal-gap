@@ -1,0 +1,11 @@
+QCborStreamReader: add toNumber
+
+The addFloatingPoint() function was added to TinyCBOR's data.cpp with
+commit c332d6e013a6d634ec140a57483970ae63e68075.
+
+[ChangeLog][QtCore][QCborStreamReader] Added toNumber(), which returns
+the number value as a double, converting from any of the CBOR basic
+numeric types.
+
+Change-Id: Ief94e7fa401c3b168c48fffdb33f7dd148e36a6a
+Reviewed-by: Ulf Hermann <ulf.hermann@qt.io>

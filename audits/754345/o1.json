@@ -1,0 +1,11 @@
+{
+ "verdict": "NOT_OK",
+ "problems": [
+  "The 'no unrelated refactoring' point does not match the final outcome. Reviewer 08 objected to the NRVO-enabling change (moving the `result` declaration out of the conditional) as unrelated. Reviewer 06 had no strong opinion. The final commit message still explicitly includes that change, justified as part of the control-structure rewrite. An engineer following the card would wrongly drop it.",
+  "The card leaves out the regression-test guidance the reviewers settled on. The test should feed very deeply nested input (e.g. `constexpr qsizetype Depth = 100000;`, Qt-style naming) and let any stack overflow happen in the main thread. Running it in a `QThread` was rejected: on failure it destroys a still-running thread, and it gives worse backtraces. The test author marked this point 'Done'.",
+  "The card does not say the bug is present back to the start of the public history ('Amends the start of the public history'). It also omits that the security fix must be picked back to 5.15, which the reviewer called out as required for consistency."
+ ],
+ "model": "opus",
+ "source": false,
+ "cost_usd": 0.0413382
+}

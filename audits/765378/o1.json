@@ -1,0 +1,10 @@
+{
+ "verdict": "NOT_OK",
+ "problems": [
+  "The card omits the central structural decision: there should be one implementation, in QThreadData::clearEvents(), and QCoreApplicationPrivate::cleanupThreadData() should use it. The card only lists the two sites, so the engineer could fix them separately and leave duplicated logic.",
+  "The card says to drain events that the destructors post, but it leaves out that the drain must be bounded by a maximum number of passes. ~QEvent() can run arbitrary code that keeps posting events, and reviewers (Reviewer 08) treated the MaxPasses limit, and a comment explaining it, as the part that actually matters. An unbounded drain could loop forever at exit."
+ ],
+ "model": "opus",
+ "source": false,
+ "cost_usd": 0.0469555
+}

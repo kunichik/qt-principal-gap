@@ -1,0 +1,16 @@
+{
+ "task": "777778",
+ "arm": "K0",
+ "rep": "0",
+ "agent": "none",
+ "model": "opus",
+ "tests": {
+  "tests/auto/corelib/mimetypes/qmimedatabase": {
+   "build": "FAIL",
+   "log": " |     reload\n<experiment-root>/qtbase/tests/auto/corelib/mimetypes/qmimedatabase/qmimedatabase-xml-fdoxml/../tst_qmimedatabase.h:69:10: note: 'reload' declared here\n   69 |     void reload();\n      |          ^\nIn file included from <experiment-root>/qtbase/tests/auto/corelib/mimetypes/qmimedatabase/qmimedatabase-xml-fdoxml/tst_qmimedatabase-xml-fdoxml.cpp:4:\n<experiment-root>/qtbase/tests/auto/corelib/mimetypes/qmimedatabase/qmimedatabase-xml-fdoxml/../tst_qmimedatabase.cpp:1465:9: error: no member named 'reload' in 'QMimeDatabase'; did you mean simply 'reload'?\n 1465 |         QMimeDatabase::reload();\n      |         ^~~~~~~~~~~~~~~~~~~~~\n      |         reload\n<experiment-root>/qtbase/tests/auto/corelib/mimetypes/qmimedatabase/qmimedatabase-xml-fdoxml/../tst_qmimedatabase.cpp:1441:25: note: 'reload' declared here\n 1441 | void tst_QMimeDatabase::reload()\n      |                         ^\n<experiment-root>/qtbase/tests/auto/corelib/mimetypes/qmimedatabase/qmimedatabase-xml-fdoxml/../tst_qmimedatabase.cpp:1470:5: error: no member named 'reload' in 'QMimeDatabase'; did you mean simply 'reload'?\n 1470 |     QMimeDatabase::reload();\n      |     ^~~~~~~~~~~~~~~~~~~~~\n      |     reload\n<experiment-root>/qtbase/tests/auto/corelib/mimetypes/qmimedatabase/qmimedatabase-xml-fdoxml/../tst_qmimedatabase.cpp:1441:25: note: 'reload' declared here\n 1441 | void tst_QMimeDatabase::reload()\n      |                         ^\n8 errors generated.\nninja: build stopped: subcommand failed.\n"
+  }
+ },
+ "cost_usd": null,
+ "turns": null,
+ "wall_s": null
+}

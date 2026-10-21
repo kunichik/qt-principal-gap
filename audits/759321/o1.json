@@ -1,0 +1,13 @@
+{
+ "verdict": "NOT_OK",
+ "problems": [
+  "The card omits the main API decision from the final review: `removeStaleLock()` / `releaseLockFile()` must return true only if the lock file is actually gone. If the file cannot be removed (sticky-bit directory with another user's stale lock, immutable file, persistent unlink failure), `lock()` must fall back to sleeping between attempts. Otherwise the `continue` skips the sleep and `lock()` busy-loops forever, printing a warning each round, with the default infinite timeout.",
+  "The card omits the reviewer's errno distinction when `setNativeLocks()` fails in the stale-lock path. EWOULDBLOCK (EACCES/EAGAIN on the Android fcntl path) means a live holder, so do not remove. ENOLCK/EOPNOTSUPP/EINVAL/ENOSYS mean the filesystem has no lock support, so proceed with removal based on the staleness heuristics; otherwise stale locks become permanently unremovable. Unknown errnos should be treated as held.",
+  "The card omits that the existing staleShortLockFromBusyProcess and staleLongLockFromBusyProcess tests don't catch silent removal of a live process's lock file. They should also verify that the lock file still exists.",
+  "The card's `renameFile()` point is stated without the reviewer's purpose: the fallback was raised as a reason to avoid going through `QFileSystemEngine::renameFile()`, and to call `renameat2()` directly instead. As written, an engineer may rely on `renameFile()` and its link+unlink fallback. The final design described in the commit message is close() then unlink(), so the rename/EEXIST details reflect an earlier patchset rather than the final approach.",
+  "The card does not say that the `tryLock_sys()` hardening is out of scope and probably belongs in a separate commit. That hardening covers EWOULDBLOCK on a freshly O_EXCL-created file returning LockFailedError, and comparing st_dev/st_ino between fstat and stat."
+ ],
+ "model": "opus",
+ "source": false,
+ "cost_usd": 0.0537379
+}

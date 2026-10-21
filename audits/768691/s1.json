@@ -1,0 +1,12 @@
+{
+ "verdict": "NOT_OK",
+ "problems": [
+  "The card says a literal backslash in the input is \"also a problem\" on Windows. Nothing in the review or commit message says this. The commit only rejects a decoded `\\` (from %5C) on Windows, so a literal backslash is not covered. Following the card would make the engineer reject input the change does not reject.",
+  "The card leaves out the null-string failure contract that reviewers spent PS12 on. On failure (a negative return), `appendTo` is cleared and set to a null QString. The reviewers said the code must match the documentation here. The code and docs disagreed when `appendTo` was not previously null, which can happen because `origSize` does not distinguish empty from null. The engineer needs to know about this and to document it.",
+  "The card says reviewers want \"mention which mode is the default\". The only related comment (PS9) asked to restore a mention of the default that an edit had dropped, in the existing doc comment. It is not a general rule. The card also omits the other doc points reviewers did raise: the PS10 wording about \"mode\", and the wording around the failure return, which applies only on a -1 return.",
+  "The card does not say that the new option takes one of the four spare bits in qurl.h (the PS4 comment says four bits remain for future expansion). It also does not say that the option must be placed so it combines with FullyDecoded, so that `qt_urlRecode(out, in, QUrlDecodeForLocalFile)` fully decodes. The card only says \"free high bits\", which is vague on how the option is defined."
+ ],
+ "model": "sonnet",
+ "source": false,
+ "cost_usd": 0.0208951
+}

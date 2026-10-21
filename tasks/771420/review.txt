@@ -1,0 +1,50 @@
+[PS1 Reviewer 06 /COMMIT_MSG:21]
+```suggestion
+could have caused out-of-bounds access on the result object.
+```
+
+[PS1 Reviewer 15 /COMMIT_MSG:23]
+I don't think this is a security issue. `repeated()` is usually within the user's control because it could exhaust memory. Therefore, the user has to either be doing something stupid or have a bug in their own code to hit the overflow.
+
+Either way, it shouldn't be treated as a security issue.
+
+Therefore, drop 6.12.0 and 6.11.3. The further backports are your call.
+
+[PS1 Reviewer 15 /COMMIT_MSG:23]
+It's based on the ability to trigger it. And code that directly allows attacker-controlled repetition is the security issue by itself.
+
+Therefore, assuming that the user code has bugs but not egregious security issues, reaching this problem here means the user has hit a Qt bug, but not a security issue by itself.
+
+[PS1 Reviewer 06 /COMMIT_MSG:23]
+I actually do agree with Marc that this is a security issue. We surely can handle the overflow on our side, so we have to do it.
+
+But I'm not sure if it's still possible to get this patch into 6.12.0 and 6.11.3.
+
+[PS1 Reviewer 15 /COMMIT_MSG:23]
+Done
+
+[PS1 Reviewer 15 src/corelib/text/qbytearray.cpp:2678]
+Why make this complex?
+```suggestion
+    qsizetype resultSize;
+    if (qMulOverflow(times, size(), &resultSize))
+        qBadAlloc();
+```
+
+Same note as `Q_CHECK_PTR(nullptr);` as before.
+
+[PS1 Reviewer 15 src/corelib/text/qbytearray.cpp:2678]
+Yes, but this is code I maintain. My rule is that it's readable first, `const` last.
+
+[PS1 Reviewer 06 src/corelib/text/qstring.cpp:8435]
+`d.size` for consistency with the rest of the code here?
+
+```suggestion
+        if (mul_overflow(r, d.size, &r))
+```
+
+[PS1 Reviewer 03 tests/auto/corelib/text/qstring/tst_qstring.cpp:8826]
+(We're not in a header, so surely the parens around `max` are redundant ?)
+
+[PS1 Reviewer 15 tests/auto/corelib/text/qstring/tst_qstring.cpp:8826]
+They are, but I guess it's Marc's muscle memory. No big deal to use this where not necessary.

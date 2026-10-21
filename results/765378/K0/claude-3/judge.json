@@ -1,0 +1,8 @@
+{
+ "design_match": 0.4,
+ "reviewer_concerns": 0.4,
+ "minimality": 0.85,
+ "hidden_risk": 0.3,
+ "key_difference": "(D) patches only cleanupThreadData() instead of centralizing in QThreadData::clearEvents(); it interleaves unposting with deleting and has no pass cap, so an event destructor that destroys another receiver in the same batch leaves a dangling pe.receiver, and a destructor that always reposts loops forever. (B) avoids both by unposting the whole batch before any deletion and capping at MaxPasses.",
+ "judge_cost_usd": 0.06148
+}

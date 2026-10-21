@@ -1,0 +1,143 @@
+{
+ "duration_api_ms": 107790,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 0.5233962,
+ "usage": {
+  "input_tokens": 36,
+  "cache_creation_input_tokens": 22892,
+  "cache_read_input_tokens": 700820,
+  "output_tokens": 9989,
+  "output_tokens_details": {
+   "thinking_tokens": 3105
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 22892,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1050,
+    "cache_read_input_tokens": 47750,
+    "cache_creation_input_tokens": 339,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 339
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1602,
+   "outputTokens": 24,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00017219999999999998,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 36,
+   "outputTokens": 9989,
+   "cacheReadInputTokens": 700820,
+   "cacheCreationInputTokens": 22892,
+   "webSearchRequests": 0,
+   "costUSD": 0.523224,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 3105,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 19,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "I found the cause and fixed it. A regression test fails on the old code and passes with the fix. I haven't run ThreadSanitizer itself, because the build in `b3` isn't a TSan build.\n\n## Root cause\n`src/corelib/kernel/qobject.cpp`, `QObject::~QObject()`, in the \"Disconnect all senders\" loop:\n\n```cpp\nsender->disconnectNotify(QMetaObjectPrivate::signal(sender->metaObject(), node->signal_index));\n```\n\nThis line runs before any lock is taken. It makes two virtual calls (`metaObject()` and `disconnectNotify()`) on a sender that may live in another thread. That thread can be running the sender's subclass destructors at the same moment, which rewrites the object's vtable pointer and destroys the subclass's members. Reading the vtable pointer here races with those writes, which is the race TSan reports. It is also a real bug, not just noise: the receiver's thread can end up running a `disconnectNotify()` override on an object that is partly destroyed. The comment next to the call says the sender's destructor will block on the lock, but that is only true for `QObject`'s own destructor. The subclass destructors run before it, with no lock held. QtNetwork hits this on every request because the reply/connection objects and their receivers are in different threads and get torn down concurrently.\n\n## Fix\n- **The call itself:** when a receiver is destroyed, `disconnectNotify()` is now only called on senders that live in the current thread (`sender->d_func()->threadData == QThreadData::current()`). A sender in the same thread can't be in the middle of being destroyed concurrently, so that call is safe. For senders in other threads the virtual call is skipped. Everything else still happens: the connection is removed under the sender's lock, orphaned connections are cleaned up, and the slot object is released.\n- **Docs:** I added a sentence to the `QObject::disconnectNotify()` documentation saying it is only called on receiver destruction if the sender lives in the destroying thread.\n\n**Behaviour change:** a subclass that relied on `disconnectNotify()` firing when a receiver in another thread is destroyed will no longer get that call. I don't see a safe way to keep it, because without the sender's cooperation there's no way to know whether its subclass part still exists.\n\n## Test\nI added `tst_QObject::disconnectNotify_receiverDestroyedWhileSenderDestroyedInOtherThread`. The sender's destructor pauses in a worker thread while the main thread destroys the receiver, and the sender's `disconnectNotify()` override records whether it was called during that window. The test does not depend on timing to show the bug:\n- **Without the fix:** it fails (`Actual: 1, Expected: 0`).\n- **With the fix:** it passes, along with all 129 tests in `tst_qobject` and the 7 tests in `tst_qobjectrace`.\n\nYour message ended with some lines like `756614 K0g 1`, which look like stray pasted data; I ignored them.",
+ "ttft_ms": 9786,
+ "type": "result",
+ "duration_ms": 365358,
+ "ttft_stream_ms": 1455,
+ "time_to_request_ms": 200,
+ "time_to_request_phases_ms": {
+  "other": 8,
+  "system_prompt": 4,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 5,
+  "input_hooks": 2,
+  "transcript_persist": 21,
+  "tool_pool_refresh": 1,
+  "init_message": 7,
+  "engine_pickup": 0,
+  "message_prep": 1,
+  "model_config_wait": 141,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 4,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 23,
+ "time_to_request_cpu_ms": 280,
+ "time_to_request_major_faults": 190,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 11,
+  "major_faults": 13
+ },
+ "first_content_frame_ms": 1456,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

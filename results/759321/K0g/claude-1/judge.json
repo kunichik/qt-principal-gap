@@ -1,0 +1,8 @@
+{
+ "design_match": 0.5,
+ "reviewer_concerns": 0.75,
+ "minimality": 0.85,
+ "hidden_risk": 0.55,
+ "key_difference": "On EBUSY, (D) drops the flock/fcntl lock with a new releaseNativeLocks() and retries unlink with the descriptor still open, while (B) closes the descriptor before retrying. (B) also retries on ETXTBSY/EPERM and folds both callers into one releaseLockFile() helper that returns true only when the file is truly gone, so (D) can still fail on servers that refuse to unlink any open (not just locked) file.",
+ "judge_cost_usd": 0.0600622
+}

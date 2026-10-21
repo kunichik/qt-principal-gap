@@ -1,0 +1,26 @@
+{
+ "task": "768691",
+ "arm": "K0",
+ "rep": "1",
+ "agent": "claude",
+ "model": "opus",
+ "tests": {
+  "tst_qurlinternal": {
+   "build": "OK",
+   "passed": 536,
+   "failed": 6,
+   "fail_names": [
+    "tst_QUrlInternal::decodeForLocalFile(nul)",
+    "tst_QUrlInternal::decodeForLocalFile(slash)",
+    "tst_QUrlInternal::decodeForLocalFile(slash-lowercase)",
+    "tst_QUrlInternal::decodeForLocalFile(invalid-utf8-80)",
+    "tst_QUrlInternal::decodeForLocalFile(invalid-utf8-e1)",
+    "tst_QUrlInternal::decodeForLocalFile(invalid-utf8-ff)"
+   ],
+   "crashed": false
+  }
+ },
+ "cost_usd": 0.8767757999999998,
+ "turns": 24,
+ "wall_s": 242
+}

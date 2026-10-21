@@ -1,0 +1,143 @@
+{
+ "duration_api_ms": 194386,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 0.8870153999999999,
+ "usage": {
+  "input_tokens": 44,
+  "cache_creation_input_tokens": 38157,
+  "cache_read_input_tokens": 1063156,
+  "output_tokens": 18439,
+  "output_tokens_details": {
+   "thinking_tokens": 10150
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 38157,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1109,
+    "cache_read_input_tokens": 64834,
+    "cache_creation_input_tokens": 854,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 854
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1602,
+   "outputTokens": 24,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00017219999999999998,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 44,
+   "outputTokens": 18439,
+   "cacheReadInputTokens": 1063156,
+   "cacheCreationInputTokens": 38157,
+   "webSearchRequests": 0,
+   "costUSD": 0.8868431999999999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 10150,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 27,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "I fixed the race in `QObject::~QObject()` (`src/corelib/kernel/qobject.cpp`). The two new tests fail without the fix and pass with it. I couldn't check the fix under ThreadSanitizer because the build isn't instrumented.\n\n**Root cause.** When a receiver is destroyed, its destructor goes through each object connected to it and removes the connection. For each sender it first calls `sender->disconnectNotify(QMetaObjectPrivate::signal(sender->metaObject(), \u2026))`. Both `metaObject()` and `disconnectNotify()` are virtual, and they were called no matter which thread the sender lives in.\n\nA code comment claimed this was safe because the sender's destructor would wait on the receiver's lock. That is only half true. The sender's base `QObject` destructor does wait. But the sender's own subclass destructors run first, without any lock, and they rewrite the object's vtable pointer as they go. So the receiver's thread reads that pointer while the sender's thread is writing it, and can run a subclass's `disconnectNotify()` after that subclass's destructor has started. In QtNetwork this happens on every request: the reply object (main thread) and its helper object (HTTP thread) are connected both ways and get deleted at the same time.\n\n**Fix.**\n- **Sender in the same thread:** `disconnectNotify()` is still called directly, as before. It can't be in the middle of being destroyed.\n- **Sender in another thread:** the receiver no longer calls into it. It now queues the `disconnectNotify()` call as an event to the sender's own thread, still while holding the sender's lock and before the connection is removed. At that point the sender's destructor can't have cleared its pending events yet. So if the sender is being destroyed, the queued call is thrown away with them; otherwise it runs normally in the sender's thread.\n\n**Behaviour change:** for a sender in another thread, `disconnectNotify()` now runs later and in the sender's own thread, not right away in the thread destroying the receiver. If the sender's thread has no event loop running, the notification won't arrive until it processes events. The docs already say the function may be called from a different thread. Same-thread behaviour is unchanged.\n\n**Tests added** in `tests/auto/corelib/kernel/qobject/tst_qobject.cpp`:\n- `disconnectNotify_receiverDestroyedInOtherThread`: the receiver is deleted in a worker thread, and the sender still gets `disconnectNotify()` in its own thread. It fails on the old code, which called it from the worker thread.\n- `disconnectNotify_senderAndReceiverDestroyedInParallel`: it holds the sender inside its subclass destructor while the receiver is deleted in another thread, which makes the race happen every time. It checks that the sender's `disconnectNotify()` isn't called while the sender is being destroyed. It fails on the old code.\n\n**Test runs:** `tst_qobject` passes (130/130, run 5 times). `tst_qthread`, `tst_qfuturewatcher` and `tst_qbuffer` also pass. I meant to run `tst_qcoreapplication` too, but it printed nothing, so its result is unknown. I didn't run the QtNetwork tests.",
+ "ttft_ms": 3865,
+ "type": "result",
+ "duration_ms": 438313,
+ "ttft_stream_ms": 1670,
+ "time_to_request_ms": 228,
+ "time_to_request_phases_ms": {
+  "other": 12,
+  "system_prompt": 8,
+  "resume_other": 0,
+  "process_user_input": 1,
+  "input_attachments": 8,
+  "input_hooks": 2,
+  "transcript_persist": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 2,
+  "engine_pickup": 0,
+  "message_prep": 1,
+  "model_config_wait": 184,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 3,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 41,
+ "time_to_request_cpu_ms": 258,
+ "time_to_request_major_faults": 398,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 10,
+  "major_faults": 21
+ },
+ "first_content_frame_ms": 1671,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

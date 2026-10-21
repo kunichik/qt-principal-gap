@@ -1,0 +1,10 @@
+.oauth-token
+.kapt-key
+claude-cfg/
+qtbase/
+hidden.git/
+b3/
+clazydb/
+arms/K1-qt-conventions.md
+*.log
+__pycache__/

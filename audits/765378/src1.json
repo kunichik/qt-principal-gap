@@ -1,0 +1,13 @@
+{
+ "verdict": "NOT_OK",
+ "problems": [
+  "The card never says to consolidate the two paths. The real fix makes `cleanupThreadData()` call `QThreadData::clearEvents()`, so there is a single implementation. The card lists the two sites but leaves the engineer free to patch both separately.",
+  "It omits the cap on drain passes (MaxPasses). Reviewers treated this as the essential point and the thing that most needs a comment: `~QEvent()` can post new events forever, so the drain loop must be bounded. When the cap is hit, the remaining events are leaked with a `qWarning` instead of looping indefinitely. 'Drain whatever those destructors post' without a bound invites an infinite loop.",
+  "It omits that each pass must first unpost every swapped-out event (decrement the receiver's `postedEvents`, clear `m_posted`) in a separate loop, and only then delete them. Deletion runs arbitrary code, and `~QObject`/`~QEvent` would otherwise go looking for these events. Reviewers explicitly asked for this split and for the comment explaining why the delete loop comes last.",
+  "It omits skipping entries whose event is null (already dispatched). For those, `pe.receiver` may be dangling and must not be dereferenced.",
+  "'A correct implementation already exists in `removePostedEvents()`' overstates the source. The commit only says `removePostedEvents()` already drains what destructors post. The change moves the single correct implementation into `clearEvents()`; it does not reuse `removePostedEvents()`."
+ ],
+ "model": "opus",
+ "source": true,
+ "cost_usd": 0.0655244
+}

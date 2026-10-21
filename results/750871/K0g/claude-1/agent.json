@@ -1,0 +1,149 @@
+{
+ "duration_api_ms": 271424,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 1.3365661999999998,
+ "usage": {
+  "input_tokens": 12,
+  "cache_creation_input_tokens": 5325,
+  "cache_read_input_tokens": 493411,
+  "output_tokens": 1804,
+  "output_tokens_details": {
+   "thinking_tokens": 58
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 5325,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 822,
+    "cache_read_input_tokens": 84743,
+    "cache_creation_input_tokens": 239,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 239
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1672,
+   "outputTokens": 26,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00018020000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 70,
+   "outputTokens": 20633,
+   "cacheReadInputTokens": 2225830,
+   "cacheCreationInputTokens": 59785,
+   "webSearchRequests": 0,
+   "costUSD": 1.3363859999999999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 8402,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "origin": {
+  "kind": "task-notification",
+  "producer": "session-task",
+  "runId": "0mvgcdag4-fc84d88e"
+ },
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 6,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "I fixed it. Connecting with member-function pointers now registers the signal's argument types again, so `QMetaType::fromName()` works straight after a queued `connect()`. The new test failed before the change and passes after it.\n\n**Root cause.** For each signal argument, `connect()` checks whether the type counts as declared. If any argument fails, it registers nothing and leaves it until the signal is emitted. The declared-ness check (`QMetaTypeIdQObject` in `src/corelib/kernel/qmetatype.h`) had lost two of its cases: pointers to QObject subclasses and Q_GADGET types. It only recognised gadget pointers and Q_ENUMs.\n\nQ_ENUM types already had a working case. They most likely failed because one non-declared argument in the same signal is enough to skip registration for all of them. With the fix they pass, but I didn't confirm that cause separately.\n\n**Changes**\n- **`qmetatype.h`**: restored the QObject-pointer and gadget cases. The pointer case also handles `const T*`, registering it under the name `\"const T*\"`.\n- **`src/corelib/kernel/qobject_impl.h`**: arguments not declared with `Q_DECLARE_METATYPE` are now registered at connect time too, through `QMetaType::fromType<T>().id()`. This applies to any complete type passed by value or by const reference. Non-const references and pointers to incomplete types still fall back to the old behaviour (types worked out when the signal is emitted).\n- **New test `tst_QObject::connectRegistersArgumentTypes`**: covers a Q_GADGET, a Q_ENUM, `O*`, `const O*`, a plain struct and a `const Gadget&` argument. It checks each type is unknown to `fromName()` before `connect()` and known after, and that queued delivery still works.\n\n**Testing**\n- **Full build**: everything compiles except 14 doc snippets that `#include` QtGui headers this build doesn't have. Nothing else failed.\n- **Tests that pass**: tst_qobject (124), tst_qmetaobject (202), tst_qmetamethod (59), tst_qmetaproperty (17), tst_qthread (67) and tst_qmetaobjectbuilder (33).\n- **Not run**: tst_qmetatype and tst_qvariant aren't built in this configuration, so they still need running somewhere they are.\n\nNothing is committed.",
+ "ttft_ms": 5744,
+ "type": "result",
+ "duration_ms": 87913,
+ "ttft_stream_ms": 4764,
+ "time_to_request_ms": 74,
+ "time_to_request_phases_ms": {
+  "other": 20,
+  "system_prompt": 5,
+  "resume_other": 0,
+  "process_user_input": 1,
+  "input_attachments": 9,
+  "input_hooks": 4,
+  "transcript_persist": 1,
+  "tool_pool_refresh": 3,
+  "init_message": 5,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 1,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 3,
+  "message_normalization": 9,
+  "client_creation": 3,
+  "request_build": 7
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 2,
+ "time_to_request_loop_lag_ms": 24,
+ "time_to_request_cpu_ms": 112,
+ "time_to_request_major_faults": 3,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 7,
+  "cpu_ms": 19,
+  "major_faults": 0,
+  "changed_files_reread": 0
+ },
+ "first_content_frame_ms": 4765,
+ "queued_turn_count": 0,
+ "result_index": 2
+}

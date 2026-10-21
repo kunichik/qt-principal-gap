@@ -1,0 +1,16 @@
+[PS2 Reviewer 15 src/corelib/time/qtimezoneprivate.cpp:829]
+Please pass `sectionLength` and `sectionDots` as parameters. It's a bit confusing that this lambda does change its values as we iterate. With the parameters, it's easier to tell what contributes to the decision.
+
+(And I mistook it for an IILE at first)
+
+[PS3 Reviewer 03 /COMMIT_MSG:14]
+Strike this condition.
+
+[PS3 Reviewer 03 src/corelib/time/qtimezoneprivate.cpp:782]
+Between 1. and 2. in this list, the page linked just above includes:
+* Do not use the file name components "." and "..".
+
+Please add that here ;^>
+
+[PS3 Reviewer 03 src/corelib/time/qtimezoneprivate.cpp:832]
+Do we even want to allow `/./` in an IANA ID ?  It'd be harmless, but see above; and this would be simpler without the length < 2 check.

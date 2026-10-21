@@ -1,0 +1,14 @@
+diff --git a/src/corelib/text/qbytearray.cpp b/src/corelib/text/qbytearray.cpp
+index a9cec2fa..feb57ec0 100644
+--- a/src/corelib/text/qbytearray.cpp
++++ b/src/corelib/text/qbytearray.cpp
+@@ -625,9 +625,6 @@ static QByteArray xxflate(ZLibOp op, QArrayDataPointer<char> out, QByteArrayView
+         return tooMuchData(op);
+ 
+     case Z_BUF_ERROR:
+-        Q_UNREACHABLE(); // cannot happen - we supply a buffer that can hold the result,
+-                         // or else error out early
+-
+     case Z_DATA_ERROR:   // can only happen on decompression
+         Q_ASSERT(op == ZLibOp::Decompression);
+         return invalidCompressedData();

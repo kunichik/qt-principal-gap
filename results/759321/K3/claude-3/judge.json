@@ -1,0 +1,8 @@
+{
+ "design_match": 0.3,
+ "reviewer_concerns": 0.7,
+ "minimality": 0.25,
+ "hidden_risk": 0.4,
+ "key_difference": "On EBUSY, (B) simply closes the descriptor and retries unlink() (also for ETXTBSY/EPERM) inside a file-local static helper. (D) instead adds new private-header API, including a Q_AUTOTEST_EXPORT function, and performs a rename-to-temp / dev+ino check / rename-back dance via QFileSystemEngine::renameFile. The reviewers had already pushed back on that rename approach (link+unlink fallback on non-local filesystems). It also opens windows where the lock name is briefly absent, or a foreign lock gets stranded under a .removing.XXXXXX name if the restore fails, which can break mutual exclusion and leave stray files.",
+ "judge_cost_usd": 0.0878214
+}

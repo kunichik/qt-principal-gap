@@ -1,0 +1,19 @@
+{
+ "task": "759321",
+ "arm": "K0",
+ "rep": "3",
+ "agent": "claude",
+ "model": "opus",
+ "tests": {
+  "tst_qlockfile": {
+   "build": "OK",
+   "passed": 22,
+   "failed": 0,
+   "fail_names": [],
+   "crashed": false
+  }
+ },
+ "cost_usd": 0.2002972,
+ "turns": 8,
+ "wall_s": 127
+}

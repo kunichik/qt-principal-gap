@@ -1,0 +1,8 @@
+{
+ "design_match": 0.55,
+ "reviewer_concerns": 0.75,
+ "minimality": 0.6,
+ "hidden_risk": 0.5,
+ "key_difference": "(D) duplicates the swap-and-drain loop in both cleanupThreadData() and clearEvents() instead of having cleanupThreadData() reuse clearEvents(), and its loop has no MaxPasses cap, so an event destructor that always posts a new event makes shutdown loop forever, where (B) gives up with a warning.",
+ "judge_cost_usd": 0.06539149999999999
+}

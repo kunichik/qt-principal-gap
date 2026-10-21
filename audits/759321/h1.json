@@ -1,0 +1,12 @@
+{
+ "verdict": "NOT_OK",
+ "problems": [
+  "The card omits the core behavioral change in the commit: removeStaleLock() now returns whether the lock file is actually gone, and lock() falls back to sleeping between attempts when removal fails (e.g. another user's stale lock in a sticky directory). The commit message and review both treat this as essential.",
+  "The card's blanket rule that a lock must not be removed 'just because setting native locks failed' conflicts with the review's errno-dependent conclusion. Only EWOULDBLOCK (live holder) should block removal. ENOLCK/EOPNOTSUPP/EINVAL/ENOSYS mean the filesystem cannot lock at all, so removal should proceed. Unknown errnos should be treated as held.",
+  "The card omits the reviewer requirement that the staleShort/LongLockFromBusyProcess tests also verify the lock file still exists, since the existing tests pass while the file silently disappears.",
+  "The card does not mention that the tryLock_sys() stale-lock-thief race fixes (EWOULDBLOCK check on the freshly created file and fstat/stat identity verification) were raised as a separate concern and are likely out of scope for this change. An engineer following the card could wrongly implement them here."
+ ],
+ "model": "haiku",
+ "source": false,
+ "cost_usd": 0.0024382699999999998
+}

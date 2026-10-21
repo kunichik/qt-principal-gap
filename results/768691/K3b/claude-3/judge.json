@@ -1,0 +1,8 @@
+{
+ "design_match": 0.5,
+ "reviewer_concerns": 0.8,
+ "minimality": 0.55,
+ "hidden_risk": 0.45,
+ "key_difference": "(D) adds its own UTF-8 decoding path (a new QUrlLocalFileUtf8Traits plus a fromUtf8 call) instead of rejecting every decoded byte >= 0x80 the way (B) does, and it omits (B)'s Windows precheck that rejects literal (already-decoded) backslashes in the input, so on Windows a path containing '\\\\' with no '%' still decodes successfully.",
+ "judge_cost_usd": 0.08963910000000001
+}

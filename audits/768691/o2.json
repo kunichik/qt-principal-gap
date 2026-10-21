@@ -1,0 +1,11 @@
+{
+ "verdict": "NOT_OK",
+ "problems": [
+  "The card says a literal backslash in the input is a problem on Windows. Nothing in the task, the commit message or the review says that. Only a decoded `\\` (%5C) on Windows is unsafe. An engineer following the card may wrongly reject URLs that contain a raw backslash.",
+  "The card says a byte is unsafe if it is NUL or `/`, without saying this applies only to bytes produced by percent-decoding (%00, %2F). A literal `/` path separator must still be accepted. As worded, the card invites rejecting ordinary slashes.",
+  "The card leaves out the point the reviewer treated as blocking at PS12 ('Documentation is contradicted by code'): what happens to `appendTo` when the function fails. The code truncated or nulled `appendTo` in a way that did not match the docs when `appendTo` was not null beforehand. The fix is either to document that failure clears `appendTo` to a null QString, or to keep a `wasNull` flag (since `origSize` cannot tell empty from null) and restore it, or to document and `Q_PRE` that `appendTo` is null on entry. The engineer needs to make the failure-path contract for `appendTo` consistent with the documentation."
+ ],
+ "model": "opus",
+ "source": false,
+ "cost_usd": 0.0239353
+}

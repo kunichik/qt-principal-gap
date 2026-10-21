@@ -1,0 +1,143 @@
+{
+ "duration_api_ms": 89545,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 0.5849314,
+ "usage": {
+  "input_tokens": 34,
+  "cache_creation_input_tokens": 29657,
+  "cache_read_input_tokens": 729153,
+  "output_tokens": 10067,
+  "output_tokens_details": {
+   "thinking_tokens": 2425
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 29657,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 796,
+    "cache_read_input_tokens": 54360,
+    "cache_creation_input_tokens": 494,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 494
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1438,
+   "outputTokens": 450,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00036879999999999997,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 430,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 34,
+   "outputTokens": 10067,
+   "cacheReadInputTokens": 729153,
+   "cacheCreationInputTokens": 29657,
+   "webSearchRequests": 0,
+   "costUSD": 0.5845625999999999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 2425,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 24,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "I found and fixed the deadlock. The new test hangs without the fix, and the QCoreApplication (72), QThread (67) and QObject (130) autotests now all pass.\n\n**Root cause:** when the application shuts down, `QCoreApplicationPrivate::cleanupThreadData()` deletes any events still waiting to be delivered while it holds the event queue's lock, and that lock can't be taken twice by the same thread. If one of those events' destructors calls `postEvent()` or `deleteLater()` (which posts an event), it tries to take the same lock again and waits forever. The other place that clears pending events, `QThreadData::clearEvents()`, had a related bug: it walked the queue without the lock while the destructors could add to it.\n\n**Fix:** there is now one implementation, in `QThreadData::clearEvents()` (`src/corelib/thread/qthread.cpp`), and `cleanupThreadData()` calls it. It follows the shape described in CLAUDE.md:\n- **Lock, take, unlock, delete:** it takes everything out of the queue under the lock and resets `startOffset` and `insertionOffset`. It then releases the lock and deletes the events.\n- **Unpost the whole batch first:** every event in the batch is marked as no longer pending before any is deleted, so a destructor that destroys another receiver in the same batch is safe.\n- **Repeated, with a limit:** destructors may post new events, so it drains again, up to 16 extra passes. After that it prints a warning and leaks whatever is left rather than looping forever.\n\n`cleanupThreadData()` still resets `recursion` and `quitNow` as before.\n\n**Behaviour change:** an object whose `deleteLater()` is called from a pending event's destructor during shutdown is not deleted. Its deferred-delete event is just thrown away, the same as any other event that was never delivered.\n\n**Tests** (in `tests/auto/corelib/kernel/qcoreapplication`):\n- `postFromPendingEventDestructorOnExit`: a pending event whose destructor calls `deleteLater()` and `postEvent()`, and deletes another receiver that has its own event in the same batch.\n- `endlessPostingFromPendingEventDestructorOnExit`: an event that posts a copy of itself on every destruction. The test checks that shutdown stops with the warning and that a new application then starts with an empty queue.\n\nNothing is committed.",
+ "ttft_ms": 1566,
+ "type": "result",
+ "duration_ms": 385240,
+ "ttft_stream_ms": 800,
+ "time_to_request_ms": 228,
+ "time_to_request_phases_ms": {
+  "other": 12,
+  "system_prompt": 7,
+  "resume_other": 0,
+  "process_user_input": 1,
+  "input_attachments": 7,
+  "input_hooks": 1,
+  "transcript_persist": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 1,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 187,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 3,
+  "message_normalization": 1,
+  "client_creation": 0,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 13,
+ "time_to_request_cpu_ms": 278,
+ "time_to_request_major_faults": 424,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 9,
+  "major_faults": 22
+ },
+ "first_content_frame_ms": 800,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

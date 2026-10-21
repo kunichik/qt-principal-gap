@@ -1,0 +1,143 @@
+{
+ "duration_api_ms": 98540,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 0.571543,
+ "usage": {
+  "input_tokens": 34,
+  "cache_creation_input_tokens": 27018,
+  "cache_read_input_tokens": 695955,
+  "output_tokens": 10787,
+  "output_tokens_details": {
+   "thinking_tokens": 3254
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 27018,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 812,
+    "cache_read_input_tokens": 51728,
+    "cache_creation_input_tokens": 487,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 487
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1490,
+   "outputTokens": 366,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00033200000000000005,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 346,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 34,
+   "outputTokens": 10787,
+   "cacheReadInputTokens": 695955,
+   "cacheCreationInputTokens": 27018,
+   "webSearchRequests": 0,
+   "costUSD": 0.571211,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 3254,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 22,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "The deadlock is fixed in the library source, and I added two regression tests. The full `tst_qcoreapplication` suite passes (72/72), as do `tst_qthread` and `tst_qobject`.\n\n**Root cause:** when the application exits, `QCoreApplicationPrivate::cleanupThreadData()` deletes the leftover pending events while still holding the lock on the pending-event list. If an event's destructor calls `postEvent()` or `deleteLater()`, that call tries to take the same lock. The lock isn't recursive, so the thread waits on itself forever, which is what the Windows Media Foundation backend triggers. `QThreadData::clearEvents()` has a related bug: it deletes events while walking the list without locking it, so a destructor that posts a new event changes the list mid-loop.\n\n**Fix** (`src/corelib/kernel/qcoreapplication.cpp` and `src/corelib/thread/qthread.cpp`), following the shape `removePostedEvents()` already uses:\n- Both functions now swap the pending events into a local list under the lock and update the receivers' pending-event counts.\n- They then unlock and delete the events, and repeat until the list stays empty. That cleans up anything the destructors post in turn.\n- `startOffset` and `insertionOffset` are now reset as well. If the application is destroyed while posted events are being delivered, the delivery code would otherwise trim the now-empty list using a stale offset.\n- Each function keeps its existing memory ordering on the counter decrement (acquire in one, relaxed in the other).\n\n**Tests** (in `tst_qcoreapplication`):\n- `eventDestructorPostsEventsOnApplicationExit` destroys the app while events are pending whose destructors call `deleteLater()` and post further events in a chain. It checks that all 4 events get destroyed.\n- `applicationDeletedDuringPostedEventDelivery` deletes the app from inside an event handler while more events are still queued.\n\nTo confirm the tests catch the bug, I ran them against the unfixed library. The first one hangs and the second one aborts (SIGABRT); both pass with the fix.\n\nOne side effect of the first test: the objects it schedules with `deleteLater()` are never actually deleted, because no event loop runs. Their pending deletion events are discarded with everything else, so the test leaks four small objects. Nothing is committed yet.",
+ "ttft_ms": 1488,
+ "type": "result",
+ "duration_ms": 340741,
+ "ttft_stream_ms": 841,
+ "time_to_request_ms": 234,
+ "time_to_request_phases_ms": {
+  "other": 14,
+  "system_prompt": 7,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 8,
+  "input_hooks": 2,
+  "transcript_persist": 9,
+  "tool_pool_refresh": 1,
+  "init_message": 2,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 180,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 4,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 24,
+ "time_to_request_cpu_ms": 281,
+ "time_to_request_major_faults": 425,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 10,
+  "major_faults": 22
+ },
+ "first_content_frame_ms": 841,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

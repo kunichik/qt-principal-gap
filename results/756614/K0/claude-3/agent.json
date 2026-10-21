@@ -1,0 +1,143 @@
+{
+ "duration_api_ms": 82701,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 0.6034295,
+ "usage": {
+  "input_tokens": 28,
+  "cache_creation_input_tokens": 36204,
+  "cache_read_input_tokens": 640547,
+  "output_tokens": 9263,
+  "output_tokens_details": {
+   "thinking_tokens": 2275
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 36204,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1009,
+    "cache_read_input_tokens": 60204,
+    "cache_creation_input_tokens": 1197,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1197
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1586,
+   "outputTokens": 315,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00031610000000000004,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 291,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 28,
+   "outputTokens": 9263,
+   "cacheReadInputTokens": 640547,
+   "cacheCreationInputTokens": 36204,
+   "webSearchRequests": 0,
+   "costUSD": 0.6031133999999999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 2275,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 15,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "I added `QThreadStorage<T>::clearLocalData()` and switched QCollator over to a value-based storage that uses it. The QThreadStorage tests pass (20 passed, 1 Windows-only skip), as do all 263 QCollator tests. Nothing is committed.\n\n**What it does**\n- **Pointer payloads:** it deletes the object, the same as `setLocalData(nullptr)`.\n- **Value payloads:** it destroys the stored object. `hasLocalData()` is then false until `localData()` or `setLocalData()` is called again.\n- **No data:** if the calling thread has nothing stored, it does nothing. It also won't set up Qt's per-thread bookkeeping (`QThreadData`) for a thread that doesn't have it yet or has already torn it down. `setLocalData(nullptr)` would set it up.\n- **Builds without thread support:** there it just resets the stored data.\n\n**Changes**\n- `qthreadstorage.h`: the new function in both the thread and no-thread versions of the class. Underneath it is a new out-of-line `QThreadStorageData::clear()`. Adding a member to this exported class keeps binary compatibility.\n- `qthreadstorage.cpp`: the implementation of `clear()`, plus docs: a `\\fn` with `\\since 6.13`, an updated `hasLocalData()` description, and `\\sa` links.\n- **`qcollator.cpp`, the one real workaround I found:** `GenerationalCollatorHolder` stored a `GenerationalCollator*`, created it by hand on first use, and in its destructor checked the private `QThreadData::currentThreadData()` before calling `setLocalData(nullptr)`. It now uses `QThreadStorage<GenerationalCollator>`, and the destructor just calls `storage.clearLocalData()`. That also removes the `private/qthread_p.h` include.\n- `tst_qthreadstorage.cpp`, four new tests:\n  - pointer payloads: the object is deleted, and clearing twice or with no data is safe\n  - value payloads: covers data created by `localData()` and by `setLocalData()`, a QString, and a move-only `std::unique_ptr`\n  - clearing in one thread leaves another thread's data alone, and leftover data is still cleaned up when the thread exits\n  - calling it from a plain `std::thread` that never used Qt is harmless\n\n**Limits**\n- No test checks directly that `QThreadData` isn't created; that would need a private Qt header in the test. The test with a thread that never used Qt only checks that nothing crashes and nothing is leaked.\n- I didn't compile the no-thread version.\n- I left the other pointer-based users as they are, such as `QFontCache` (`qfont.cpp`) and the OpenGL storages. Switching them would mean changing ownership or object design, not just removing a workaround.\n\nYour message ended with some lines like `756614 K0 2` that look like stray pasted text; I ignored them.",
+ "ttft_ms": 2185,
+ "type": "result",
+ "duration_ms": 102793,
+ "ttft_stream_ms": 825,
+ "time_to_request_ms": 244,
+ "time_to_request_phases_ms": {
+  "other": 12,
+  "system_prompt": 4,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 8,
+  "input_hooks": 1,
+  "transcript_persist": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 2,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 204,
+  "autocompact": 0,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 3,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 21,
+ "time_to_request_cpu_ms": 281,
+ "time_to_request_major_faults": 409,
+ "input_attachments_detail": {
+  "slowest_producer": "model",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 10,
+  "major_faults": 20
+ },
+ "first_content_frame_ms": 825,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

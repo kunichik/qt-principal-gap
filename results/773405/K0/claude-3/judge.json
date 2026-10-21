@@ -1,0 +1,8 @@
+{
+ "design_match": 0.9,
+ "reviewer_concerns": 1.0,
+ "minimality": 0.95,
+ "hidden_risk": 0.95,
+ "key_difference": "(D) switches on type() and delegates to the existing toFloat16()/toFloat()/toDouble() accessors, and converts negative integers as -double(value64 + 1) with an explicit -2^64 special case, whereas (B) calls _toFloatingPoint<T>() directly and computes -double(value64) - 1.",
+ "judge_cost_usd": 0.0667609
+}

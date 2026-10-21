@@ -1,0 +1,16 @@
+{
+ "task": "773405",
+ "arm": "K0",
+ "rep": "0",
+ "agent": "none",
+ "model": "opus",
+ "tests": {
+  "tst_qcborstreamreader": {
+   "build": "FAIL",
+   "log": "corelib/serialization/qcborstreamreader/tst_qcborstreamreader.cpp:325:20: error: no member named 'isNumber' in 'QCborStreamReader'\n  325 |     QVERIFY(reader.isNumber());\n      |             ~~~~~~ ^\n<experiment-root>/qtbase/src/testlib/qtestcase.h:67:43: note: expanded from macro 'QVERIFY'\n   67 |     if (!QTest::qVerify(static_cast<bool>(statement), #statement, \"\", __FILE__, __LINE__))\\\n      |                                           ^~~~~~~~~\n<experiment-root>/qtbase/tests/auto/corelib/serialization/qcborstreamreader/tst_qcborstreamreader.cpp:326:32: error: no member named 'toNumber' in 'QCborStreamReader'\n  326 |     QCOMPARE(std::isnan(reader.toNumber()), isNaN);\n      |                         ~~~~~~ ^\n<experiment-root>/qtbase/src/testlib/qtestcase.h:90:26: note: expanded from macro 'QCOMPARE'\n   90 |     if (!QTest::qCompare(actual, expected, #actual, #expected, __FILE__, __LINE__))\\\n      |                          ^~~~~~\n<experiment-root>/qtbase/tests/auto/corelib/serialization/qcborstreamreader/tst_qcborstreamreader.cpp:328:25: error: no member named 'toNumber' in 'QCborStreamReader'\n  328 |         QCOMPARE(reader.toNumber(), expectedValue);\n      |                  ~~~~~~ ^\n<experiment-root>/qtbase/src/testlib/qtestcase.h:90:26: note: expanded from macro 'QCOMPARE'\n   90 |     if (!QTest::qCompare(actual, expected, #actual, #expected, __FILE__, __LINE__))\\\n      |                          ^~~~~~\n10 errors generated.\nninja: build stopped: subcommand failed.\n"
+  }
+ },
+ "cost_usd": null,
+ "turns": null,
+ "wall_s": null
+}

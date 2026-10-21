@@ -1,0 +1,13 @@
+QtConcurrent: finish futures of tasks dropped by QThreadPool::clear()
+
+QThreadPool::clear() removes queued runnables before they run. For a
+QtConcurrent::run() task this leaves the associated future running
+forever, so waitForFinished() never returns.
+
+Report the future as canceled and finished when the underlying runnable
+is deleted without having run.
+
+Task-number: QTBUG-149511
+Change-Id: I474f6d9a6e585ada5fb9c670f7dfc0bb1334c3bc
+Reviewed-by: Mårten Nordheim <marten.nordheim@qt.io>
+Reviewed-by: Lena Biliaieva <lena.biliaieva@qt.io>

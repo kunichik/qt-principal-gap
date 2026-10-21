@@ -1,0 +1,8 @@
+{
+ "design_match": 0.7,
+ "reviewer_concerns": 0.55,
+ "minimality": 0.85,
+ "hidden_risk": 0.3,
+ "key_difference": "(D) has no pass cap, so a destructor that always posts loops forever, and it deletes each event in the same loop that unposts them, so a ~QEvent() that destroys a later receiver leaves (D) dereferencing a dangling pe.receiver; (B) unposts everything first and caps the passes.",
+ "judge_cost_usd": 0.06542390000000001
+}

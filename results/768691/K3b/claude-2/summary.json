@@ -1,0 +1,19 @@
+{
+ "task": "768691",
+ "arm": "K3b",
+ "rep": "2",
+ "agent": "claude",
+ "model": "opus",
+ "tests": {
+  "tst_qurlinternal": {
+   "build": "OK",
+   "passed": 542,
+   "failed": 0,
+   "fail_names": [],
+   "crashed": false
+  }
+ },
+ "cost_usd": 0.9737585999999999,
+ "turns": 15,
+ "wall_s": 268
+}

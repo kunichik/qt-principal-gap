@@ -1,0 +1,8 @@
+{
+ "design_match": 0.9,
+ "reviewer_concerns": 0.9,
+ "minimality": 0.9,
+ "hidden_risk": 0.9,
+ "key_difference": "(D) matches (B) closely but keeps the QThreadStorage<GenerationalCollator> as a member with a forwarding localData() instead of privately inheriting and using-declaring it, and its QThreadStorageData::clear() adds an extra tls-size/null-slot early return before set(nullptr) where (B) guards only on QThreadData::currentThreadData().",
+ "judge_cost_usd": 0.0707683
+}

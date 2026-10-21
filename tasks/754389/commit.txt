@@ -1,0 +1,17 @@
+Fix data race on a sender's vptr when its receiver is destroyed
+
+~QObject() resolves the signal and calls disconnectNotify() on each of
+its senders. Both are virtual calls, so they are only safe from the
+thread that owns the sender: any other thread may be running that
+sender's destructors right now, which rewrite its vptr as they go.
+ThreadSanitizer reports this for any two connected objects destroyed in
+parallel, and QtNetwork hits it on every HTTP request.
+
+Keep notifying inline when the sender belongs to this thread, and post
+the notification to the sender's own thread otherwise, unless that thread
+can no longer deliver events (e.g. it has finished). If the sender is
+indeed being destroyed, ~QObjectPrivate() discards the event.
+
+Fixes: QTBUG-133213
+Change-Id: I7544d540b40bede58158cfd82a1f3005daa81b55
+Reviewed-by: Thiago Macieira <thiago.macieira@intel.com>

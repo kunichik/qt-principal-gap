@@ -1,0 +1,21 @@
+{
+ "task": "764375",
+ "arm": "K0",
+ "rep": "3",
+ "agent": "claude",
+ "model": "opus",
+ "tests": {
+  "tst_qtconcurrentrun": {
+   "build": "OK",
+   "passed": 26,
+   "failed": 1,
+   "fail_names": [
+    "tst_QtConcurrentRun::clearQueuedTask()"
+   ],
+   "crashed": false
+  }
+ },
+ "cost_usd": 0,
+ "turns": 1,
+ "wall_s": 2
+}

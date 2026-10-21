@@ -1,0 +1,16 @@
+QDateTime: Revalidate the value when deserializing from QDataStream
+
+operator>>(QDataStream &, QDate &) assigned the Julian day straight into
+the private member, and operator>>(QDataStream &, QTime &) did the same
+with the milliseconds since start of day field, bypassing the range
+checks that QDate::fromJulianDay() and QTime otherwise enforce.
+
+Route the deserialized Julian day through QDate::fromJulianDay(), which
+returns an invalid QDate for an out of range value, and reject an out of
+range milliseconds field, leaving QTime null.
+
+Pick-to: 6.12 6.8
+Task-number: QTBUG-150832
+Change-Id: Ia68a88abd0dfb0b5d39234aee61350fbd1454af5
+Reviewed-by: Thiago Macieira <thiago.macieira@intel.com>
+Reviewed-by: Edward Welbourne <edward.welbourne@qt.io>

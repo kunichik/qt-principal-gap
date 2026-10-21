@@ -1,0 +1,8 @@
+{
+ "design_match": 0.6,
+ "reviewer_concerns": 0.7,
+ "minimality": 0.9,
+ "hidden_risk": 0.55,
+ "key_difference": "When the sender's thread has no event dispatcher, (D) falls back to calling disconnectNotify() inline from the destroying thread, which brings back the original vptr race in that case; (B) skips the notification there instead, and also adds a dedicated DisconnectNotify event type rather than reusing a functor-based QMetaCallEvent.",
+ "judge_cost_usd": 0.0792911
+}

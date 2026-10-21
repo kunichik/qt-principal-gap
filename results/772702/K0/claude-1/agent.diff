@@ -1,0 +1,36 @@
+diff --git a/src/corelib/text/qstring.cpp b/src/corelib/text/qstring.cpp
+index 953d61e2..f34f30e5 100644
+--- a/src/corelib/text/qstring.cpp
++++ b/src/corelib/text/qstring.cpp
+@@ -3025,8 +3025,7 @@ static void insert_helper(QString &str, qsizetype i, const T &toInsert)
+ */
+ QString &QString::insert(qsizetype i, QLatin1StringView str)
+ {
+-    const char *s = str.latin1();
+-    if (i < 0 || !s || !(*s))
++    if (i < 0 || str.isEmpty())
+         return *this;
+ 
+     insert_helper(*this, i, str);
+diff --git a/tests/auto/corelib/text/qstring/tst_qstring.cpp b/tests/auto/corelib/text/qstring/tst_qstring.cpp
+index 9bd253c8..d4bf1dbe 100644
+--- a/tests/auto/corelib/text/qstring/tst_qstring.cpp
++++ b/tests/auto/corelib/text/qstring/tst_qstring.cpp
+@@ -3406,6 +3406,17 @@ void tst_QString::insert_special_cases()
+         QCOMPARE(a.insert(1, u'>'), u"<>ABCABCABCABC");
+     }
+ 
++    {
++        // Latin-1 views are sized, not NUL-terminated
++        a = u"AB"_s;
++        QCOMPARE(a.insert(1, "\0"_L1), QStringView(u"A\0B", 3));
++        QCOMPARE(a.insert(0, "x\0y"_L1), QStringView(u"x\0yA\0B", 6));
++        // empty view whose data is not NUL-terminated must not be dereferenced
++        const char nonTerminated[] = { 'z' };
++        QCOMPARE(a.insert(0, QLatin1StringView(nonTerminated, qsizetype(0))),
++                 QStringView(u"x\0yA\0B", 6));
++    }
++
+     const QString montreal = QStringLiteral("Montreal");
+     {
+         // Test when string is not shared

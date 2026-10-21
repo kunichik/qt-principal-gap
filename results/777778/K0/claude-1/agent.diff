@@ -1,0 +1,246 @@
+diff --git a/src/corelib/mimetypes/qmimedatabase.cpp b/src/corelib/mimetypes/qmimedatabase.cpp
+index 8e047719..7399a326 100644
+--- a/src/corelib/mimetypes/qmimedatabase.cpp
++++ b/src/corelib/mimetypes/qmimedatabase.cpp
+@@ -54,13 +54,7 @@ QMimeDatabasePrivate::~QMimeDatabasePrivate()
+ {
+ }
+ 
+-Q_CONSTINIT
+-#ifdef QT_BUILD_INTERNAL
+-Q_CORE_EXPORT
+-#else
+-static const
+-#endif
+-int qmime_secondsBetweenChecks = 5;
++static constexpr int qmime_secondsBetweenChecks = 5;
+ 
+ bool QMimeDatabasePrivate::shouldCheck()
+ {
+@@ -70,6 +64,13 @@ bool QMimeDatabasePrivate::shouldCheck()
+     return true;
+ }
+ 
++void QMimeDatabasePrivate::requestReload()
++{
++    QMutexLocker locker(&mutex);
++    // The next call to providers() checks the files, as if the interval had elapsed
++    m_lastCheck.invalidate();
++}
++
+ static QStringList locateMimeDirectories()
+ {
+     QStringList dirs =
+@@ -594,6 +595,11 @@ bool QMimeDatabasePrivate::inherits(const QString &mime, const QString &parent)
+     in the above example. Make sure to run this command when installing the MIME type
+     definition file.
+ 
++    QMimeDatabase checks whether the MIME type definition files have changed at
++    most every five seconds. An application that installs or removes MIME type
++    definitions itself can call reload() afterwards, so that the change is visible
++    to the next query.
++
+     \threadsafe
+ 
+     \snippet code/src_corelib_mimetype_qmimedatabase.cpp 0
+@@ -893,6 +899,28 @@ QList<QMimeType> QMimeDatabase::allMimeTypes() const
+     return d->allMimeTypes();
+ }
+ 
++/*!
++    \since 6.13
++
++    Makes the next query check the MIME type definition files for changes.
++
++    QMimeDatabase checks whether MIME type definition files were added, removed
++    or modified at most every five seconds. Call this function after installing
++    or removing a MIME type definition file (and, on Unix systems, after running
++    \c{update-mime-database}), so that the change is visible to the next query
++    on any QMimeDatabase object, instead of up to five seconds later.
++
++    This function does not read any file itself; the check happens on the next
++    query. It affects all QMimeDatabase objects, since they share the same
++    database.
++*/
++void QMimeDatabase::reload()
++{
++    // Nothing to do before the database exists: the first query loads everything.
++    if (staticQMimeDatabase.exists())
++        staticQMimeDatabase()->requestReload();
++}
++
+ /*!
+     \enum QMimeDatabase::MatchMode
+ 
+diff --git a/src/corelib/mimetypes/qmimedatabase.h b/src/corelib/mimetypes/qmimedatabase.h
+index b70e207e..801f68ed 100644
+--- a/src/corelib/mimetypes/qmimedatabase.h
++++ b/src/corelib/mimetypes/qmimedatabase.h
+@@ -51,6 +51,8 @@ public:
+ 
+     QList<QMimeType> allMimeTypes() const;
+ 
++    static void reload();
++
+ private:
+     QMimeDatabasePrivate *d;
+ };
+diff --git a/src/corelib/mimetypes/qmimedatabase_p.h b/src/corelib/mimetypes/qmimedatabase_p.h
+index 2194ed5a..67e231b6 100644
+--- a/src/corelib/mimetypes/qmimedatabase_p.h
++++ b/src/corelib/mimetypes/qmimedatabase_p.h
+@@ -76,6 +76,9 @@ public:
+     QStringList listAliases(const QString &mimeName);
+     bool mimeInherits(const QString &mime, const QString &parent);
+ 
++    // API for QMimeDatabase::reload(). Takes care of locking the mutex.
++    void requestReload();
++
+ private:
+     using Providers = std::vector<std::unique_ptr<QMimeProviderBase>>;
+     const Providers &providers();
+diff --git a/tests/auto/corelib/mimetypes/qmimedatabase/tst_qmimedatabase.cpp b/tests/auto/corelib/mimetypes/qmimedatabase/tst_qmimedatabase.cpp
+index ab0eb828..8028ad26 100644
+--- a/tests/auto/corelib/mimetypes/qmimedatabase/tst_qmimedatabase.cpp
++++ b/tests/auto/corelib/mimetypes/qmimedatabase/tst_qmimedatabase.cpp
+@@ -178,6 +178,7 @@ void tst_QMimeDatabase::init()
+ {
+     // clean up local data from previous runs
+     QDir(m_localMimeDir).removeRecursively();
++    QMimeDatabase::reload();
+ }
+ 
+ void tst_QMimeDatabase::cleanupTestCase()
+@@ -1170,10 +1171,6 @@ static void ignoreInvalidMimetypeWarnings(const QString &mimeDir)
+     QTest::ignoreMessage(QtWarningMsg, ("QMimeDatabase: Error parsing " + basePath + "invalid-magic3.xml\nInvalid magic rule mask size \"0xffff\"").constData());
+ }
+ 
+-QT_BEGIN_NAMESPACE
+-extern Q_CORE_EXPORT int qmime_secondsBetweenChecks; // see qmimeprovider.cpp
+-QT_END_NAMESPACE
+-
+ void copyFiles(const QSpan<const char *const> &additionalMimeFiles, const QString &destDir)
+ {
+     const QString notFoundErrorMessage = QString::fromLatin1("Cannot find '%1'");
+@@ -1207,8 +1204,6 @@ void tst_QMimeDatabase::installNewGlobalMimeType()
+ #if !QT_CONFIG(process)
+     QSKIP("This test requires QProcess support");
+ #else
+-    qmime_secondsBetweenChecks = 0;
+-
+     QMimeDatabase db;
+     QVERIFY(!db.mimeTypeForName(QLatin1String("text/x-suse-ymp")).isValid());
+ 
+@@ -1221,6 +1216,7 @@ void tst_QMimeDatabase::installNewGlobalMimeType()
+     QVERIFY(!QTest::currentTestFailed());
+     if (m_isUsingCacheProvider && !waitAndRunUpdateMimeDatabase(mimeDir))
+         QSKIP("shared-mime-info not found, skipping mime.cache test");
++    QMimeDatabase::reload();
+ 
+     QCOMPARE(db.mimeTypeForFile(QLatin1String("foo.ymu"), QMimeDatabase::MatchExtension).name(),
+              QString::fromLatin1("text/x-SuSE-ymu"));
+@@ -1293,6 +1289,7 @@ void tst_QMimeDatabase::installNewGlobalMimeType()
+     deleteFiles(additionalGlobalMimeFiles, destDir);
+     if (m_isUsingCacheProvider && !waitAndRunUpdateMimeDatabase(mimeDir))
+         QSKIP("shared-mime-info not found, skipping mime.cache test");
++    QMimeDatabase::reload();
+     QCOMPARE(db.mimeTypeForFile(QLatin1String("foo.ymu"), QMimeDatabase::MatchExtension).name(),
+              QString::fromLatin1("application/octet-stream"));
+     QVERIFY(!db.mimeTypeForName(QLatin1String("text/x-suse-ymp")).isValid());
+@@ -1322,8 +1319,6 @@ void tst_QMimeDatabase::installNewLocalMimeType()
+ #else
+     QFETCH(bool, useLocalBinaryCache);
+ 
+-    qmime_secondsBetweenChecks = 0;
+-
+     QMimeDatabase db;
+ 
+     // Check that we're starting clean
+@@ -1340,6 +1335,7 @@ void tst_QMimeDatabase::installNewLocalMimeType()
+                                     + QDir::toNativeSeparators(m_localMimeDir) + QLatin1Char(')');
+         QSKIP(qPrintable(skipWarning));
+     }
++    QMimeDatabase::reload();
+ 
+     if (!useLocalBinaryCache)
+         ignoreInvalidMimetypeWarnings(m_localMimeDir);
+@@ -1423,20 +1419,67 @@ void tst_QMimeDatabase::installNewLocalMimeType()
+         QFile::remove(destDir + QStringLiteral("invalid-magic%1.xml").arg(i));
+     if (useLocalBinaryCache && !waitAndRunUpdateMimeDatabase(m_localMimeDir))
+         QSKIP("shared-mime-info not found, skipping mime.cache test");
++    QMimeDatabase::reload();
+     QVERIFY(!db.mimeTypeForName(QLatin1String("text/invalid-magic1")).isValid()); // deleted
+     QVERIFY(db.mimeTypeForName(QLatin1String("text/x-suse-ymp")).isValid()); // still present
+ 
+     // The user deletes the cache -> the XML provider makes things still work
+     QFile::remove(m_localMimeDir + QString::fromLatin1("/mime.cache"));
++    QMimeDatabase::reload();
+     QVERIFY(!db.mimeTypeForName(QLatin1String("text/invalid-magic1")).isValid()); // deleted
+     QVERIFY(db.mimeTypeForName(QLatin1String("text/x-suse-ymp")).isValid()); // still present
+ 
+     // Finally, the user deletes the whole local dir
+     QVERIFY2(QDir(m_localMimeDir).removeRecursively(), qPrintable(m_localMimeDir + ": " + qt_error_string()));
++    QMimeDatabase::reload();
+     QCOMPARE(db.mimeTypeForFile(QLatin1String("foo.ymu"), QMimeDatabase::MatchExtension).name(),
+              QString::fromLatin1("application/octet-stream"));
+     QVERIFY(!db.mimeTypeForName(QLatin1String("text/x-suse-ymp")).isValid());
+ #endif
+ }
+ 
++void tst_QMimeDatabase::reload()
++{
++    using namespace std::chrono_literals;
++
++    QMimeDatabase db;
++    const QString mimeTypeName = u"text/x-suse-ymp"_s;
++    // Any query starts the interval between two checks of the files
++    QVERIFY(!db.mimeTypeForName(mimeTypeName).isValid());
++    QElapsedTimer sinceLastCheck;
++    sinceLastCheck.start();
++
++    const QString destDir = m_localMimeDir + "/packages/"_L1;
++    QVERIFY(QDir().mkpath(destDir));
++    static constexpr std::array mimeFiles = { "yast2-metapackage-handler-mimetypes.xml" };
++    copyFiles(mimeFiles, destDir);
++    QVERIFY(!QTest::currentTestFailed());
++
++    // The new file isn't seen until the next periodic check (every 5 seconds)...
++    const bool foundTooEarly = db.mimeTypeForName(mimeTypeName).isValid();
++    if (sinceLastCheck.durationElapsed() < 5s)
++        QVERIFY(!foundTooEarly);
++
++    // ... unless reload() is called; this affects all QMimeDatabase instances
++    QMimeDatabase::reload();
++    QVERIFY(QMimeDatabase().mimeTypeForName(mimeTypeName).isValid());
++    QCOMPARE(db.mimeTypeForFile(u"foo.ymu"_s, QMimeDatabase::MatchExtension).name(),
++             u"text/x-SuSE-ymu"_s);
++
++    // Removing it works the same way
++    sinceLastCheck.start();
++    deleteFiles(mimeFiles, destDir);
++    const bool foundAfterRemoval = db.mimeTypeForName(mimeTypeName).isValid();
++    if (sinceLastCheck.durationElapsed() < 5s)
++        QVERIFY(foundAfterRemoval);
++    QMimeDatabase::reload();
++    QVERIFY(!db.mimeTypeForName(mimeTypeName).isValid());
++
++    // Calling it repeatedly, or with nothing changed, is harmless
++    QMimeDatabase::reload();
++    QMimeDatabase::reload();
++    QVERIFY(!db.mimeTypeForName(mimeTypeName).isValid());
++    QVERIFY(db.mimeTypeForName(u"text/plain"_s).isValid());
++}
++
+ QTEST_GUILESS_MAIN(tst_QMimeDatabase)
+diff --git a/tests/auto/corelib/mimetypes/qmimedatabase/tst_qmimedatabase.h b/tests/auto/corelib/mimetypes/qmimedatabase/tst_qmimedatabase.h
+index 4e68099f..8fc129e8 100644
+--- a/tests/auto/corelib/mimetypes/qmimedatabase/tst_qmimedatabase.h
++++ b/tests/auto/corelib/mimetypes/qmimedatabase/tst_qmimedatabase.h
+@@ -66,6 +66,7 @@ private slots:
+     void installNewGlobalMimeType();
+     void installNewLocalMimeType_data();
+     void installNewLocalMimeType();
++    void reload();
+ 
+ private:
+     void initTestCaseInternal(); // test-specific

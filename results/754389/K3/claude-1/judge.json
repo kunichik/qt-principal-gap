@@ -1,0 +1,8 @@
+{
+ "design_match": 0.55,
+ "reviewer_concerns": 0.6,
+ "minimality": 0.5,
+ "hidden_risk": 0.45,
+ "key_difference": "(D) also routes QObjectPrivate::removeConnection (QObject::disconnect(Connection) from any thread) through the new posting path and falls back to an inline cross-thread virtual call when the sender's QThread is null or not running, whereas (B) changes only the receiver-destruction path in ~QObject and never makes the virtual call off the sender's thread (it posts a dedicated QDisconnectNotifyEvent only if the thread has an event dispatcher, and otherwise skips the notification).",
+ "judge_cost_usd": 0.090021
+}

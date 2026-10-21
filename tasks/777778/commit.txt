@@ -1,0 +1,23 @@
+QMimeDatabase: add reload()
+
+QMimeDatabase checks its files for changes at most every five seconds.
+An application that installs a MIME type definition, then runs
+update-mime-database, does not find the new type for up to five
+seconds. KIO does this when the user associates an application with a
+file of no known type: it defines a type for the file's extension. The
+type is missing from the lookups in the meantime.
+
+reload() makes the next query check the files at once, as when the
+periodic check is due. It is static, as all QMimeDatabase instances
+share the same data.
+
+The tests that install new definitions now call reload() instead of
+setting qmime_secondsBetweenChecks to 0, so the variable is no longer
+exported in developer builds.
+
+[ChangeLog][QtCore][QMimeDatabase] Added reload(), which makes the next
+query read the MIME database files that changed, without waiting for
+the periodic check.
+
+Change-Id: I65057ed41e7263be5810a5c46a5cc0bbfaced8d5
+Reviewed-by: David Faure <david.faure@kdab.com>

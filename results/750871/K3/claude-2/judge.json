@@ -1,0 +1,8 @@
+{
+ "design_match": 0.6,
+ "reviewer_concerns": 0.85,
+ "minimality": 0.85,
+ "hidden_risk": 0.75,
+ "key_difference": "(D) builds the list from the existing qTryMetaTypeInterfaceForType<Unique, Args>() and checks each entry for null at runtime, while (B) adds compile-time TypeIsSuitableForMetaType traits to qmetatype.h and chooses between the array and nullptr with if constexpr. (D) also bypasses MetatypeDecay/opaque-pointer handling, so its result can differ from (B) in edge cases such as Q_DECLARE_OPAQUE_POINTER types, and it relies on the compiler to remove the null-check loop, which is the codegen concern Fabian raised.",
+ "judge_cost_usd": 0.0726172
+}

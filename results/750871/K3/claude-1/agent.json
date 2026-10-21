@@ -1,0 +1,143 @@
+{
+ "duration_api_ms": 141100,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 0.8570231,
+ "usage": {
+  "input_tokens": 40,
+  "cache_creation_input_tokens": 42488,
+  "cache_read_input_tokens": 1044676,
+  "output_tokens": 15393,
+  "output_tokens_details": {
+   "thinking_tokens": 7655
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 42488,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1032,
+    "cache_read_input_tokens": 67142,
+    "cache_creation_input_tokens": 543,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 543
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1509,
+   "outputTokens": 26,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001639,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 40,
+   "outputTokens": 15393,
+   "cacheReadInputTokens": 1044676,
+   "cacheCreationInputTokens": 42488,
+   "webSearchRequests": 0,
+   "costUSD": 0.8568592,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 7655,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 28,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "Fixed. With `Qt::QueuedConnection` or `Qt::BlockingQueuedConnection`, `connect()` with member-function pointers now registers the signal's argument types again, even when they aren't declared with `Q_DECLARE_METATYPE`. tst_qobject passes (124/124, including a new test) and tst_qmetaobject passes (202/202).\n\n**Root cause.** `QtPrivate::ConnectionTypes` in `src/corelib/kernel/qobject_impl.h` decides whether to build the argument-type array. It only did so if every argument had `QMetaTypeId2<Arg>::Defined` set. Once `{ Defined = 1 }` was removed from that path, `Defined` is 0 for gadgets, QObject pointers and plain complete types. So `types()` returned `nullptr` and nothing was registered. Queued delivery still worked because it falls back to the moc data, but `QMetaType::fromName()` didn't find the types.\n\n**Fix** (`qobject_impl.h`, plus a one-line change in `qobject.h` and `qobject_p.h`):\n- **How usable types are found:** an argument counts as usable if `Defined` is set, or if `qTryMetaTypeInterfaceForType<Unique, Arg>()` returns an interface. That's the same check moc-generated code uses. It returns null for incomplete types and non-const references, so those signals still get `nullptr` as before.\n- **Registration:** types declared with `Q_DECLARE_METATYPE` still register through their `qt_metatype_id()`, which keeps any typedef names they declare. Every other type registers through `QMetaType(iface).id()`.\n- **The unique type:** `ConnectionTypes` now takes a `Unique` parameter, which is passed into the completeness check. Both callers pass the signal's pointer type `Func1`. Because `Unique` is never `void`, the check never reaches the `static_assert` in `checkTypeIsSuitableForMetaType`, so connecting a signal with an incomplete argument type still compiles.\n- **Limitation:** `Func1` doesn't fully prevent instantiations from being merged. If the same signal is connected in two translation units that disagree on whether a type is complete, the linker can still keep either version. Neither outcome is unsafe: the worst case is `nullptr`, which falls back to the moc data. A truly per-file tag would mean adding a template parameter to `connect()` itself; I didn't do that.\n\n**Test:** I added `tst_QObject::connectQueuedRegistersArgumentTypes`. It checks that a plain struct, a Q_GADGET passed by const reference, a Q_ENUM, `Object*` and `const Object*` are unknown to `QMetaType::fromName()` before a queued connect and registered with the right types after it. It also checks that a queued gadget signal is delivered. Against the unfixed library it fails on its first type (`QueuedRegistration::Plain`), and with the fix it passes.\n\nNothing is committed yet.",
+ "ttft_ms": 4296,
+ "type": "result",
+ "duration_ms": 435979,
+ "ttft_stream_ms": 1024,
+ "time_to_request_ms": 222,
+ "time_to_request_phases_ms": {
+  "other": 15,
+  "system_prompt": 6,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 6,
+  "input_hooks": 2,
+  "transcript_persist": 4,
+  "tool_pool_refresh": 1,
+  "init_message": 1,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 175,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 4,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 31,
+ "time_to_request_cpu_ms": 265,
+ "time_to_request_major_faults": 412,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 7,
+  "major_faults": 21
+ },
+ "first_content_frame_ms": 1025,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

@@ -1,0 +1,8 @@
+{
+ "design_match": 0.7,
+ "reviewer_concerns": 1.0,
+ "minimality": 0.9,
+ "hidden_risk": 0.9,
+ "key_difference": "(D) implements toNumber() as an exported out-of-line function in the .cpp, using a switch with a special case for -2^64, while (B) keeps it inline in the header and reuses _toFloatingPoint<T>() like the other to*() accessors, which adds no new exported symbol.",
+ "judge_cost_usd": 0.061801699999999994
+}

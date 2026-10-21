@@ -1,0 +1,8 @@
+{
+ "design_match": 0.9,
+ "reviewer_concerns": 1.0,
+ "minimality": 0.85,
+ "hidden_risk": 0.85,
+ "key_difference": "(D) also calls promise.setRunnable(nullptr) in the destructor before cancelling; (B) does not need this, and it adds an unsynchronized write to the future's runnable pointer that could race with a concurrent waitForFinished(), though it does avoid leaving a dangling runnable pointer.",
+ "judge_cost_usd": 0.037363
+}

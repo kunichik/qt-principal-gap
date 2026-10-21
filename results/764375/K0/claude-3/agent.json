@@ -1,0 +1,143 @@
+{
+ "duration_api_ms": 81046,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 0.4646297,
+ "usage": {
+  "input_tokens": 32,
+  "cache_creation_input_tokens": 23132,
+  "cache_read_input_tokens": 625068,
+  "output_tokens": 7704,
+  "output_tokens_details": {
+   "thinking_tokens": 2136
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 23132,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 861,
+    "cache_read_input_tokens": 47109,
+    "cache_creation_input_tokens": 1220,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1220
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1501,
+   "outputTokens": 404,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00035210000000000005,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 379,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 32,
+   "outputTokens": 7704,
+   "cacheReadInputTokens": 625068,
+   "cacheCreationInputTokens": 23132,
+   "webSearchRequests": 0,
+   "costUSD": 0.4642776,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 2136,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 17,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "I fixed it: a `QtConcurrent::run()` task that `QThreadPool::clear()` removes from the queue now ends up Canceled and Finished, so `waitForFinished()` returns. The new test fails without the fix, and the test suites listed at the end all pass with it.\n\n**Root cause:** `QtConcurrent::run()` marks the future as started and puts the task (a `RunFunctionTaskBase`) on the pool's queue. The only place the task reports the future finished is in its `run()`. `clear()` deletes queued tasks without running them, so nothing ever finishes the future and it stays Running forever.\n\nThe `run()` overload whose function takes a `QPromise&` was already safe: that task holds a `QPromise`, and the `QPromise` destructor cancels and finishes the future if it isn't finished yet. Plain `run()` had no equivalent.\n\n**Fix** (`src/concurrent/qtconcurrentrunbase.h`): `RunFunctionTaskBase` now has a destructor. If the future isn't finished when the task is deleted, it reports Canceled and then Finished. This is the same thing `start()` already does when no thread pool is given. Finishing this way also wakes anything waiting in `waitForFinished()` and runs any `.then()` continuations. A task that ran normally is already finished, so the destructor does nothing for it. The fix also covers the case where someone calls `tryTake()` on a task and then deletes it without running it.\n\n**Test** (`tst_QtConcurrentRun::clearedFromThreadPool`): it uses a pool with one thread and keeps that thread busy, then queues several tasks: one with no result, one returning `int`, one taking a `QPromise`, and one with a `.then()` continuation. After `clear()`, it checks that every future is Canceled and Finished, that the continuation was not called, and that `waitForFinished()` returns. If the test fails partway, it still releases the busy thread, so a failure is reported instead of the test hanging.\n\n**Results:**\n- **Without the fix:** the new test fails at `voidFuture.isFinished()`.\n- **With the fix, all passing:**\n  - `tst_qtconcurrentrun`: 27/27\n  - `tst_qfuture`: 88/88\n  - `tst_qthreadpool`: 73/73\n  - `tst_qtconcurrentmap`: 30/30\n\nWhile checking the test against the unfixed code, the hung test process was killed partway through a `git stash` round-trip. I restored the stashed fix with `git stash pop`, and the working tree has both changes again. Nothing is committed yet.",
+ "ttft_ms": 5137,
+ "type": "result",
+ "duration_ms": 571850,
+ "ttft_stream_ms": 1391,
+ "time_to_request_ms": 242,
+ "time_to_request_phases_ms": {
+  "other": 16,
+  "system_prompt": 7,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 11,
+  "input_hooks": 2,
+  "transcript_persist": 10,
+  "tool_pool_refresh": 1,
+  "init_message": 1,
+  "engine_pickup": 2,
+  "message_prep": 0,
+  "model_config_wait": 182,
+  "autocompact": 0,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 4,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 20,
+ "time_to_request_cpu_ms": 282,
+ "time_to_request_major_faults": 414,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 14,
+  "major_faults": 26
+ },
+ "first_content_frame_ms": 1391,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

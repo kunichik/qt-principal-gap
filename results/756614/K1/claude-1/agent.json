@@ -1,0 +1,143 @@
+{
+ "duration_api_ms": 146483,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 0.9927982,
+ "usage": {
+  "input_tokens": 44,
+  "cache_creation_input_tokens": 56454,
+  "cache_read_input_tokens": 1397783,
+  "output_tokens": 13064,
+  "output_tokens_details": {
+   "thinking_tokens": 3610
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 56454,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1052,
+    "cache_read_input_tokens": 81140,
+    "cache_creation_input_tokens": 511,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 511
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1426,
+   "outputTokens": 22,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001536,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 44,
+   "outputTokens": 13064,
+   "cacheReadInputTokens": 1397783,
+   "cacheCreationInputTokens": 56454,
+   "webSearchRequests": 0,
+   "costUSD": 0.9926446,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 3610,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 23,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "I added `QThreadStorage<T>::clearLocalData()` with documentation and autotests, and used it to switch QCollator's per-thread cache to value-based storage. The new tests and `tst_qcollator` pass in the b3 debug build. Nothing is committed.\n\n**The new function** (`src/corelib/thread/qthreadstorage.h`)\n- **Threaded build:** it calls `d.set(nullptr)`. That code path already deletes the old payload for both pointer and value storage, and copes with a payload destructor that uses QThreadStorage again. No new exported symbol is needed, so binary compatibility is unaffected.\n- **No-thread build:** it calls `data.reset()`. The existing deleter frees the payload in both variants. I couldn't compile or test this variant here.\n\n**Docs** (`qthreadstorage.cpp`)\n- New `\\fn` block marked `\\since 6.13` (the version in `.cmake.conf`).\n- The class overview and both caveats (\"may re-create storage during shutdown\" and \"when data is deleted\") now mention it.\n- `hasLocalData()` and `setLocalData()` link to it.\n\n**Autotests** (`tst_qthreadstorage.cpp`)\n- `clearLocalData()`: pointer storage. Clearing when empty does nothing, clearing deletes the payload, clearing twice is fine, and the storage can be used again afterwards.\n- `clearLocalData_valueBased()`: counted value types (whether set explicitly or created by `localData()`), `QString` (after clearing, `localData()` gives a fresh null string) and a move-only `std::unique_ptr` payload.\n- `clearLocalData_perThread()`: clearing in one thread doesn't touch another thread's data, in either direction.\n- `clearInDestructor()`: a payload whose destructor calls `clearLocalData()` on its own storage. Its name echoes the existing `resetInDestructor` test.\n\n**Where it's used:** `src/corelib/text/qcollator.cpp`. `GenerationalCollatorHolder` stored a `GenerationalCollator*` only so it could free it with `setLocalData(nullptr)`, which meant creating the object by hand in `localData()`. It now uses `QThreadStorage<GenerationalCollator>`, so `localData()` is a one-liner and the destructor calls `clearLocalData()`. I kept the `QThreadData::currentThreadData()` guard, because `clearLocalData()` would also re-create the thread data during shutdown.\n\n**Not converted:**\n- `QFontCache` and `QHttpThreadDelegate::connections` also clear pointer storage. Their payloads are QObjects that are already handled through pointers throughout, so value storage wouldn't make them simpler.\n- The other `QThreadStorage<T*>` uses never clear, so the new function doesn't help them.\n\nTo run `tst_qthreadstorage`, start it from its build directory. `crashOnExit` looks for its helper at `./crashOnExit_helper` and fails when run from anywhere else, regardless of this change.",
+ "ttft_ms": 2395,
+ "type": "result",
+ "duration_ms": 177353,
+ "ttft_stream_ms": 2097,
+ "time_to_request_ms": 270,
+ "time_to_request_phases_ms": {
+  "other": 14,
+  "system_prompt": 5,
+  "resume_other": 1,
+  "process_user_input": 2,
+  "input_attachments": 7,
+  "input_hooks": 1,
+  "transcript_persist": 5,
+  "tool_pool_refresh": 1,
+  "init_message": 2,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 223,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 3,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 21,
+ "time_to_request_cpu_ms": 282,
+ "time_to_request_major_faults": 410,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 11,
+  "major_faults": 20
+ },
+ "first_content_frame_ms": 2097,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

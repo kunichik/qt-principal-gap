@@ -1,0 +1,8 @@
+{
+ "design_match": 0.45,
+ "reviewer_concerns": 0.8,
+ "minimality": 0.8,
+ "hidden_risk": 0.6,
+ "key_difference": "On EBUSY, (D) only drops the native lock (flock LOCK_UN / F_UNLCK) and keeps the fd open before retrying unlink. (B) instead closes the file handle entirely through a shared releaseLockFile() helper and also retries on ETXTBSY/EPERM, so (D) may still fail on servers that refuse to remove a file that is merely open.",
+ "judge_cost_usd": 0.0605774
+}

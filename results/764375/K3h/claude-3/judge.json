@@ -1,0 +1,8 @@
+{
+ "design_match": 0.15,
+ "reviewer_concerns": 0.75,
+ "minimality": 0.1,
+ "hidden_risk": 0.3,
+ "key_difference": "(B) adds a destructor to RunFunctionTaskBase that cancels and finishes an unfinished promise, while (D) adds a new exported QFutureRunnableGuard class and a new QFutureInterfaceBase::guardRunnable() API in corelib that wraps every run()/ThreadEngine runnable in an extra heap allocation and runs the task from the guard's destructor (possibly inside QThreadPool::clear() while the pool mutex is held, risking deadlock if a continuation or engine restarts work on the same pool), and it also changes the map/filter ThreadEngine paths that (B) deliberately left out of scope.",
+ "judge_cost_usd": 0.0646943
+}

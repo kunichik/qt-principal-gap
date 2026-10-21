@@ -1,0 +1,8 @@
+{
+ "design_match": 0.9,
+ "reviewer_concerns": 0.85,
+ "minimality": 0.85,
+ "hidden_risk": 0.9,
+ "key_difference": "D keeps GenerationalCollatorHolder as a wrapper around a value-based QThreadStorage member and adds extra early-return checks in QThreadStorageData::clear() (tls size/null entry) so it never grows tls, whereas B makes the holder inherit QThreadStorage<GenerationalCollator> and simply guards set(nullptr) on the existence of QThreadData.",
+ "judge_cost_usd": 0.07364749999999999
+}

@@ -1,0 +1,158 @@
+diff --git a/src/corelib/kernel/qobject_impl.h b/src/corelib/kernel/qobject_impl.h
+index 1c27e5fb..7d87db3e 100644
+--- a/src/corelib/kernel/qobject_impl.h
++++ b/src/corelib/kernel/qobject_impl.h
+@@ -16,26 +16,43 @@ QT_BEGIN_NAMESPACE
+ 
+ namespace QtPrivate {
+     /*
+-        Logic to statically generate the array of qMetaTypeId
+-        ConnectionTypes<FunctionPointer<Signal>::Arguments>::types() returns an array
+-        of int that is suitable for the types arguments of the connection functions.
+-
+-        The array only exist of all the types are declared as a metatype
+-        (detected using the TypesAreDeclaredMetaType helper struct)
+-        If one of the type is not declared, the function return 0 and the signal
+-        cannot be used in queued connection.
++        Logic to generate the array of meta type ids for the arguments of a
++        signal. ConnectionTypes<FunctionPointer<Signal>::Arguments>::types()
++        returns an array of int that is suitable for the types arguments of the
++        connection functions. Obtaining the array registers the types.
++
++        The array only exists if all the types can be used as meta types
++        (complete, not non-const references). This is determined the same way
++        as moc does for the metatype array it generates, using
++        qTryMetaTypeInterfaceForType(). If one of the types is not suitable,
++        the function returns nullptr and the argument types will be looked up
++        from the signal's QMetaMethod when the signal is first emitted.
++
++        Whether a type is complete may differ between translation units for
++        the same argument list, so the completeness check is parametrized by a
++        type that is unique to each translation unit, preventing the linker
++        from folding instantiations that made different decisions.
+     */
+-    template <typename ArgList> struct TypesAreDeclaredMetaType { enum { Value = false }; };
+-    template <> struct TypesAreDeclaredMetaType<List<>> { enum { Value = true }; };
+-    template <typename Arg, typename... Tail> struct TypesAreDeclaredMetaType<List<Arg, Tail...> >
+-    { enum { Value = QMetaTypeId2<Arg>::Defined && TypesAreDeclaredMetaType<List<Tail...>>::Value }; };
++    namespace {
++    struct ConnectionTypesUniqueTag {};
++    }
+ 
+-    template <typename ArgList, bool Declared = TypesAreDeclaredMetaType<ArgList>::Value > struct ConnectionTypes
++    template <typename ArgList, typename Unique = ConnectionTypesUniqueTag> struct ConnectionTypes;
++    template <typename Unique> struct ConnectionTypes<List<>, Unique>
+     { static const int *types() { return nullptr; } };
+-    template <> struct ConnectionTypes<List<>, true>
+-    { static const int *types() { return nullptr; } };
+-    template <typename... Args> struct ConnectionTypes<List<Args...>, true>
+-    { static const int *types() { static const int t[sizeof...(Args) + 1] = { (QtPrivate::QMetaTypeIdHelper<Args>::qt_metatype_id())..., 0 }; return t; } };
++    template <typename... Args, typename Unique> struct ConnectionTypes<List<Args...>, Unique>
++    {
++        static const int *types()
++        {
++            const QMetaTypeInterface *ifaces[] = { qTryMetaTypeInterfaceForType<Unique, Args>()... };
++            for (const QMetaTypeInterface *iface : ifaces) {
++                if (!iface)
++                    return nullptr;
++            }
++            static const int t[sizeof...(Args) + 1] = { QMetaType(qTryMetaTypeInterfaceForType<Unique, Args>()).id()..., 0 };
++            return t;
++        }
++    };
+ }
+ 
+ 
+diff --git a/tests/auto/corelib/kernel/qobject/tst_qobject.cpp b/tests/auto/corelib/kernel/qobject/tst_qobject.cpp
+index 7a8772c0..b1252863 100644
+--- a/tests/auto/corelib/kernel/qobject/tst_qobject.cpp
++++ b/tests/auto/corelib/kernel/qobject/tst_qobject.cpp
+@@ -138,6 +138,7 @@ private slots:
+     void connectFunctorArgDifference();
+     void connectFunctorOverloads();
+     void connectFunctorQueued();
++    void connectQueuedRegistersArgumentTypes();
+     void connectFunctorWithContext();
+     void connectFunctorWithContextUnique();
+     void connectFunctorDeadlock();
+@@ -6598,6 +6599,80 @@ void tst_QObject::connectFunctorQueued()
+     QCOMPARE(status, 2);
+ }
+ 
++namespace ConnectRegistersTypes {
++struct Gadget
++{
++    Q_GADGET
++public:
++    int value = 0;
++};
++
++struct PlainValue
++{
++    int value = 0;
++};
++
++class Object : public QObject
++{
++    Q_OBJECT
++public:
++    enum Enum { A, B };
++    Q_ENUM(Enum)
++};
++
++class Sender : public QObject
++{
++    Q_OBJECT
++signals:
++    void gadgetSignal(ConnectRegistersTypes::Gadget);
++    void enumSignal(ConnectRegistersTypes::Object::Enum);
++    void pointerSignal(ConnectRegistersTypes::Object *);
++    void constPointerSignal(const ConnectRegistersTypes::Object *);
++    void plainSignal(const ConnectRegistersTypes::PlainValue &);
++};
++} // namespace ConnectRegistersTypes
++
++void tst_QObject::connectQueuedRegistersArgumentTypes()
++{
++    using namespace ConnectRegistersTypes;
++    const char *names[] = {
++        "ConnectRegistersTypes::Gadget",
++        "ConnectRegistersTypes::Object::Enum",
++        "ConnectRegistersTypes::Object*",
++        "const ConnectRegistersTypes::Object*",
++        "ConnectRegistersTypes::PlainValue",
++    };
++    for (const char *name : names)
++        QVERIFY2(!QMetaType::fromName(name).isValid(), name);
++
++    Sender sender;
++    QEventLoop loop;
++    int count = 0;
++    auto slot = [&](auto &&...) { if (++count == 5) loop.quit(); };
++    QVERIFY(connect(&sender, &Sender::gadgetSignal, this, slot, Qt::QueuedConnection));
++    QVERIFY(connect(&sender, &Sender::enumSignal, this, slot, Qt::QueuedConnection));
++    QVERIFY(connect(&sender, &Sender::pointerSignal, this, slot, Qt::QueuedConnection));
++    QVERIFY(connect(&sender, &Sender::constPointerSignal, this, slot, Qt::QueuedConnection));
++    QVERIFY(connect(&sender, &Sender::plainSignal, this, slot, Qt::QueuedConnection));
++
++    QCOMPARE(QMetaType::fromName(names[0]), QMetaType::fromType<Gadget>());
++    QCOMPARE(QMetaType::fromName(names[1]), QMetaType::fromType<Object::Enum>());
++    QCOMPARE(QMetaType::fromName(names[2]), QMetaType::fromType<Object *>());
++    QCOMPARE(QMetaType::fromName(names[3]), QMetaType::fromType<const Object *>());
++    QCOMPARE(QMetaType::fromName(names[4]), QMetaType::fromType<PlainValue>());
++
++    Object o;
++    emit sender.gadgetSignal(Gadget());
++    emit sender.enumSignal(Object::B);
++    emit sender.pointerSignal(&o);
++    emit sender.constPointerSignal(&o);
++    emit sender.plainSignal(PlainValue());
++    QCOMPARE(count, 0);
++    QTimer::singleShot(5000, &loop, &QEventLoop::quit);
++    loop.exec();
++    QCOMPARE(count, 5);
++}
++
+ void tst_QObject::connectFunctorWithContext()
+ {
+     int status = 1;

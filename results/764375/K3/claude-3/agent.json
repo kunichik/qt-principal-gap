@@ -1,0 +1,143 @@
+{
+ "duration_api_ms": 348771,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 1.5210173000000002,
+ "usage": {
+  "input_tokens": 46,
+  "cache_creation_input_tokens": 64975,
+  "cache_read_input_tokens": 1526581,
+  "output_tokens": 34770,
+  "output_tokens_details": {
+   "thinking_tokens": 23006
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 64975,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1283,
+    "cache_read_input_tokens": 89237,
+    "cache_creation_input_tokens": 935,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 935
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1501,
+   "outputTokens": 334,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0003171,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 309,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 46,
+   "outputTokens": 34770,
+   "cacheReadInputTokens": 1526581,
+   "cacheCreationInputTokens": 64975,
+   "webSearchRequests": 0,
+   "costUSD": 1.5207002000000003,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 23006,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 23,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "`QThreadPool::clear()` no longer leaves QtConcurrent futures running forever: a task it removes now has its future canceled and finished. `waitForFinished()` returns, and `.onCanceled()` continuations run. Both new tests fail without the fix and pass with it, and the existing run/map/filter/threadengine/threadpool/future/promise suites still pass.\n\n**Root cause:** `QThreadPoolPrivate::clear()` (`src/corelib/thread/qthreadpool.cpp`) just took runnables out of the queue and deleted the auto-delete ones. The pool had no way to tell whoever owned the future. For `QtConcurrent::run()`, the `RunFunctionTask` (which holds the promise) was deleted without reporting finished. For `map()`/`filter()`, the non-auto-deleting `ThreadEngine` was dropped. It never released its barrier count, so it never finished its future and leaked itself and its `QFutureInterface`.\n\n**Fix:**\n- **Thread pool:** the pool now keeps a private registry mapping a runnable to a \"discard handler\" (`QThreadPoolPrivate::setDiscardHandler()` / `removeDiscardHandler()`). `clear()` calls the handler for each queued run it removes, after unlocking the mutex. It reads `autoDelete()` beforehand, because the same runnable can be queued more than once and the handler may delete it. Runnables with no handler behave exactly as before. Non-auto-delete runnables are never deleted or taken over by the pool.\n- **`QtConcurrent::run()`:** `QFutureInterfaceBase::setRunnable()`, which `RunFunctionTaskBase::start()` already calls, registers the handler. The handler does `reportCanceled()`, then `reportFinished()`, then `runContinuation()`. That is the same sequence `start()` uses when there is no pool, and it is what makes `.onCanceled()` fire. `reportFinished()` unregisters the handler. Because the change is out-of-line in QtCore, binaries that are already compiled get the fix too.\n- **`map()`/`filter()`:** `ThreadEngine::startAsynchronously()` registers through a new `ThreadEngineBase::setUpDiscardHandler()`, and `threadExit()` unregisters it. For each discarded run, the handler releases that run's barrier count. If it is the last run left, it cancels the future and calls `threadExit()`, so the engine finishes and deletes itself as it normally would. This handles the case where `tryStart(this)` has queued the engine several times.\n\n**Tests added:** `clearThreadPool()` in `tst_qtconcurrentrun` and `tst_qtconcurrentmap`. They cover plain `run()`, `run()` with a `QPromise`, a leak check with `LifetimeChecker`, `.onCanceled()`, and `map()`/`mapped()`.\n\n**Things to know:**\n- **ABI and API:** I added only non-virtual members, to `ThreadEngineBase` and to `QThreadPoolPrivate`. Code compiled against older headers gets the `map()`/`filter()` fix only after recompiling; the `run()` fix applies without recompiling.\n- **Small cost:** each pooled `QtConcurrent::run()` now does one extra hash insert and one remove under the pool mutex.\n- **Rare race:** if `clear()` removes a queued extra copy of an engine at the moment the other workers finish all the work, the future is reported as canceled even though the results are complete. The window is very small, and since `clear()` was called, reporting cancellation is defensible.\n- **No test for the multiple-copy case:** I didn't find a way to make the engine sit in the queue more than once reliably in a test.\n\nNothing is committed.",
+ "ttft_ms": 1812,
+ "type": "result",
+ "duration_ms": 906027,
+ "ttft_stream_ms": 1293,
+ "time_to_request_ms": 250,
+ "time_to_request_phases_ms": {
+  "other": 12,
+  "system_prompt": 5,
+  "resume_other": 1,
+  "process_user_input": 1,
+  "input_attachments": 6,
+  "input_hooks": 2,
+  "transcript_persist": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 2,
+  "engine_pickup": 0,
+  "message_prep": 1,
+  "model_config_wait": 210,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 3,
+  "message_normalization": 1,
+  "client_creation": 0,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 28,
+ "time_to_request_cpu_ms": 292,
+ "time_to_request_major_faults": 432,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 7,
+  "major_faults": 21
+ },
+ "first_content_frame_ms": 1293,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

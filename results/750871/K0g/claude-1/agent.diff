@@ -1,0 +1,221 @@
+diff --git a/src/corelib/kernel/qmetatype.h b/src/corelib/kernel/qmetatype.h
+index 193a0e37..af4b4a60 100644
+--- a/src/corelib/kernel/qmetatype.h
++++ b/src/corelib/kernel/qmetatype.h
+@@ -1262,6 +1262,8 @@ namespace QtPrivate
+ } // namespace QtPrivate
+ 
+ template <typename T, int =
++    QtPrivate::IsPointerToTypeDerivedFromQObject<T>::Value ? QMetaType::PointerToQObject :
++    QtPrivate::IsGadgetHelper<T>::IsRealGadget             ? QMetaType::IsGadget :
+     QtPrivate::IsPointerToGadgetHelper<T>::IsRealGadget    ? QMetaType::PointerToGadget :
+     QtPrivate::IsQEnumHelper<T>::Value                     ? QMetaType::IsEnumeration : 0>
+ struct QMetaTypeIdQObject
+@@ -1452,6 +1454,50 @@ inline int qRegisterMetaType(QMetaType meta)
+ }
+ 
+ #ifndef QT_NO_QOBJECT
++template <typename T>
++struct QMetaTypeIdQObject<T*, QMetaType::PointerToQObject>
++{
++    enum {
++        Defined = 1
++    };
++
++    static int qt_metatype_id()
++    {
++        Q_CONSTINIT static QBasicAtomicInt metatype_id = Q_BASIC_ATOMIC_INITIALIZER(0);
++        if (const int id = metatype_id.loadAcquire())
++            return id;
++        const char *const cName = T::staticMetaObject.className();
++        QByteArray typeName;
++        constexpr bool isConst = std::is_const_v<T>;
++        typeName.reserve(strlen(cName) + 1 + (isConst ? strlen("const ") : 0));
++        if constexpr (isConst)
++            typeName.append("const ");
++        typeName.append(cName).append('*');
++        const int newId = qRegisterNormalizedMetaType<T *>(typeName);
++        metatype_id.storeRelease(newId);
++        return newId;
++    }
++};
++
++template <typename T>
++struct QMetaTypeIdQObject<T, QMetaType::IsGadget>
++{
++    enum {
++        Defined = std::is_default_constructible<T>::value
++    };
++
++    static int qt_metatype_id()
++    {
++        Q_CONSTINIT static QBasicAtomicInt metatype_id = Q_BASIC_ATOMIC_INITIALIZER(0);
++        if (const int id = metatype_id.loadAcquire())
++            return id;
++        const char *const cName = T::staticMetaObject.className();
++        const int newId = qRegisterNormalizedMetaType<T>(cName);
++        metatype_id.storeRelease(newId);
++        return newId;
++    }
++};
++
+ template <typename T>
+ struct QMetaTypeIdQObject<T*, QMetaType::PointerToGadget>
+ {
+diff --git a/src/corelib/kernel/qobject_impl.h b/src/corelib/kernel/qobject_impl.h
+index 1c27e5fb..d9d99fce 100644
+--- a/src/corelib/kernel/qobject_impl.h
++++ b/src/corelib/kernel/qobject_impl.h
+@@ -20,22 +20,49 @@ namespace QtPrivate {
+         ConnectionTypes<FunctionPointer<Signal>::Arguments>::types() returns an array
+         of int that is suitable for the types arguments of the connection functions.
+ 
+-        The array only exist of all the types are declared as a metatype
+-        (detected using the TypesAreDeclaredMetaType helper struct)
+-        If one of the type is not declared, the function return 0 and the signal
+-        cannot be used in queued connection.
++        The array only exist if all the types can be registered as a metatype
++        (detected using the TypesAreDeclaredMetaType helper struct): either they
++        are declared as a metatype, or they are complete types (not non-const
++        references) that QMetaType::fromType() can register automatically.
++        If one of the type is not usable, the function return 0 and the types
++        will be computed from the signal's signature when it is queued.
+     */
++    template <typename Arg> struct IsAutoRegisterableConnectionType
++    {
++        using Decayed = typename MetatypeDecay<Arg>::type;
++        static constexpr bool isUsablePointer()
++        {
++            if constexpr (std::is_pointer_v<Decayed> && !IsPointerDeclaredOpaque<Decayed>::value)
++                return is_complete<std::remove_pointer_t<Decayed>, void>::value;
++            else
++                return true;
++        }
++        enum { Value = !std::is_reference_v<Decayed> && !std::is_void_v<Decayed>
++                       && is_complete<Decayed, void>::value && isUsablePointer() };
++    };
++
++    template <typename Arg> struct IsConnectionTypeRegisterable
++    { enum { Value = QMetaTypeId2<Arg>::Defined || IsAutoRegisterableConnectionType<Arg>::Value }; };
++
+     template <typename ArgList> struct TypesAreDeclaredMetaType { enum { Value = false }; };
+     template <> struct TypesAreDeclaredMetaType<List<>> { enum { Value = true }; };
+     template <typename Arg, typename... Tail> struct TypesAreDeclaredMetaType<List<Arg, Tail...> >
+-    { enum { Value = QMetaTypeId2<Arg>::Defined && TypesAreDeclaredMetaType<List<Tail...>>::Value }; };
++    { enum { Value = IsConnectionTypeRegisterable<Arg>::Value && TypesAreDeclaredMetaType<List<Tail...>>::Value }; };
++
++    template <typename Arg> inline int connectionTypeId()
++    {
++        if constexpr (bool(QMetaTypeId2<Arg>::Defined))
++            return QMetaTypeIdHelper<Arg>::qt_metatype_id();
++        else
++            return QMetaType::fromType<typename MetatypeDecay<Arg>::type>().id();
++    }
+ 
+     template <typename ArgList, bool Declared = TypesAreDeclaredMetaType<ArgList>::Value > struct ConnectionTypes
+     { static const int *types() { return nullptr; } };
+     template <> struct ConnectionTypes<List<>, true>
+     { static const int *types() { return nullptr; } };
+     template <typename... Args> struct ConnectionTypes<List<Args...>, true>
+-    { static const int *types() { static const int t[sizeof...(Args) + 1] = { (QtPrivate::QMetaTypeIdHelper<Args>::qt_metatype_id())..., 0 }; return t; } };
++    { static const int *types() { static const int t[sizeof...(Args) + 1] = { (QtPrivate::connectionTypeId<Args>())..., 0 }; return t; } };
+ }
+ 
+ 
+diff --git a/tests/auto/corelib/kernel/qobject/tst_qobject.cpp b/tests/auto/corelib/kernel/qobject/tst_qobject.cpp
+index 7a8772c0..7a6be819 100644
+--- a/tests/auto/corelib/kernel/qobject/tst_qobject.cpp
++++ b/tests/auto/corelib/kernel/qobject/tst_qobject.cpp
+@@ -125,6 +125,7 @@ private slots:
+     void connectCxx17Noexcept();
+     void connectConvert();
+     void connectWithReference();
++    void connectRegistersArgumentTypes();
+     void connectManyArguments();
+     void connectForwardDeclare();
+     void connectNoDefaultConstructorArg();
+@@ -5555,6 +5556,84 @@ void tst_QObject::connectConvert()
+     QCOMPARE(var, obj.var);
+ }
+ 
++struct ConnectAutoRegGadget
++{
++    Q_GADGET
++public:
++    int value = 0;
++};
++
++struct ConnectAutoRegComplete
++{
++    int value = 0;
++};
++
++class ConnectAutoRegObject : public QObject
++{
++    Q_OBJECT
++public:
++    enum AutoRegEnum { AutoRegA, AutoRegB };
++    Q_ENUM(AutoRegEnum)
++signals:
++    void gadgetSignal(ConnectAutoRegGadget);
++    void gadgetRefSignal(const ConnectAutoRegGadget &);
++    void enumSignal(ConnectAutoRegObject::AutoRegEnum);
++    void objectPtrSignal(ConnectAutoRegObject *);
++    void constObjectPtrSignal(const ConnectAutoRegObject *);
++    void completeSignal(ConnectAutoRegComplete);
++};
++
++void tst_QObject::connectRegistersArgumentTypes()
++{
++    // Connecting must register the signal's argument types, even when they
++    // were not declared with Q_DECLARE_METATYPE.
++    ConnectAutoRegObject o;
++    auto connectQueued = [&o](auto signal) {
++        return bool(connect(&o, signal, &o, [](auto) {}, Qt::QueuedConnection));
++    };
++
++    QVERIFY(!QMetaType::fromName("ConnectAutoRegGadget").isValid());
++    QVERIFY(connectQueued(&ConnectAutoRegObject::gadgetSignal));
++    QCOMPARE(QMetaType::fromName("ConnectAutoRegGadget"),
++             QMetaType::fromType<ConnectAutoRegGadget>());
++
++    QVERIFY(!QMetaType::fromName("ConnectAutoRegObject::AutoRegEnum").isValid());
++    QVERIFY(connectQueued(&ConnectAutoRegObject::enumSignal));
++    QCOMPARE(QMetaType::fromName("ConnectAutoRegObject::AutoRegEnum"),
++             QMetaType::fromType<ConnectAutoRegObject::AutoRegEnum>());
++
++    QVERIFY(!QMetaType::fromName("ConnectAutoRegObject*").isValid());
++    QVERIFY(connectQueued(&ConnectAutoRegObject::objectPtrSignal));
++    QCOMPARE(QMetaType::fromName("ConnectAutoRegObject*"),
++             QMetaType::fromType<ConnectAutoRegObject *>());
++
++    QVERIFY(!QMetaType::fromName("const ConnectAutoRegObject*").isValid());
++    QVERIFY(connectQueued(&ConnectAutoRegObject::constObjectPtrSignal));
++    QCOMPARE(QMetaType::fromName("const ConnectAutoRegObject*"),
++             QMetaType::fromType<const ConnectAutoRegObject *>());
++
++    QVERIFY(!QMetaType::fromName("ConnectAutoRegComplete").isValid());
++    QVERIFY(connectQueued(&ConnectAutoRegObject::completeSignal));
++    QCOMPARE(QMetaType::fromName("ConnectAutoRegComplete"),
++             QMetaType::fromType<ConnectAutoRegComplete>());
++
++    QVERIFY(connectQueued(&ConnectAutoRegObject::gadgetRefSignal));
++
++    // and the queued connections deliver
++    int received = 0;
++    connect(&o, &ConnectAutoRegObject::gadgetRefSignal, &o,
++            [&](const ConnectAutoRegGadget &g) { received = g.value; }, Qt::QueuedConnection);
++    ConnectAutoRegComplete c;
++    c.value = 7;
++    connect(&o, &ConnectAutoRegObject::completeSignal, &o,
++            [&](ConnectAutoRegComplete v) { received += v.value; }, Qt::QueuedConnection);
++    ConnectAutoRegGadget g;
++    g.value = 35;
++    emit o.gadgetRefSignal(g);
++    emit o.completeSignal(c);
++    QTRY_COMPARE(received, 42);
++}
++
+ class ConnectWithReferenceObject : public QObject {
+     Q_OBJECT
+     friend class tst_QObject;

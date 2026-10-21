@@ -1,0 +1,15 @@
+{
+ "task": "754345",
+ "arm": "K0",
+ "rep": "0",
+ "agent": "oracle",
+ "model": "opus",
+ "tests": {
+  "tests/auto/corelib/serialization/qxmlstream": {
+   "build": "NOT-IN-BUILD"
+  }
+ },
+ "cost_usd": null,
+ "turns": null,
+ "wall_s": null
+}

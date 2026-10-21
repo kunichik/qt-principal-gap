@@ -1,0 +1,8 @@
+{
+ "design_match": 0.5,
+ "reviewer_concerns": 0.8,
+ "minimality": 0.65,
+ "hidden_risk": 0.55,
+ "key_difference": "(D) implements clearLocalData() as an unconditional d.set(nullptr) with no QThreadData::currentThreadData() guard, so (unlike (B)'s new QThreadStorageData::clear()) it can re-create thread-local storage during shutdown, leaving the guard in qcollator and documenting the new API as shutdown-unsafe, while (B) makes it the one function that is unconditionally safe at shutdown.",
+ "judge_cost_usd": 0.0874754
+}

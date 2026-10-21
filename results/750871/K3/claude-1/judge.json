@@ -1,0 +1,8 @@
+{
+ "design_match": 0.5,
+ "reviewer_concerns": 0.4,
+ "minimality": 0.6,
+ "hidden_risk": 0.35,
+ "key_difference": "(D) uses the signal's member-function-pointer type `Func1` as the completeness-test discriminator, which is the same type in every translation unit, so `ConnectionTypes<..., Func1>::types()` can still differ between TUs where an argument's completeness differs, and the linker may fold in the wrong version (the ODR issue the reviewer raised); (B) uses an anonymous-namespace `UniqueType` that is unique per TU and threads it into `is_complete` through a shared `TypeIsSuitableForMetaType`, without changing the `connect()` call sites.",
+ "judge_cost_usd": 0.0689622
+}

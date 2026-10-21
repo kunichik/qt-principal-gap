@@ -1,0 +1,12 @@
+{
+ "verdict": "NOT_OK",
+ "problems": [
+  "The card says to drain whatever the destructors post 'in turn' but omits the bounded-pass requirement (MaxPasses). Reviewers treated the reason for the cap as essential: ~QEvent() can run arbitrary code that posts new events, so the drain must be limited to avoid an infinite loop. Without this, an engineer could write an unbounded loop.",
+  "The card omits the reviewers' point that the destructor-running loop must be separate from the swap-and-collect step and run last, because destructors may run arbitrary code. Reviewers asked for this to be stated as a comment.",
+  "The card omits the reviewers' decision that retaining postEventList's allocated capacity is a non-goal. Reallocating when a new event is added is acceptable, so an engineer may otherwise try to preserve capacity.",
+  "The card says 'a correct implementation already exists in removePostedEvents()'. The commit only says the drain step matches what removePostedEvents() already does. It does not say that function is the correct model for the unlocked deletion, so the claim is overstated."
+ ],
+ "model": "haiku",
+ "source": false,
+ "cost_usd": 0.00327865
+}

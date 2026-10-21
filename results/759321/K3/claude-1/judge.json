@@ -1,0 +1,8 @@
+{
+ "design_match": 0.45,
+ "reviewer_concerns": 0.75,
+ "minimality": 0.55,
+ "hidden_risk": 0.55,
+ "key_difference": "(B) still unlinks while the lock is held and only falls back to close-then-unlink on EBUSY/ETXTBSY/EPERM, whereas (D) always closes (dropping the lock) before unlinking and patches the resulting race with an fstat/lstat inode comparison that leaves a TOCTOU window between lstat and unlink and also reports a replaced file as ENOENT ('gone') success.",
+ "judge_cost_usd": 0.064708
+}

@@ -1,0 +1,8 @@
+{
+ "design_match": 0.6,
+ "reviewer_concerns": 0.85,
+ "minimality": 0.75,
+ "hidden_risk": 0.75,
+ "key_difference": "(D) adds a new clearNativeLocks() helper and retries unlink only on EBUSY after explicitly dropping the lock, while (B) consolidates unlink, close and the warning into a single releaseLockFile() that closes the fd first and then retries on EBUSY/ETXTBSY/EPERM, treating ENOENT/ENOTDIR as success in both callers.",
+ "judge_cost_usd": 0.0566948
+}

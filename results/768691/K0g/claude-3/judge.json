@@ -1,0 +1,8 @@
+{
+ "design_match": 0.35,
+ "reviewer_concerns": 0.6,
+ "minimality": 0.4,
+ "hidden_risk": 0.4,
+ "key_difference": "(D) adds a separate decodeForLocalFile() that re-decodes valid percent-encoded UTF-8 and ignores characters that were not percent-encoded, whereas (B) extends the existing decode() to fail on any decoded byte >= 0x80 (valid UTF-8 is already stored decoded in QUrl) and, on Windows, also rejects literal backslashes, which QUrl stores in decoded form and which (D) therefore lets through unchecked.",
+ "judge_cost_usd": 0.1003154
+}

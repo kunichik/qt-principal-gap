@@ -1,0 +1,8 @@
+{
+ "design_match": 0.9,
+ "reviewer_concerns": 0.95,
+ "minimality": 0.95,
+ "hidden_risk": 0.9,
+ "key_difference": "The candidate's helper returns errno and leaves the warning in unlock(), so a failed stale-lock removal in removeStaleLock() is silent; the maintainer's releaseLockFile() emits the warning itself on both paths. Otherwise the logic is equivalent: unlink, close, retry on EBUSY/ETXTBSY/EPERM, return true only if the file is gone, and delete only when native locks were acquired.",
+ "judge_cost_usd": 0.0560423
+}

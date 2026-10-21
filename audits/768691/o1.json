@@ -1,0 +1,10 @@
+{
+ "verdict": "NOT_OK",
+ "problems": [
+  "The card leaves out the main substantive review issue (PS12/PS13). Reviewers flagged that the documentation contradicted the code on what happens to `appendTo` when the function fails. The code cleared `appendTo` to a null QString, but the doc implied the earlier content and its null/empty state were kept. `origSize` cannot tell empty from null. Reviewers required one of three fixes: document that failure clears `appendTo` to a null QString, record `wasNull` at entry and restore it, or document and Q_PRE() that `appendTo` must be null on entry. The engineer needs this to get the failure-path contract right.",
+  "The claim that 'on Windows a literal backslash in the input is also a problem' has no support in the source. The commit message and task only name a *decoded* backslash (%5C) on Windows as unsafe. Rejecting a literal backslash would be a separate behaviour change that nobody asked for."
+ ],
+ "model": "opus",
+ "source": false,
+ "cost_usd": 0.047342800000000004
+}

@@ -1,0 +1,14 @@
+QTimeZone: Reject all-dot components in isValidId()
+
+isValidId() accepted an id component made entirely of dots, including
+"..". No IANA/POSIX zone database uses such name, and ".." is a parent
+directory reference that a zone id should never contain.
+
+Track the dot count per component alongside its length and reject any
+component that is all dots. Components that merely contain a dot are
+unaffected.
+
+Pick-to: 6.12 6.8
+Fixes: QTBUG-151012
+Change-Id: I8ec70f2dac98b62dfd707f54c43a8318a2073325
+Reviewed-by: Edward Welbourne <edward.welbourne@qt.io>

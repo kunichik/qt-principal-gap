@@ -1,0 +1,108 @@
+{
+ "duration_api_ms": 126323,
+ "stop_reason": "stop_sequence",
+ "total_cost_usd": 0.7080363000000002,
+ "usage": {
+  "input_tokens": 26,
+  "cache_creation_input_tokens": 40693,
+  "cache_read_input_tokens": 583827,
+  "output_tokens": 13273,
+  "output_tokens_details": {
+   "thinking_tokens": 6740
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 40693,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 739,
+    "cache_read_input_tokens": 63205,
+    "cache_creation_input_tokens": 2685,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2685
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1519,
+   "outputTokens": 22,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001629,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 26,
+   "outputTokens": 13273,
+   "cacheReadInputTokens": 583827,
+   "cacheCreationInputTokens": 40693,
+   "webSearchRequests": 0,
+   "costUSD": 0.7078734000000001,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 6740,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "api_error",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": true,
+ "num_turns": 19,
+ "subtype": "success",
+ "api_error_status": 429,
+ "api_error": "usage_limit_reached",
+ "result": "You've hit your session limit \u00b7 resets 10:40pm (America/Toronto)",
+ "type": "result",
+ "duration_ms": 128061,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

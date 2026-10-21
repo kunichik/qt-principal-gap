@@ -1,0 +1,32 @@
+[PS2 Reviewer 15 src/corelib/text/qbytearray.h:885]
+This was deprecated. Don't change, no one should be using this now.
+
+[PS2 Reviewer 15 src/corelib/text/qbytearray.h:885]
+Yes.
+
+Though I am reconsidering the `QStringLiteral()` and `QByteArrayLiteral()` case. There are places where you can't do the `using namespace` and thus it's very hard to access the new functionality.
+
+[PS2 Reviewer 15 src/corelib/text/qbytearray.h:885]
+My original thinking was that new code would never need them. But that's probably wrong, as I said: there are scenarios one needs them where the operator is cumbersome.
+
+[PS2 Reviewer 18 src/corelib/text/qbytearray.h:885]
+QStringLiteral() and QByteArrayLiteral() are still widely used even in Qt6 applications, so I think it would be great if they can produce constexpr results :)
+
+[PS2 Reviewer 15 src/corelib/text/qbytearray.h:885]
+Widely used is one thing. But obviously they are not used in any constexpr context right now. So their totality of use today is irrelevant.
+
+The question is whether **new** `constexpr` code would have difficulty in using the UDL operators. I think there are such cases, so yes, let's make the two macros constexpr-capable too.
+
+The older operators don't need to be updated. They produce warnings when used, so you're not going to write **new** constexpr code with them.
+
+[PS2 Reviewer 15 src/corelib/text/qbytearray.h:885]
+How about removing the `consteval` and leaving it as plain `constexpr` ?
+
+[PS3 Reviewer 15 src/corelib/text/qbytearray.h:96]
+Let's make this one constexpr too, but separate commit like QString.
+
+[PS3 Reviewer 15 src/corelib/text/qbytearray.h:105]
+See comments on qstring.h
+
+[PS5 Reviewer 15 src/corelib/text/qbytearray.h:97]
+#if !Qt 7 like QString.

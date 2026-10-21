@@ -1,0 +1,45 @@
+[PS1 Reviewer 02 src/corelib/io/qlockfile_unix.cpp:323]
+`QFileSystemEngine::renameFile` has code to fallback to `link`+`unlink` if `renameat2()` returns `EINVAL` (the comment says "non-local filesystems" which I suppose includes NFS). Why not use `renameat2()` directly here, to avoid that fallback?
+
+[PS1 Reviewer 02 src/corelib/io/qlockfile_unix.cpp:325]
+What if we do get EEXIST? Right now it'll proceed as if the renaming was a success, and unlink `attempt`. Should be `else continue;`, right?
+
+[PS2 Reviewer 02 src/corelib/io/qlockfile_unix.cpp:211]
+The call to `releaseLockFile()` no longer depends on the success of `setNativeLocks()`. If it fails because an active process holds the lock (and has done so for more than 30s), we remove it anyway.
+
+Note the existing staleShort/LongLockFromBusyProcess tests don't catch this: removeStaleLock() still returns false, so the `QVERIFY(!tryLock())` passes while the file quietly disappears — they should also verify the lock file still exists.
+
+[PS2 Reviewer 02 src/corelib/io/qlockfile_unix.cpp:338]
+This line needs to be removed. `releaseLockFile` already closed `d->fileHandle` with `qt_safe_close`.
+
+[PS3 Reviewer 02 /COMMIT_MSG:37]
+Depends on errno...
+
+EWOULDBLOCK (EACCES/EAGAIN for the Android fcntl path) means a live process holds the lock. ENOLCK/EOPNOTSUPP/EINVAL/ENOSYS mean the filesystem can't do locks at all so the failure tell us nothing.
+
+You handle the first kind now, but for the second kind "not stale" is wrong: on a no-lock filesystem stale locks become permanently unremovable (silently — same symptom as this bug). Since we already treat "no native locks" as success on platforms compiled without flock, the runtime case should degrade the same way: proceed with removal, trusting the staleness heuristics. In tryLock_sys() the missing handling is the other case: EWOULDBLOCK on a file we just created with O_EXCL means a stale-lock thief grabbed our fresh file so instead of proceeding without protection, close and return LockFailedError to go around the retry loop. For unknown errnos, default to treating it as held: when in doubt, don't delete.
+
+[PS3 Reviewer 02 /COMMIT_MSG:37]
+Claude says it can be fixed in tryLock_sys() with two small fixes:
+
+* First, if setNativeLocks() fails with EWOULDBLOCK on the file we just created, a stale-lock remover flocked it before us: close and return LockFailedError instead of  warning and proceeding.
+
+* Second, after locking and writing our data, verify we still own the name: fstat(fd) vs stat(fileName), compare st_dev/st_ino. If they differ or the file is gone, our file was removed or replaced while we were acquiring: close and return LockFailedError, and the retry loop starts over.
+
+Between the two, the suspended locker can't return success on a deleted file: either the remover flocked first (check 1), or it flocked, unlinked and closed before our flock — and then the stat comparison catches it (check 2). Once we hold the flock and have verified, removal requires taking the flock, which fails. On filesystems where locks don't work at all this can't be made airtight, but that's the pre-existing degraded mode.
+
+(unrelated to EBUSY/NFS, so probably for a separate commit)
+
+[PS3 Reviewer 02 /COMMIT_MSG:49]
+I don't think it's harmless. In lock(), if removeStaleLock() returns true, we call continue, which skips the sleep at the bottom of the loop. If the unlink fails persistently, lock() busy-loops without sleeping, printing the warning each round — forever, with the default infinite timeout.
+
+[PS3 Reviewer 02 /COMMIT_MSG:50]
+It could also be the sticky-bit case: in a /tmp-style directory we can create .rmlock but still can't unlink another user's stale lock file. Immutable files too. How about making releaseLockFile() return true if and only if the file is truly gone? As it says, "returns true on success", that's a simpler API than "might return true even on failure".
+
+[PS5 Reviewer 02 /COMMIT_MSG:51]
+This paragraph needs to be updated to describe the new patchset.
+
+e.g.: "removeStaleLock() now returns whether the lock file is actually gone; if it cannot be removed (e.g. another user's stale lock in a sticky directory), lock() falls back to sleeping between attempts."
+
+[PS5 Reviewer 02 /PATCHSET_LEVEL:0]
+Looks good otherwise

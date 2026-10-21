@@ -1,0 +1,8 @@
+{
+ "design_match": 0.7,
+ "reviewer_concerns": 1.0,
+ "minimality": 0.85,
+ "hidden_risk": 0.9,
+ "key_difference": "(D) implements toNumber() as an exported out-of-line function in the .cpp, with a type() switch and special handling of negative integers, where (B) keeps it inline in the header next to toInteger() and reuses _toFloatingPoint<T>() directly, adding no new exported symbol.",
+ "judge_cost_usd": 0.0633859
+}

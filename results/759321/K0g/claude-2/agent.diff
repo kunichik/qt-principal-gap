@@ -1,0 +1,207 @@
+diff --git a/src/corelib/io/qlockfile_unix.cpp b/src/corelib/io/qlockfile_unix.cpp
+index 421412f2..99ab7fe6 100644
+--- a/src/corelib/io/qlockfile_unix.cpp
++++ b/src/corelib/io/qlockfile_unix.cpp
+@@ -133,6 +133,62 @@ static bool setNativeLocks(int fd)
+     return true;
+ }
+ 
++#ifdef QT_BUILD_INTERNAL
++// used in tst_QLockFile to simulate file systems refusing to remove locked files
++Q_AUTOTEST_EXPORT int (*qt_lockfile_unlink_hook)(const char *) = nullptr;
++#endif
++
++static int lockFileUnlink(const char *fileName)
++{
++#ifdef QT_BUILD_INTERNAL
++    if (qt_lockfile_unlink_hook)
++        return qt_lockfile_unlink_hook(fileName);
++#endif
++    return ::unlink(fileName);
++}
++
++/*
++ * Removes the lock file \a fileName and closes \a fd, which refers to it and
++ * on which we hold the native lock.
++ *
++ * Normally the file is removed while the lock is still held, so that nobody
++ * can create a new lock file in its place that we would then remove. However,
++ * some network file systems (e.g. NFSv4.2) refuse to remove or rename a file
++ * on which a lock is held and fail with EBUSY. In that case, release the lock
++ * by closing the file descriptor and try again, provided the path still refers
++ * to the file we had open.
++ *
++ * Returns 0 on success, -1 with errno set otherwise. If the file was replaced
++ * in the meantime, it is not removed and errno is set to ENOENT.
++ */
++static int unlinkAndClose(const char *fileName, int fd)
++{
++    int ret = lockFileUnlink(fileName);
++    if (ret == 0 || errno != EBUSY) {
++        const int savedErrno = errno;
++        qt_safe_close(fd);
++        errno = savedErrno;
++        return ret;
++    }
++
++    QT_STATBUF before;
++    const bool haveStat = QT_FSTAT(fd, &before) == 0;
++    qt_safe_close(fd);
++    if (!haveStat) {
++        errno = EBUSY;
++        return -1;
++    }
++
++    QT_STATBUF after;
++    if (QT_STAT(fileName, &after) != 0)
++        return -1;
++    if (after.st_dev != before.st_dev || after.st_ino != before.st_ino) {
++        errno = ENOENT; // someone else's lock file now, not ours to remove
++        return -1;
++    }
++    return lockFileUnlink(fileName);
++}
++
+ QLockFile::LockError QLockFilePrivate::tryLock_sys()
+ {
+     const QByteArray lockFileName = QFile::encodeName(fileName);
+@@ -183,9 +239,12 @@ bool QLockFilePrivate::removeStaleLock()
+     if (fd < 0) // gone already?
+         return errno == ENOENT;
+ 
+-    bool success = setNativeLocks(fd) && (::unlink(lockFileName) == 0);
+-    close(fd);
+-    return success;
++    if (!setNativeLocks(fd)) {
++        qt_safe_close(fd);
++        return false;
++    }
++    // ENOENT: someone else removed (and maybe re-created) it already
++    return unlinkAndClose(lockFileName.constData(), fd) == 0 || errno == ENOENT;
+ }
+ 
+ bool QLockFilePrivate::isProcessRunning(qint64 pid, const QString &appname)
+@@ -310,14 +369,13 @@ void QLockFile::unlock()
+         return;
+ 
+     const QByteArray lockFileName = QFile::encodeName(d->fileName);
+-    int ret = unlink(lockFileName);
++    int ret = unlinkAndClose(lockFileName.constData(), d->fileHandle);
+     if (ret != 0 && errno != ENOENT && errno != ENOTDIR) {
+         qWarning("Could not remove our own lock file %s: %ls (maybe permissions changed meanwhile?)",
+                  lockFileName.constBegin(), qUtf16Printable(qt_error_string()));
+         // This is bad because other users of this lock file will now have to wait for the stale-lock-timeout...
+     }
+ 
+-    close(d->fileHandle);
+     d->fileHandle = -1;
+     d->lockError = QLockFile::NoError;
+     d->isLocked = false;
+diff --git a/tests/auto/corelib/io/qlockfile/tst_qlockfile.cpp b/tests/auto/corelib/io/qlockfile/tst_qlockfile.cpp
+index cb116ca4..37bd0105 100644
+--- a/tests/auto/corelib/io/qlockfile/tst_qlockfile.cpp
++++ b/tests/auto/corelib/io/qlockfile/tst_qlockfile.cpp
+@@ -7,6 +7,7 @@
+ #if QT_CONFIG(process)
+ #include <QProcess>
+ #endif
++#include <QScopeGuard>
+ #include <QSemaphore>
+ #include <QFutureSynchronizer>
+ 
+@@ -20,6 +21,8 @@
+ 
+ #include <sys/stat.h> // utimensat
+ #include <sys/time.h>
++#include <sys/file.h> // flock
++#include <fcntl.h>
+ #elif defined(Q_OS_WIN)
+ #  include <qt_windows.h>
+ #  include <QOperatingSystemVersion>
+@@ -29,6 +32,33 @@
+ 
+ using namespace std::chrono_literals;
+ 
++#if defined(QT_BUILD_INTERNAL) && defined(Q_OS_UNIX) && !defined(Q_OS_VXWORKS) \
++    && !defined(Q_OS_ANDROID) && defined(LOCK_EX) && defined(LOCK_NB)
++#  define HAVE_UNLINK_HOOK
++QT_BEGIN_NAMESPACE
++extern Q_CORE_EXPORT int (*qt_lockfile_unlink_hook)(const char *);
++QT_END_NAMESPACE
++
++static int busyUnlinkCount = 0;
++
++// Behaves like some network file systems (e.g. NFSv4.2), which refuse to
++// remove a file while someone holds a lock on it.
++static int unlinkFailingIfLocked(const char *fileName)
++{
++    const int fd = ::open(fileName, O_RDONLY);
++    if (fd >= 0) {
++        const bool locked = ::flock(fd, LOCK_EX | LOCK_NB) != 0 && errno == EWOULDBLOCK;
++        ::close(fd);
++        if (locked) {
++            ++busyUnlinkCount;
++            errno = EBUSY;
++            return -1;
++        }
++    }
++    return ::unlink(fileName);
++}
++#endif
++
+ class tst_QLockFile : public QObject
+ {
+     Q_OBJECT
+@@ -54,6 +84,7 @@ private slots:
+     void hostnameChange();
+     void differentMachines();
+     void reboot();
++    void unlinkFailsWhileLocked();
+ 
+ private:
+     static bool overwriteLineInLockFile(QFile &f, int line, const QString &newLine);
+@@ -691,5 +722,44 @@ struct LockFileUsageInGlobalDtor
+ };
+ LockFileUsageInGlobalDtor s_instance;
+ 
++void tst_QLockFile::unlinkFailsWhileLocked()
++{
++#ifndef HAVE_UNLINK_HOOK
++    QSKIP("This test requires a developer build with flock() support");
++#else
++    qt_lockfile_unlink_hook = unlinkFailingIfLocked;
++    const auto cleanup = qScopeGuard([] { qt_lockfile_unlink_hook = nullptr; });
++    QTest::failOnWarning();
++    busyUnlinkCount = 0;
++
++    const QString fileName = dir.path() + "/unlinkFailsWhileLocked";
++    {
++        QLockFile lockFile(fileName);
++        QVERIFY(lockFile.lock());
++        QVERIFY(QFile::exists(fileName));
++        lockFile.unlock();
++        QCOMPARE(busyUnlinkCount, 1);
++        QCOMPARE(lockFile.error(), QLockFile::NoError);
++        QVERIFY(!QFile::exists(fileName));
++    }
++
++    // A stale lock must be removable too
++    {
++        QFile file(fileName);
++        QVERIFY(file.open(QFile::WriteOnly));
++    }
++    busyUnlinkCount = 0;
++    QLockFile lockFile(fileName);
++    lockFile.setStaleLockTime(100ms);
++    QVERIFY(lockFile.tryLock(10s));
++    QCOMPARE(lockFile.error(), QLockFile::NoError);
++    // once for the stale lock file, once for the ".rmlock" guarding its removal
++    QCOMPARE(busyUnlinkCount, 2);
++    QVERIFY(!QFile::exists(fileName + ".rmlock"));
++    lockFile.unlock();
++    QVERIFY(!QFile::exists(fileName));
++#endif
++}
++
+ QTEST_MAIN(tst_QLockFile)
+ #include "tst_qlockfile.moc"

@@ -1,0 +1,173 @@
+diff --git a/src/corelib/kernel/qcoreapplication.cpp b/src/corelib/kernel/qcoreapplication.cpp
+index 4fcd8834..507344b8 100644
+--- a/src/corelib/kernel/qcoreapplication.cpp
++++ b/src/corelib/kernel/qcoreapplication.cpp
+@@ -527,15 +527,10 @@ void QCoreApplicationPrivate::cleanupThreadData()
+ #endif
+ 
+         // need to clear the state of the mainData, just in case a new QCoreApplication comes along.
++        // Events must not be deleted under the post event list mutex, as their
++        // destructors may post new events.
++        thisThreadData->clearEvents();
+         const auto locker = qt_scoped_lock(thisThreadData->postEventList.mutex);
+-        for (const QPostEvent &pe : std::as_const(thisThreadData->postEventList)) {
+-            if (pe.event) {
+-                pe.receiver->d_func()->postedEvents.fetchAndSubAcquire(1);
+-                pe.event->m_posted = false;
+-                delete pe.event;
+-            }
+-        }
+-        thisThreadData->postEventList.clear();
+         thisThreadData->postEventList.recursion = 0;
+         thisThreadData->quitNow = false;
+         threadData_clean = true;
+diff --git a/src/corelib/thread/qthread.cpp b/src/corelib/thread/qthread.cpp
+index 75e8cb52..f53215ed 100644
+--- a/src/corelib/thread/qthread.cpp
++++ b/src/corelib/thread/qthread.cpp
+@@ -73,14 +73,37 @@ QThreadData::~QThreadData()
+ 
+ void QThreadData::clearEvents()
+ {
+-    for (const auto &pe : std::as_const(postEventList)) {
+-        if (pe.event) {
+-            pe.receiver->d_func()->postedEvents.fetchAndSubRelaxed(1);
+-            pe.event->m_posted = false;
+-            delete pe.event;
++    // ~QEvent() may run arbitrary code, including posting new events (e.g.
++    // via deleteLater()), so the events must be deleted without holding the
++    // mutex and the list drained repeatedly. Limit the number of passes so a
++    // destructor that keeps posting events cannot make us loop forever.
++    constexpr int MaxPasses = 16;
++    for (int pass = 0; ; ++pass) {
++        QList<QPostEvent> events;
++        {
++            const auto locker = qt_scoped_lock(postEventList.mutex);
++            events.swap(postEventList);
++            postEventList.startOffset = 0;
++            postEventList.insertionOffset = 0;
++            // Unpost the whole batch before deleting any of it: an event's
++            // destructor may destroy another receiver in this batch.
++            for (const QPostEvent &pe : std::as_const(events)) {
++                if (pe.event) {
++                    pe.receiver->d_func()->postedEvents.fetchAndSubAcquire(1);
++                    pe.event->m_posted = false;
++                }
++            }
+         }
++        if (events.isEmpty())
++            break;
++        if (pass == MaxPasses) {
++            qWarning("QThreadData: events are still being posted while clearing the event queue; "
++                     "leaking %lld remaining event(s)", qlonglong(events.size()));
++            break;
++        }
++        for (const QPostEvent &pe : std::as_const(events))
++            delete pe.event;
+     }
+-    postEventList.clear();
+ }
+ 
+ QAbstractEventDispatcher *QThreadData::createEventDispatcher()
+diff --git a/tests/auto/corelib/kernel/qcoreapplication/tst_qcoreapplication.cpp b/tests/auto/corelib/kernel/qcoreapplication/tst_qcoreapplication.cpp
+index a06b883b..10e50787 100644
+--- a/tests/auto/corelib/kernel/qcoreapplication/tst_qcoreapplication.cpp
++++ b/tests/auto/corelib/kernel/qcoreapplication/tst_qcoreapplication.cpp
+@@ -1235,6 +1235,84 @@ void tst_QCoreApplication::QTBUG31606_QEventDestructorDeadLock()
+     QVERIFY(spy.recordedEvents.contains(QEvent::User + 2));
+ }
+ 
++void tst_QCoreApplication::postFromPendingEventDestructorOnExit()
++{
++    // Events still pending when the application is destroyed must be deleted
++    // without holding the post event list mutex, or a destructor that posts
++    // events (directly or via deleteLater()) deadlocks.
++    static int destroyedCount;
++    destroyedCount = 0;
++    struct Receiver : QObject
++    {
++        ~Receiver() override { ++destroyedCount; }
++    };
++    class PostingEvent : public QEvent
++    {
++    public:
++        PostingEvent(QObject *later, QObject *other, QObject *receiver)
++            : QEvent(QEvent::User), later(later), other(other), receiver(receiver) {}
++        ~PostingEvent() override
++        {
++            later->deleteLater();
++            QCoreApplication::postEvent(receiver, new QEvent(QEvent::Type(QEvent::User + 1)));
++            delete other; // also has an event pending in the same batch
++            delete receiver;
++        }
++    private:
++        QObject *later;
++        QObject *other;
++        QObject *receiver;
++    };
++
++    auto later = new Receiver;
++    {
++        int argc = 1;
++        char *argv[] = { const_cast<char*>(QTest::currentAppName()) };
++        TestApplication app(argc, argv);
++
++        auto other = new Receiver;
++        auto receiver = new Receiver;
++        QCoreApplication::postEvent(&app, new PostingEvent(later, other, receiver));
++        QCoreApplication::postEvent(other, new QEvent(QEvent::Type(QEvent::User + 2)));
++    }
++    QCOMPARE(destroyedCount, 2);
++    delete later; // its DeferredDelete was discarded, not delivered
++    QCOMPARE(destroyedCount, 3);
++}
++
++void tst_QCoreApplication::endlessPostingFromPendingEventDestructorOnExit()
++{
++    // An event that keeps re-posting itself on destruction must not make
++    // application shutdown loop forever.
++    class ReplicatingEvent : public QEvent
++    {
++    public:
++        explicit ReplicatingEvent(QObject *target) : QEvent(QEvent::User), target(target) {}
++        ~ReplicatingEvent() override
++        {
++            QCoreApplication::postEvent(target, new ReplicatingEvent(target));
++        }
++    private:
++        QObject *target;
++    };
++
++    QObject target;
++    int argc = 1;
++    char *argv[] = { const_cast<char*>(QTest::currentAppName()) };
++    {
++        TestApplication app(argc, argv);
++        QCoreApplication::postEvent(&target, new ReplicatingEvent(&target));
++        QTest::ignoreMessage(QtWarningMsg,
++                             QRegularExpression("leaking 1 remaining event"));
++    }
++    // A new application must start with a clean event queue.
++    TestApplication app(argc, argv);
++    EventSpy spy;
++    app.installEventFilter(&spy);
++    QCoreApplication::processEvents();
++    QVERIFY(!spy.recordedEvents.contains(QEvent::User));
++}
++
+ // this is almost identical to sendEventsOnProcessEvents
+ void tst_QCoreApplication::applicationEventFilters_mainThread()
+ {
+diff --git a/tests/auto/corelib/kernel/qcoreapplication/tst_qcoreapplication.h b/tests/auto/corelib/kernel/qcoreapplication/tst_qcoreapplication.h
+index 13dc68bf..2053f37d 100644
+--- a/tests/auto/corelib/kernel/qcoreapplication/tst_qcoreapplication.h
++++ b/tests/auto/corelib/kernel/qcoreapplication/tst_qcoreapplication.h
+@@ -46,6 +46,8 @@ private slots:
+     void customEventDispatcher();
+     void testQuitLock();
+     void QTBUG31606_QEventDestructorDeadLock();
++    void postFromPendingEventDestructorOnExit();
++    void endlessPostingFromPendingEventDestructorOnExit();
+     void applicationEventFilters_mainThread();
+     void applicationEventFilters_auxThread();
+     void threadedEventDelivery_data();

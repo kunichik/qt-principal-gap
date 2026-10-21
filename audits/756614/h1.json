@@ -1,0 +1,12 @@
+{
+ "verdict": "NOT_OK",
+ "problems": [
+  "The last bullet presents a senior maintainer's wariness as current guidance (\"keep the change minimal\") without the outcome. Reviewer 15's final comment says the change was maintainer-approved based on two +1s, so the card implies a live objection that reviewers resolved.",
+  "The card omits the reviewers' explicit test requirement that the cross-thread test use the thread-safe SPointer variant rather than the single-threaded value-based Pointer variant (Reviewer 02, PS1 and PS3). The card's general test guidance does not capture this decision.",
+  "The card omits that the helper the change relies on is private in the current code (Reviewer 15 asked how it was being called). Reviewer 03 answered that it is made public by the GenerationalCollatorHolder change, which is being picked back. An engineer following the card would not know this dependency exists.",
+  "The card says tests should cover \"a thread that never set data\", but no review comment asks for this case. The reviews ask for tests of the other cases and for checking that Pointer::count is unchanged, which the card does not mention."
+ ],
+ "model": "haiku",
+ "source": false,
+ "cost_usd": 0.00223017
+}

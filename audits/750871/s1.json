@@ -1,0 +1,13 @@
+{
+ "verdict": "NOT_OK",
+ "problems": [
+  "The card omits the branch-targeting decision: reviewers concluded the fix can only target 6.12+ (Pick-to: 6.12), because older branches lack commit b0f495735c30e400c9749c8b9f9823dbb56dfbd9 and the change is fairly large. The engineer should not backport further.",
+  "The card omits the compile-time/codegen concern Fabian raised: whether the change affects compilation time or codegen, and whether the compiler can eliminate the loop for the null check. The reviewers noted the null check cannot be replaced with `is_nullptr_t` here because the type is fixed.",
+  "The card omits the reviewers' decision that switching to a union is a good idea but should be done as a follow-up, so it is out of scope for this change.",
+  "The card's third bullet is vague about the fix. The reviewers' suggestion was to channel `UniqueType` through `TypeIsSuitableForMetaType` into `is_complete`. The card's phrasing, 'route the unique type through the suitability check into the completeness test', is only loosely equivalent and does not name these pieces. It also never says that `UniqueType` is what makes the change safe, or that the folding problem was demonstrated with a probe test on clang 22.1.7 and gcc 15.3.0.",
+  "The card says moc-generated code 'already solves this' and to reuse `qTryMetaTypeInterfaceForType()`. It leaves out that the commit message acknowledges a few corner cases in Qt 6 where types still need declaring and that remain not properly fixed. That is out of scope here, but the card implies full coverage."
+ ],
+ "model": "sonnet",
+ "source": false,
+ "cost_usd": 0.015684
+}

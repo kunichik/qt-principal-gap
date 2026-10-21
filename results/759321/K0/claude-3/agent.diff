@@ -1,0 +1,58 @@
+diff --git a/src/corelib/io/qlockfile_unix.cpp b/src/corelib/io/qlockfile_unix.cpp
+index 421412f2..7426a7de 100644
+--- a/src/corelib/io/qlockfile_unix.cpp
++++ b/src/corelib/io/qlockfile_unix.cpp
+@@ -133,6 +133,35 @@ static bool setNativeLocks(int fd)
+     return true;
+ }
+ 
++static void releaseNativeLocks(int fd)
++{
++#if defined(Q_OS_ANDROID)
++    struct flock fl;
++    fl.l_type = F_UNLCK;
++    fl.l_whence = SEEK_SET;
++    fl.l_start = 0;
++    fl.l_len = 0;
++    fcntl(fd, F_SETLK, &fl);
++#elif defined(LOCK_UN)
++    flock(fd, LOCK_UN);
++#else
++    Q_UNUSED(fd);
++#endif
++}
++
++// Removes the lock file while we hold the native lock on \a fd. Some network
++// file systems (e.g. NFSv4.2) refuse to remove a file that still has an active
++// lock and fail with EBUSY; in that case, release the native lock and retry.
++static int unlinkLockedFile(const char *lockFileName, int fd)
++{
++    int ret = ::unlink(lockFileName);
++    if (ret != 0 && errno == EBUSY) {
++        releaseNativeLocks(fd);
++        ret = ::unlink(lockFileName);
++    }
++    return ret;
++}
++
+ QLockFile::LockError QLockFilePrivate::tryLock_sys()
+ {
+     const QByteArray lockFileName = QFile::encodeName(fileName);
+@@ -183,7 +212,7 @@ bool QLockFilePrivate::removeStaleLock()
+     if (fd < 0) // gone already?
+         return errno == ENOENT;
+ 
+-    bool success = setNativeLocks(fd) && (::unlink(lockFileName) == 0);
++    bool success = setNativeLocks(fd) && (unlinkLockedFile(lockFileName, fd) == 0);
+     close(fd);
+     return success;
+ }
+@@ -310,7 +339,7 @@ void QLockFile::unlock()
+         return;
+ 
+     const QByteArray lockFileName = QFile::encodeName(d->fileName);
+-    int ret = unlink(lockFileName);
++    int ret = unlinkLockedFile(lockFileName, d->fileHandle);
+     if (ret != 0 && errno != ENOENT && errno != ENOTDIR) {
+         qWarning("Could not remove our own lock file %s: %ls (maybe permissions changed meanwhile?)",
+                  lockFileName.constBegin(), qUtf16Printable(qt_error_string()));

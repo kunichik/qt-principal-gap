@@ -1,0 +1,7 @@
+{
+ "task": "759321",
+ "arm": "K3b",
+ "run": "claude-2",
+ "clazy": [],
+ "sanitize": []
+}

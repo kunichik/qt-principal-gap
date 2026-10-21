@@ -1,0 +1,19 @@
+diff --git a/src/concurrent/qtconcurrentrunbase.h b/src/concurrent/qtconcurrentrunbase.h
+index 4674d7f4..42467ee7 100644
+--- a/src/concurrent/qtconcurrentrunbase.h
++++ b/src/concurrent/qtconcurrentrunbase.h
+@@ -69,6 +69,14 @@ public:
+         return theFuture;
+     }
+ 
++    ~RunFunctionTaskBase() override
++    {
++        if (!promise.isFinished()) {
++            promise.reportCanceled();
++            promise.reportFinished();
++        }
++    }
++
+     // For backward compatibility
+     QFuture<T> start(QThreadPool *pool) { return start({pool, 0});  }
+ 

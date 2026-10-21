@@ -1,0 +1,8 @@
+{
+ "design_match": 0.35,
+ "reviewer_concerns": 0.3,
+ "minimality": 0.95,
+ "hidden_risk": 0.3,
+ "key_difference": "(D) simply drops disconnectNotify() for cross-thread senders, whereas (B) posts a QDisconnectNotifyEvent so the sender is still notified later in its own thread; reviewers stressed that users like QDBusAbstractInterface, QBuffer and QFutureWatcher rely on getting this notification, so silently dropping it loses resource release and counter updates.",
+ "judge_cost_usd": 0.05960410000000001
+}

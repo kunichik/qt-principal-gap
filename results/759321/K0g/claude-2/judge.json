@@ -1,0 +1,8 @@
+{
+ "design_match": 0.7,
+ "reviewer_concerns": 0.85,
+ "minimality": 0.6,
+ "hidden_risk": 0.8,
+ "key_difference": "(D) retries the unlink only on EBUSY and adds an fstat/stat inode check plus a Q_AUTOTEST_EXPORT unlink test hook in production code, whereas (B) retries on EBUSY/ETXTBSY/EPERM in a simpler shared releaseLockFile() that returns true only when the file is gone.",
+ "judge_cost_usd": 0.0231353
+}

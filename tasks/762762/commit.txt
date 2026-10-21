@@ -1,0 +1,26 @@
+QThreadStorage: fix use-after-free on setLocalData() re-entrancy
+
+A (direct or indirect) setLocalData() (of any type) could cause the
+tls QList to be resized (see the top few lines of set()). If this
+happens from the destructor invocation, the function's value reference
+dangles afterwards.
+
+To fix, re-seat the reference. Since references cannot be re-seated in
+C++, and std::reference_wrapper isn't transparent enough (only reads
+are transparent; assignments, esp. converting ones, like the one from
+nullptr, need an explicit get()), change value to *ptr.
+
+Bugs found by Claude, during an un-asked-for /code-review skill
+invocation when asking Fable to review my fix of QTBUG-135044. Several
+Opus passes over my patches before hadn't mentioned it. Reproducer by
+Sonnet, with a -Wmarc pass afterwards. Fix in QtCore by yours truly.
+
+[ChangeLog][QtCore][QThreadStorage] Fixed a use-after-free bug
+triggered by the destructor of a payload object recursing into (any
+other) QThreadStorage.
+
+Amends the start of the public history.
+
+Pick-to: 6.12 6.11 6.8 6.5 5.15
+Change-Id: I0ec4df59e57703a5f9004c76052d89e495be981c
+Reviewed-by: Thiago Macieira <thiago.macieira@intel.com>

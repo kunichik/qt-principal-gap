@@ -1,0 +1,8 @@
+{
+ "design_match": 0.6,
+ "reviewer_concerns": 0.9,
+ "minimality": 0.75,
+ "hidden_risk": 0.75,
+ "key_difference": "(D) reuses moc's existing qTryMetaTypeInterfaceForType<Unique, Arg>() and keeps a QMetaTypeId2::Defined fast path, with the per-TU tag as a ConnectionTypes template parameter; (B) instead adds new TypeIsSuitableForMetaType/TypeIsCompleteOrVoid traits to qmetatype.h, threads UniqueType into is_complete, and builds the array from qMetaTypeId on MetatypeDecay'd args.",
+ "judge_cost_usd": 0.08830840000000001
+}

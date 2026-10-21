@@ -1,0 +1,143 @@
+{
+ "duration_api_ms": 110409,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 0.7616697000000001,
+ "usage": {
+  "input_tokens": 34,
+  "cache_creation_input_tokens": 41705,
+  "cache_read_input_tokens": 824072,
+  "output_tokens": 13140,
+  "output_tokens_details": {
+   "thinking_tokens": 2123
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 41705,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 932,
+    "cache_read_input_tokens": 65459,
+    "cache_creation_input_tokens": 1443,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1443
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1668,
+   "outputTokens": 225,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002793,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 203,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 34,
+   "outputTokens": 13140,
+   "cacheReadInputTokens": 824072,
+   "cacheCreationInputTokens": 41705,
+   "webSearchRequests": 0,
+   "costUSD": 0.7613904,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 2123,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 28,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "I've added `static void QMimeDatabase::reload()`. After calling it, the next query from any `QMimeDatabase` checks the MIME definition files straight away, the same as when the five-second check is due. Both MIME database test binaries pass with the change.\n\n**Library (`src/corelib/mimetypes/`)**\n- **`qmimedatabase.h`**: declares `static void reload();`.\n- **`qmimedatabase.cpp`**:\n  - `QMimeDatabase::reload()` passes the call to a new `QMimeDatabasePrivate::reload()`. That function locks the shared mutex and invalidates `m_lastCheck`, so the next lookup sees the check as due and calls `loadProviders()`. `reload()` doesn't touch the file system itself.\n  - The documentation is marked `\\since 6.13` (this repo's version) and `\\threadsafe`.\n  - `qmime_secondsBetweenChecks` was only exported in developer builds so the tests could set it to 0. Nothing else in qtbase used it, so it is now a private `static constexpr int`.\n- **`qmimedatabase_p.h`**: declares the private `reload()`.\n\n**Tests (`tst_qmimedatabase.cpp`)**\n- I removed the `extern` declaration and the `qmime_secondsBetweenChecks = 0;` lines from `installNewGlobalMimeType` and `installNewLocalMimeType`. Instead, the tests call `QMimeDatabase::reload()` at the start and after each change to the files: installing them, removing them, deleting `mime.cache`, and removing the local MIME directory.\n- `installNewLocalMimeType` now also checks that a newly copied XML definition is **not** visible before `reload()`, and is visible straight after it. The \"not visible\" check only runs if less than 4 seconds have passed since the last check, so slow machines won't make it fail.\n\n**Testing**\n- Results:\n  - `tst_qmimedatabase-xml-builtin`: 57 passed, 7 skipped.\n  - `tst_qmimedatabase-xml-fdoxml`: 72 passed, 4 skipped.\n- To confirm the test really depends on the new function, I temporarily removed the `reload()` call after installing the files. `installNewLocalMimeType` then failed, and I restored the call.\n- Some cases were skipped here:\n  - The binary-cache variant (`with_binary_cache`) didn't run, because only the XML test targets are built here. It also needs `update-mime-database`.\n  - `installNewGlobalMimeType` was skipped because it needs `XDG_DATA_DIRS`.\n\nNothing is committed.",
+ "ttft_ms": 1891,
+ "type": "result",
+ "duration_ms": 129893,
+ "ttft_stream_ms": 919,
+ "time_to_request_ms": 255,
+ "time_to_request_phases_ms": {
+  "other": 13,
+  "system_prompt": 7,
+  "resume_other": 1,
+  "process_user_input": 2,
+  "input_attachments": 7,
+  "input_hooks": 1,
+  "transcript_persist": 11,
+  "tool_pool_refresh": 1,
+  "init_message": 2,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 201,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 4,
+  "message_normalization": 1,
+  "client_creation": 0,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 4,
+ "time_to_request_cpu_ms": 283,
+ "time_to_request_major_faults": 410,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 8,
+  "major_faults": 20
+ },
+ "first_content_frame_ms": 919,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

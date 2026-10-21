@@ -1,0 +1,29 @@
+QString: fix UB (OOB read) in insert(i, QL1SV)
+
+The old code checked whether the insertion would be a no-op because
+the QLatin1StringView was empty using !data() || !*data(). This is
+equivalent to dereferencing an end iterator.
+
+E.g. for an empty, but non-null, QL1SV which sits at the end of a
+mapped memory region, the data() deref will read out of bounds,
+possibly causing SIGBUS or similar (speculating on effects of UB here;
+the problem is the UB, not what might happen).
+
+It is also wrong, since a QL1SV can legitimately contain NUL bytes, so
+insert(0, "\0"_L1) will incorrectly fail.
+
+Fix by using QLatin1StringView::isEmpty() instead of trying to roll
+our own.
+
+Add a test for the latter (the former can't be checked reliably
+without a huge scaffolding (mprotect()).
+
+[ChangeLog][QtCore][QString] Fixed bugs in insert(QLatin1StringView):
+insertion of a string that starts with a NUL byte was skipped and was
+indexing out of bounds of empty, non-null QLatin1StringViews.
+
+Pick-to: 6.12 6.8
+Fixes: QTBUG-150580
+Fixes: QTBUG-150579
+Change-Id: Ifea37a82f192f1214f84c3d60a0173bb1795a74c
+Reviewed-by: Thiago Macieira <thiago.macieira@intel.com>

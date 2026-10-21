@@ -1,0 +1,142 @@
+diff --git a/src/corelib/kernel/qobject.cpp b/src/corelib/kernel/qobject.cpp
+index cc5d1440..a24c0f55 100644
+--- a/src/corelib/kernel/qobject.cpp
++++ b/src/corelib/kernel/qobject.cpp
+@@ -1128,13 +1128,22 @@ QObject::~QObject()
+ 
+         /* Disconnect all senders:
+          */
++        QThreadData *currentThreadData = cd->senders ? QThreadData::current() : nullptr;
+         while (QObjectPrivate::Connection *node = cd->senders) {
+             Q_ASSERT(node->receiver.loadAcquire());
+             QObject *sender = node->sender;
++            // We may only call virtual functions (metaObject(), disconnectNotify()) on the
++            // sender if it lives in this thread. A sender living in another thread may be
++            // running its destructor concurrently: the connection still being in its list
++            // only guarantees that its QObject part (whose destructor needs our lock) is
++            // alive, not that the derived classes' destructors haven't already run.
++            const bool senderInThisThread =
++                    QObjectPrivate::get(sender)->threadData.loadAcquire() == currentThreadData;
+             // Send disconnectNotify before removing the connection from sender's connection list.
+             // This ensures any eventual destructor of sender will block on getting receiver's lock
+             // and not finish until we release it.
+-            sender->disconnectNotify(QMetaObjectPrivate::signal(sender->metaObject(), node->signal_index));
++            if (senderInThisThread)
++                sender->disconnectNotify(QMetaObjectPrivate::signal(sender->metaObject(), node->signal_index));
+             QBasicMutex *m = signalSlotLock(sender);
+             bool needToUnlock = QOrderedMutexLocker::relock(signalSlotMutex, m);
+             //the node has maybe been removed while the mutex was unlocked in relock?
+@@ -1154,6 +1163,17 @@ QObject::~QObject()
+                 node->isSlotObject = false;
+             }
+ 
++            if (!senderInThisThread) {
++                // Deliver disconnectNotify in the sender's own thread instead. We hold the
++                // sender's lock and the connection is still in its list, so the sender's
++                // destructor can't have removed its posted events yet; if it is being
++                // destroyed, this event will be discarded with them.
++                const int signalIndex = node->signal_index;
++                QMetaObject::invokeMethod(sender, [sender, signalIndex] {
++                    sender->disconnectNotify(QMetaObjectPrivate::signal(sender->metaObject(), signalIndex));
++                }, Qt::QueuedConnection);
++            }
++
+             senderData->removeConnection(node);
+             /*
+               When we unlock, another thread has the chance to delete/modify sender data.
+diff --git a/tests/auto/corelib/kernel/qobject/tst_qobject.cpp b/tests/auto/corelib/kernel/qobject/tst_qobject.cpp
+index 1aa8edff..cae7cba4 100644
+--- a/tests/auto/corelib/kernel/qobject/tst_qobject.cpp
++++ b/tests/auto/corelib/kernel/qobject/tst_qobject.cpp
+@@ -61,6 +61,8 @@ private slots:
+     void connectDisconnectNotify();
+     void connectDisconnectNotifyPMF();
+     void disconnectNotify_receiverDestroyed();
++    void disconnectNotify_receiverDestroyedInOtherThread();
++    void disconnectNotify_senderAndReceiverDestroyedInParallel();
+     void disconnectNotify_metaObjConnection();
+     void connectNotify_connectSlotsByName();
+     void connectDisconnectNotify_shadowing();
+@@ -1211,6 +1213,82 @@ void tst_QObject::disconnectNotify_receiverDestroyed()
+     QCOMPARE(s.disconnectedSignals.at(0), QMetaMethod::fromSignal(&QObject::destroyed));
+ }
+ 
++class ThreadNotifyObject : public NotifyObject
++{
++public:
++    QThread *disconnectNotifyThread = nullptr;
++protected:
++    void disconnectNotify(const QMetaMethod &signal) override
++    {
++        disconnectNotifyThread = QThread::currentThread();
++        NotifyObject::disconnectNotify(signal);
++    }
++};
++
++void tst_QObject::disconnectNotify_receiverDestroyedInOtherThread()
++{
++    ThreadNotifyObject s;
++    QThread thread;
++    thread.start();
++    auto cleanup = qScopeGuard([&] { thread.quit(); thread.wait(); });
++
++    auto *r = new ReceiverObject;
++    QVERIFY(QObject::connect(&s, &SenderObject::signal1, r, &ReceiverObject::slot1));
++    r->moveToThread(&thread);
++    r->deleteLater();
++    // the receiver is destroyed in the worker thread, but disconnectNotify()
++    // must still be called in the sender's own thread
++    QTRY_COMPARE(s.disconnectedSignals.size(), 1);
++    QCOMPARE(s.disconnectedSignals.at(0), QMetaMethod::fromSignal(&SenderObject::signal1));
++    QCOMPARE(s.disconnectNotifyThread, QThread::currentThread());
++}
++
++void tst_QObject::disconnectNotify_senderAndReceiverDestroyedInParallel()
++{
++    // The receiver must not call into the sender (virtual disconnectNotify()
++    // or metaObject()) while the sender is being destroyed in another thread.
++    class Sender : public SenderObject
++    {
++    public:
++        QSemaphore *destroying;
++        QSemaphore *receiverDestroyed;
++        std::atomic<bool> *notifiedWhileDestroyed;
++        std::atomic<bool> alive = true;
++        ~Sender() override
++        {
++            alive = false;
++            destroying->release();
++            receiverDestroyed->acquire();
++        }
++    protected:
++        void disconnectNotify(const QMetaMethod &) override
++        {
++            if (!alive)
++                *notifiedWhileDestroyed = true;
++        }
++    };
++
++    QSemaphore destroying, receiverDestroyed;
++    QThread thread;
++    thread.start();
++    auto cleanup = qScopeGuard([&] { thread.quit(); thread.wait(); });
++
++    auto *s = new Sender;
++    s->destroying = &destroying;
++    s->receiverDestroyed = &receiverDestroyed;
++    std::atomic<bool> notifiedWhileDestroyed = false;
++    s->notifiedWhileDestroyed = &notifiedWhileDestroyed;
++    auto *r = new ReceiverObject;
++    QVERIFY(QObject::connect(s, &SenderObject::signal1, r, &ReceiverObject::slot1));
++    s->moveToThread(&thread);
++    s->deleteLater();
++
++    destroying.acquire();
++    delete r;
++    receiverDestroyed.release();
++    QVERIFY(!notifiedWhileDestroyed);
++}
++
+ void tst_QObject::disconnectNotify_metaObjConnection()
+ {
+     NotifyObject s;

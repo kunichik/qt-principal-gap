@@ -1,0 +1,14 @@
+{
+ "verdict": "NOT_OK",
+ "problems": [
+  "Bullets 3 and 4 point the engineer toward a rename-based design (QFileSystemEngine::renameFile / renameat2 fallback, EEXIST handling). That was PS1 review feedback on an approach that was dropped. The merged change does no renaming: it unlinks, closes, and retries the unlink. Following these bullets would lead to implementing the abandoned design.",
+  "Bullet 1 overstates the ordering. The merged releaseLockFile() first tries unlink() while the file is still locked, then closes the handle. It retries unlink() only if the first attempt failed with EBUSY, ETXTBSY or EPERM. The card says close must always come before unlink, and it omits which errnos trigger the retry.",
+  "Missing an essential review decision: releaseLockFile()/removeStaleLock() must return true only if the lock file is actually gone (success, ENOENT or ENOTDIR). If they return true after a failed unlink, lock() calls continue, skips the sleep and busy-loops forever while printing warnings. Persistent failures (sticky-bit /tmp holding another user's stale lock, immutable files) must return false so lock() falls back to sleeping between attempts.",
+  "Missing that unlock() should share the same releaseLockFile() helper, including its 'Could not remove our own lock file' warning when removal fails.",
+  "Missing the scope decision: the tryLock_sys() hardening is explicitly deferred to a separate commit. That covers EWOULDBLOCK on a freshly created O_EXCL file → LockFailedError, the fstat/stat inode check, and treating ENOLCK/EOPNOTSUPP as degraded mode. Without this note the engineer may either try to include it or not know the remaining race is known and accepted.",
+  "Missing the reviewer's test note: the staleShort/LongLockFromBusyProcess tests should also check that the lock file still exists. Otherwise they cannot catch a busy process's lock being silently deleted."
+ ],
+ "model": "opus",
+ "source": true,
+ "cost_usd": 0.061358600000000006
+}

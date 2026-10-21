@@ -1,0 +1,27 @@
+[PS2 Reviewer 10 src/corelib/thread/qthreadpool.cpp:318]
+I don't think you can simply remove this check - there is a contract that QRunnables that are not 'autoDelete' have lifetimes that are managed by the creator.
+
+[PS3 Reviewer 07 /COMMIT_MSG:16]
+```suggestion
+Task-number: QTBUG-149511
+```
+we don't want to close the task yet, because the patch doesn't fix map()/filter() path
+
+[PS3 Reviewer 07 /COMMIT_MSG:16]
+Done
+
+[PS3 Reviewer 07 src/concurrent/qtconcurrentrunbase.h:75]
+```suggestion
+        if (!promise.isFinished()) {
+            promise.reportCanceled();
+            promise.reportFinished();
+	}
+```
+with the current approach, if there is an .onCanceled() continuation attached, it won't run. so the future should be canceled the same way it's already done in start() a bit higher up.
+also probably makes sense to extend the test to cover this case as well.
+
+[PS3 Reviewer 07 src/concurrent/qtconcurrentrunbase.h:75]
+Done
+
+[PS5 Reviewer 07 /PATCHSET_LEVEL:0]
+thank you for fixing this! 😌

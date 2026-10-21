@@ -1,0 +1,13 @@
+{
+ "verdict": "NOT_OK",
+ "problems": [
+  "Missing the change that made it into the final commit message: removeStaleLock() (via releaseLockFile()) must return true only if the lock file is actually gone. If it cannot be removed (sticky-bit /tmp directory with another user's stale lock, immutable file, persistent unlink failure), lock() must fall back to sleeping between attempts. Otherwise the `continue` in lock() skips the sleep and busy-loops forever, printing a warning each round, under the default infinite timeout.",
+  "Missing the reviewer's test point: the existing staleShort/LongLockFromBusyProcess tests do not catch a lock file being wrongly deleted, because removeStaleLock() still returns false. They should also verify that the lock file still exists.",
+  "Missing the errno distinction the reviewer called for when setNativeLocks() fails. EWOULDBLOCK (or EACCES/EAGAIN on the Android fcntl path) means a live process holds the lock, so do not remove. ENOLCK/EOPNOTSUPP/EINVAL/ENOSYS mean the filesystem has no locking, so proceed with removal based on the staleness heuristics; otherwise stale locks become permanently unremovable. Unknown errnos should be treated as held. The card only says 'don't remove just because setting native locks failed', which would wrongly block removal on lock-less filesystems.",
+  "The renameFile() bullet states the fallback but leaves out the point the reviewer drew from it. Because renameFile() can silently fall back to link+unlink, the code should call renameat2() directly. Stated as a bare fact, the bullet could suggest relying on renameFile().",
+  "The card does not say what is out of scope. The tryLock_sys() hardening (return LockFailedError on EWOULDBLOCK for a freshly O_EXCL-created file, and the fstat/stat st_dev/st_ino ownership check) was judged unrelated to EBUSY/NFS and deferred to a separate commit. Without this, the engineer might fold it into this change."
+ ],
+ "model": "opus",
+ "source": false,
+ "cost_usd": 0.0250406
+}

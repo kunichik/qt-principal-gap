@@ -1,0 +1,143 @@
+{
+ "duration_api_ms": 33100,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 0.2002972,
+ "usage": {
+  "input_tokens": 10,
+  "cache_creation_input_tokens": 13108,
+  "cache_read_input_tokens": 161113,
+  "output_tokens": 3146,
+  "output_tokens_details": {
+   "thinking_tokens": 854
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 13108,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 766,
+    "cache_read_input_tokens": 37699,
+    "cache_creation_input_tokens": 606,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 606
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1516,
+   "outputTokens": 198,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002506,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 171,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 10,
+   "outputTokens": 3146,
+   "cacheReadInputTokens": 161113,
+   "cacheCreationInputTokens": 13108,
+   "webSearchRequests": 0,
+   "costUSD": 0.20004660000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 854,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 8,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "I fixed this in `src/corelib/io/qlockfile_unix.cpp`. The existing `tst_qlockfile` suite builds and passes (22 passed, 0 failed, 1 skipped). I couldn't test the EBUSY case itself, because it needs an NFSv4.2 mount, and I didn't add a new test for it.\n\n**Root cause:** on Unix, `QLockFile` keeps a `flock()` lock on the lock file while it holds the lock (Android uses `fcntl(F_SETLK)` instead). Both places that remove the file call `unlink()` while that lock is still held:\n- `QLockFile::unlock()` unlinks first and only closes the file descriptor afterwards. It treats `EBUSY` as a real failure, prints a warning and leaves the file behind, so it becomes a stale lock.\n- `QLockFilePrivate::removeStaleLock()` takes the lock and then unlinks, so stale-lock cleanup fails the same way.\n\nLocal file systems allow removing a locked file, but this NFS server refuses with `EBUSY`. The unlink failing is what leaves the stale lock.\n\n**Fix:**\n- **New helper `releaseNativeLocks(fd)`:** releases the lock without closing the file (`flock(LOCK_UN)`, or `F_UNLCK` on Android).\n- **New helper `unlinkLockedFile(name, fd)`:** tries `unlink()` first. Only if that fails with `EBUSY` does it release the lock and try once more.\n- **Callers:** `unlock()` and `removeStaleLock()` now use `unlinkLockedFile()`.\n\nOn normal file systems nothing changes, since the first `unlink()` succeeds while the lock is still held. On the affected NFS servers, the lock is released only right before the retry, and the file descriptor stays open until the file has been removed. This keeps the window where another process could step in as small as possible. The error path in `tryLock_sys()` already closes the descriptor before unlinking, so it needed no change.\n\nThe list of numbers at the end of your message (`764375 K0 2`, \u2026) didn't seem to relate to the task, so I ignored it.",
+ "ttft_ms": 1734,
+ "type": "result",
+ "duration_ms": 125669,
+ "ttft_stream_ms": 1341,
+ "time_to_request_ms": 218,
+ "time_to_request_phases_ms": {
+  "other": 14,
+  "system_prompt": 4,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 5,
+  "input_hooks": 2,
+  "transcript_persist": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 1,
+  "engine_pickup": 3,
+  "message_prep": 0,
+  "model_config_wait": 176,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 3,
+  "message_normalization": 1,
+  "client_creation": 0,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 20,
+ "time_to_request_cpu_ms": 272,
+ "time_to_request_major_faults": 406,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 10,
+  "major_faults": 23
+ },
+ "first_content_frame_ms": 1341,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

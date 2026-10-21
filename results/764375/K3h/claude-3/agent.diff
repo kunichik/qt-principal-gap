@@ -1,0 +1,321 @@
+diff --git a/src/concurrent/qtconcurrentrunbase.h b/src/concurrent/qtconcurrentrunbase.h
+index 4674d7f4..6cc29731 100644
+--- a/src/concurrent/qtconcurrentrunbase.h
++++ b/src/concurrent/qtconcurrentrunbase.h
+@@ -55,12 +55,15 @@ public:
+     QFuture<T> start(const TaskStartParameters &parameters)
+     {
+         promise.setThreadPool(parameters.threadPool);
+-        promise.setRunnable(this);
+         promise.reportStarted();
+         QFuture<T> theFuture = promise.future();
+ 
+         if (parameters.threadPool) {
+-            parameters.threadPool->start(this, parameters.priority);
++            // If the pool discards the task without running it (QThreadPool::clear()),
++            // the guard cancels the future and lets the task finish it.
++            QRunnable *guard = promise.guardRunnable(this);
++            promise.setRunnable(guard);
++            parameters.threadPool->start(guard, parameters.priority);
+         } else {
+             promise.reportCanceled();
+             promise.reportFinished();
+diff --git a/src/concurrent/qtconcurrentthreadengine.cpp b/src/concurrent/qtconcurrentthreadengine.cpp
+index 48e50682..6aced645 100644
+--- a/src/concurrent/qtconcurrentthreadengine.cpp
++++ b/src/concurrent/qtconcurrentthreadengine.cpp
+@@ -4,6 +4,10 @@
+ 
+ #include "qtconcurrentthreadengine.h"
+ 
++#include <QtCore/private/qfutureinterface_p.h>
++
++#include <memory>
++
+ #if !defined(QT_NO_CONCURRENT) || defined(Q_QDOC)
+ 
+ QT_BEGIN_NAMESPACE
+@@ -200,10 +204,23 @@ bool ThreadEngineBase::startThreadInternal()
+         return false;
+ 
+     barrier.acquire();
+-    if (!threadPool->tryStart(this)) {
++    if (!futureInterface) {
++        if (!threadPool->tryStart(this)) {
++            barrier.release();
++            return false;
++        }
++        return true;
++    }
++
++    // tryStart() may queue the runnable for a moment; if it is removed from
++    // the queue (QThreadPool::clear()), the guard makes it release the barrier.
++    auto guard = std::make_unique<QFutureRunnableGuard>(this, futureInterface);
++    if (!threadPool->tryStart(guard.get())) {
++        guard->release();
+         barrier.release();
+         return false;
+     }
++    guard.release();
+     return true;
+ }
+ 
+diff --git a/src/concurrent/qtconcurrentthreadengine.h b/src/concurrent/qtconcurrentthreadengine.h
+index aee2f0db..4c354af7 100644
+--- a/src/concurrent/qtconcurrentthreadengine.h
++++ b/src/concurrent/qtconcurrentthreadengine.h
+@@ -131,7 +131,9 @@ public:
+         start();
+ 
+         acquireBarrierSemaphore();
+-        threadPool->start(this);
++        // If the pool discards the engine without running it (QThreadPool::clear()),
++        // the guard cancels the future and runs the engine so that it finishes.
++        threadPool->start(futureInterface->guardRunnable(this));
+         return future;
+     }
+ 
+diff --git a/src/corelib/thread/qfutureinterface.cpp b/src/corelib/thread/qfutureinterface.cpp
+index f8b49987..ac1bbad7 100644
+--- a/src/corelib/thread/qfutureinterface.cpp
++++ b/src/corelib/thread/qfutureinterface.cpp
+@@ -16,6 +16,7 @@
+ #include <private/qobject_p.h>
+ 
+ #include <climits> // For INT_MAX
++#include <utility>
+ 
+ // GCC 12 gets confused about QFutureInterfaceBase::state, for some non-obvious
+ // reason
+@@ -565,6 +566,48 @@ void QFutureInterfaceBase::setRunnable(QRunnable *runnable)
+     d->runnable = runnable;
+ }
+ 
++/*!
++    \internal
++
++    Returns an auto-deleting runnable that runs \a task, to be passed to a
++    QThreadPool instead of \a task. If the thread pool discards the returned
++    runnable without running it (for example, in QThreadPool::clear()), this
++    future is canceled and \a task is run anyway, so that it can report this
++    future as finished. \a task is deleted after running if it is
++    auto-deleting.
++
++    \a task must keep this object alive until it has run.
++*/
++QRunnable *QFutureInterfaceBase::guardRunnable(QRunnable *task)
++{
++    return new QFutureRunnableGuard(task, this);
++}
++
++QFutureRunnableGuard::~QFutureRunnableGuard()
++{
++    if (task) {
++        // Discarded by the thread pool. Cancel first, the same way it is done
++        // when there is no thread pool, so that the task finishes as canceled.
++        future->reportCanceled();
++        runTask();
++    }
++}
++
++void QFutureRunnableGuard::run()
++{
++    runTask();
++}
++
++void QFutureRunnableGuard::runTask()
++{
++    QRunnable *r = std::exchange(task, nullptr);
++    // If autoDelete() is false, r might already be deleted after run(), so check status now.
++    const bool del = r->autoDelete();
++    r->run();
++    if (del)
++        delete r;
++}
++
+ void QFutureInterfaceBase::setThreadPool(QThreadPool *pool)
+ {
+     d->m_pool = pool;
+diff --git a/src/corelib/thread/qfutureinterface.h b/src/corelib/thread/qfutureinterface.h
+index 6579aafc..9ebcf5cc 100644
+--- a/src/corelib/thread/qfutureinterface.h
++++ b/src/corelib/thread/qfutureinterface.h
+@@ -90,6 +90,7 @@ public:
+     void reportResultsReady(int beginIndex, int endIndex);
+ 
+     void setRunnable(QRunnable *runnable);
++    QRunnable *guardRunnable(QRunnable *task);
+     void setThreadPool(QThreadPool *pool);
+     QThreadPool *threadPool() const;
+     void setFilterMode(bool enable);
+diff --git a/src/corelib/thread/qfutureinterface_p.h b/src/corelib/thread/qfutureinterface_p.h
+index 0fff7777..656e9ac7 100644
+--- a/src/corelib/thread/qfutureinterface_p.h
++++ b/src/corelib/thread/qfutureinterface_p.h
+@@ -198,6 +198,32 @@ public:
+     void cancelImpl(QFutureInterfaceBase::CancelMode mode, CancelOptions options);
+ };
+ 
++// Auto-deleting QRunnable that is handed to a QThreadPool in place of a task
++// that reports to a future. If the pool discards it without running it (e.g.
++// in QThreadPool::clear()), the future is canceled and the task is run so that
++// it can finish in its canceled state; otherwise the future would never finish.
++class Q_CORE_EXPORT QFutureRunnableGuard : public QRunnable
++{
++public:
++    QFutureRunnableGuard(QRunnable *task, QFutureInterfaceBase *future)
++        : task(task), future(future)
++    {
++        Q_ASSERT(task);
++        Q_ASSERT(future);
++    }
++    ~QFutureRunnableGuard() override;
++
++    void run() override;
++    // Gives up the task without running it, e.g. when QThreadPool::tryStart() failed
++    void release() { task = nullptr; }
++
++private:
++    void runTask();
++
++    QRunnable *task;
++    QFutureInterfaceBase *future;
++};
++
+ QT_END_NAMESPACE
+ 
+ #endif
+diff --git a/tests/auto/concurrent/qtconcurrentmap/tst_qtconcurrentmap.cpp b/tests/auto/concurrent/qtconcurrentmap/tst_qtconcurrentmap.cpp
+index ff2c0129..07458087 100644
+--- a/tests/auto/concurrent/qtconcurrentmap/tst_qtconcurrentmap.cpp
++++ b/tests/auto/concurrent/qtconcurrentmap/tst_qtconcurrentmap.cpp
+@@ -9,6 +9,8 @@
+ #include <QTest>
+ #include <QSet>
+ #include <QRandomGenerator>
++#include <QSemaphore>
++#include <QScopeGuard>
+ 
+ #include "../testhelper_functions.h"
+ 
+@@ -46,6 +48,7 @@ private slots:
+     void qFutureAssignmentLeak();
+     void stressTest();
+     void persistentResultTest();
++    void clearThreadPool();
+ public slots:
+     void throttling();
+ };
+@@ -2252,5 +2255,51 @@ void tst_QtConcurrentMap::persistentResultTest()
+     QCOMPARE(ref.loadAcquire(), 3);
+ }
+ 
++struct CountedMapper
++{
++    CountedMapper() { ++count; }
++    CountedMapper(const CountedMapper &) { ++count; }
++    ~CountedMapper() { --count; }
++
++    int operator()(int x) const { return 2 * x; }
++
++    static std::atomic<int> count;
++};
++std::atomic<int> CountedMapper::count = 0;
++
++using namespace std::chrono_literals;
++
++void tst_QtConcurrentMap::clearThreadPool()
++{
++    QThreadPool pool;
++    pool.setMaxThreadCount(1);
++    QSemaphore blockerStarted;
++    QSemaphore unblock;
++    pool.start([&] {
++        blockerStarted.release();
++        unblock.acquire();
++    });
++    QVERIFY(blockerStarted.tryAcquire(1, 10s));
++    // don't block the pool's destructor if a check fails
++    auto releaseBlocker = qScopeGuard([&] { unblock.release(); });
++
++    const QList<int> list { 1, 2, 3 };
++    bool onCanceledCalled = false;
++    {
++        QFuture<int> future = QtConcurrent::mapped(&pool, list, CountedMapper());
++        auto continuation = future.onCanceled([&] { onCanceledCalled = true; return 0; });
++
++        pool.clear();
++
++        QVERIFY(future.isFinished());
++        QVERIFY(future.isCanceled());
++        future.waitForFinished(); // must not hang
++        continuation.waitForFinished();
++        QVERIFY(onCanceledCalled);
++    }
++    // the thread engine must not leak
++    QCOMPARE(CountedMapper::count, 0);
++}
++
+ QTEST_MAIN(tst_QtConcurrentMap)
+ #include "tst_qtconcurrentmap.moc"
+diff --git a/tests/auto/concurrent/qtconcurrentrun/tst_qtconcurrentrun.cpp b/tests/auto/concurrent/qtconcurrentrun/tst_qtconcurrentrun.cpp
+index 0bc29619..c6fe9372 100644
+--- a/tests/auto/concurrent/qtconcurrentrun/tst_qtconcurrentrun.cpp
++++ b/tests/auto/concurrent/qtconcurrentrun/tst_qtconcurrentrun.cpp
+@@ -6,6 +6,8 @@
+ #include <QMutexLocker>
+ #include <QString>
+ #include <QWaitCondition>
++#include <QSemaphore>
++#include <QScopeGuard>
+ #include <QTest>
+ #include <QTimer>
+ #include <QFutureSynchronizer>
+@@ -45,6 +47,7 @@ private slots:
+     void nonDefaultConstructibleValue();
+     void nullThreadPool();
+     void nullThreadPoolNoLeak();
++    void clearThreadPool();
+ };
+ 
+ void light()
+@@ -1630,5 +1633,39 @@ void tst_QtConcurrentRun::nullThreadPoolNoLeak()
+     QCOMPARE(LifetimeChecker::count, 0);
+ }
+ 
++using namespace std::chrono_literals;
++
++void tst_QtConcurrentRun::clearThreadPool()
++{
++    QThreadPool pool;
++    pool.setMaxThreadCount(1);
++    QSemaphore blockerStarted;
++    QSemaphore unblock;
++    auto blocker = run(&pool, [&] {
++        blockerStarted.release();
++        unblock.acquire();
++    });
++    QVERIFY(blockerStarted.tryAcquire(1, 10s));
++    // don't block the pool's destructor if a check fails
++    auto releaseBlocker = qScopeGuard([&] { unblock.release(); });
++
++    std::atomic<bool> isInvoked = false;
++    std::atomic<bool> onCanceledCalled = false;
++    {
++        QFuture<void> future = run(&pool, [&, checker = LifetimeChecker()] { isInvoked = true; });
++        auto continuation = future.onCanceled([&] { onCanceledCalled = true; });
++
++        pool.clear();
++
++        QVERIFY(future.isFinished());
++        QVERIFY(future.isCanceled());
++        future.waitForFinished(); // must not hang
++        continuation.waitForFinished();
++        QVERIFY(onCanceledCalled);
++    }
++    QVERIFY(!isInvoked);
++    QCOMPARE(LifetimeChecker::count, 0);
++}
++
+ QTEST_MAIN(tst_QtConcurrentRun)
+ #include "tst_qtconcurrentrun.moc"

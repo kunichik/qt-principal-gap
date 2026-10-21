@@ -1,0 +1,143 @@
+{
+ "duration_api_ms": 188352,
+ "stop_reason": "end_turn",
+ "total_cost_usd": 0.8644297999999999,
+ "usage": {
+  "input_tokens": 32,
+  "cache_creation_input_tokens": 44298,
+  "cache_read_input_tokens": 763996,
+  "output_tokens": 17840,
+  "output_tokens_details": {
+   "thinking_tokens": 7413
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 44298,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1058,
+    "cache_read_input_tokens": 67626,
+    "cache_creation_input_tokens": 3563,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 3563
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1776,
+   "outputTokens": 282,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00031860000000000005,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 254,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 32,
+   "outputTokens": 17840,
+   "cacheReadInputTokens": 763996,
+   "cacheCreationInputTokens": 44298,
+   "webSearchRequests": 0,
+   "costUSD": 0.8641112,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 7413,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 17,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "I added `QUrlDecodeForLocalFile`. With it, `qt_urlRecode()` fully decodes but returns -1 for anything unsafe as a local file path, and leaves the output string untouched. QUrlInternal, QUrl and QUrlQuery tests all pass in the b3 Debug build (663 / 1042 / 113 passed, 0 failed). The new test functions alone account for 137 of the QUrlInternal passes. I haven't committed anything.\n\n**How it works**\n- **The flag:** `qurl_p.h` defines it as `QUrl::FullyDecoded | 0x8000000`. That bit isn't used by either option enum, and I noted it in a comment in `qurl.h` next to the existing `0x4000000` note, so nobody reuses it by accident.\n- **What fails:** a percent-encoding that decodes to NUL or `/`, or to `\\` on Windows. Plain `/` characters in the input are still fine, since they're real path separators. Percent-encoded bytes that aren't valid UTF-8 also fail: stray continuation bytes, cut-off sequences, overlong forms like `%C0%AF` (a disguised `/`), encoded surrogates, and values above U+10FFFF.\n- **One difference from `FullyDecoded`:** valid encoded UTF-8 is decoded properly, so `%C3%A9` gives `\u00e9`. `FullyDecoded` turns those bytes into U+FFFD, and its docs call input like that undefined. Non-characters such as U+FFFF count as valid, because they can legitimately appear in file names.\n- **Malformed `%` sequences:** these keep the `FullyDecoded` behaviour, where the whole input is copied without decoding. That stays true even if an unsafe sequence comes before the bad one, so `%2F%` returns the literal text `%2F%` instead of failing. The result contains nothing decoded, so it's safe. If you'd rather this mode reject malformed input outright, it's a one-line change.\n- **Other modes:** `decode()` takes a new `forLocalFile` parameter that's only true for this mode, so every other mode follows exactly the same path as before. Nothing calls the new mode yet.\n\n**Docs:** I updated the `\\internal` docs for `qt_urlRecode()` and `decode()`, including what the return value means.\n\n**Tests** (in `tst_qurlinternal.cpp`):\n- `decodeForLocalFile` covers inputs that should succeed and inputs that should fail. It checks that the output is unchanged on failure and that plain `FullyDecoded` never fails on the same inputs. The backslash cases depend on the platform.\n- `decodeForLocalFileInvalidUtf8` reuses the existing invalid-UTF-8 rows, both on their own and with valid text around them, and expects them all to fail.\n- `decodeForLocalFileNonCharacters` reuses the existing non-character rows and expects them to decode correctly.\n\nI've only built and run this on macOS, so the Windows backslash path hasn't actually been run.",
+ "ttft_ms": 3643,
+ "type": "result",
+ "duration_ms": 285183,
+ "ttft_stream_ms": 3155,
+ "time_to_request_ms": 661,
+ "time_to_request_phases_ms": {
+  "other": 42,
+  "system_prompt": 116,
+  "resume_other": 0,
+  "process_user_input": 6,
+  "input_attachments": 23,
+  "input_hooks": 5,
+  "transcript_persist": 85,
+  "tool_pool_refresh": 5,
+  "init_message": 12,
+  "engine_pickup": 4,
+  "message_prep": 1,
+  "model_config_wait": 333,
+  "autocompact": 3,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 13,
+  "message_normalization": 2,
+  "client_creation": 3,
+  "request_build": 7
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 138,
+ "time_to_request_cpu_ms": 806,
+ "time_to_request_major_faults": 387,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 17,
+  "cpu_ms": 29,
+  "major_faults": 22
+ },
+ "first_content_frame_ms": 3156,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

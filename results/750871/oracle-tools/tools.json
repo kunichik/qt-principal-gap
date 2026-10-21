@@ -1,0 +1,7 @@
+{
+ "task": "750871",
+ "arm": "MAINTAINER",
+ "run": "oracle",
+ "clazy": [],
+ "sanitize": []
+}
