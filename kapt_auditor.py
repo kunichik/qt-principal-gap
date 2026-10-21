@@ -4,7 +4,7 @@ vendors, one debate round, a chair).
 
 Same prompt and material as auditor.py; only the judge differs.
 Usage: kapt_auditor.py <task> [--tag kteam1] [--url https://www.kapt.ai]
-Key: ~/qtexp/.kapt-key (created by the user). Writes ~/qtexp/audits/<task>/<tag>.json
+Key: .kapt-key in the experiment root (created by the user). Writes audits/<task>/<tag>.json
 """
 import argparse, json, sys, time, urllib.request
 import os

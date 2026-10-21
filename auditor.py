@@ -3,7 +3,7 @@
 
 Usage: auditor.py <task> <model> <tag> [--source]
   --source  also show the maintainer's merged change (ground truth the card writer lacked)
-Writes ~/qtexp/audits/<task>/<tag>.json
+Writes audits/<task>/<tag>.json
 """
 import argparse, json, os, re, subprocess, sys
 from pathlib import Path

@@ -48,7 +48,7 @@ SUFFIX = ("\n\nThe code is qtbase (Qt 6, dev branch). A Debug developer build is
           "cause and fix it in the library source. You may add or change tests.")
 
 
-# git must never find ~/qtexp/.git from inside qtbase: when qtbase/.git is absent, `git apply`
+# git must never find the experiment root's own .git from inside qtbase: when qtbase/.git is absent, `git apply`
 # would run in the parent repo and silently skip every path outside the qtbase subdirectory.
 os.environ["GIT_CEILING_DIRECTORIES"] = str(ROOT)
 

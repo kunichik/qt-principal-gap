@@ -1,7 +1,7 @@
 # What is specific to Qt in the experiment (2026-10-20)
 
 Research for Talk A option (b): what an agent meets in Qt that it would not meet in an arbitrary
-codebase. Data: `~/qtexp/results` (85 agent runs, 54 judged), `~/qtexp/tasks/*/{commit,review}.txt`,
+codebase. Data: `results/` (85 agent runs, 54 judged), `tasks/*/{commit,review}.txt`,
 `arms/K3*-cards.md`. Classification of "the decisive point" is mine — owner to review.
 
 ## 1. Where the decisive point of each design change is written down
@@ -62,7 +62,7 @@ which we can assume to be available." Names not to be spoken without consent.
 
 qtbase, June – Oct 12, 2026: about 2,100 commits; at least 23 carry an AI co-author trailer (16
 `Co-authored-by: Copilot`, 7 Claude models) — a lower bound, since the trailer is optional. One of our
-tasks (768691) is such a commit. (`git --git-dir=~/qtexp/hidden.git log` grep, 2026-10-20.)
+tasks (768691) is such a commit. (`git --git-dir=hidden.git log` grep, 2026-10-20.)
 
 ## 7. Tools that understand Qt (verified 2026-10-20, for the questions in the ending)
 

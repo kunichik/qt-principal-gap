@@ -127,7 +127,7 @@ Spend so far: 29 runs, ≈ $21.
 
 ## Blind judge (MAPE-style) — calibration on 756614 (2026-10-13)
 
-`~/qtexp/judge.py`: Opus, no tools, never told the arm; sees task, maintainer diff, reviewer
+`judge.py`: Opus, no tools, never told the arm; sees task, maintainer diff, reviewer
 comments, candidate source diff; scores 0–1. ~$0.08 per judgement.
 
 | Run | design_match | reviewer_concerns | minimality | hidden_risk | Manual verdict |
@@ -231,7 +231,7 @@ Checked every K3 card against the reviewers' comments and the merged code:
 | 756614, 754389, 750871, 777778 | Consistent with the reviews. 773405 has no review (card from the commit, flagged). |
 
 The cards were written by an AI (this assistant) from the reviews. Corrected cards are arm
-**K3b** (`~/qtexp/arms/K3b-cards.md`); K3 results are kept unchanged. K3b × 3 repeats on the
+**K3b** (`arms/K3b-cards.md`); K3 results are kept unchanged. K3b × 3 repeats on the
 four tasks is running.
 
 ## K3b — corrected cards, 3 repeats (2026-10-14)
@@ -262,7 +262,7 @@ decisive facts is itself the hard, lossy step.
 
 ## Who checks the cards? Auditor experiment (2026-10-14)
 
-`~/qtexp/auditor.py`: an AI auditor gets the task, the commit message, the review comments and
+`auditor.py`: an AI auditor gets the task, the commit message, the review comments and
 one K3 card, and says OK / NOT_OK with problems. 9 cards: 4 known bad (audit above), 5 that I
 had labelled good. 54 calls, $1.39. kapt.ai `team` collegium arm pending an API key.
 
@@ -351,7 +351,7 @@ Reading: history before a change does not contain the decision made in that chan
 does not close those gaps; it helps when the needed knowledge is already in it (773405).
 
 Harness note (found while adding K0g): with `qtbase/.git` removed, `git apply -R` ran inside the
-parent repo `~/qtexp/.git` (created 2026-10-17 23:43) and silently skipped every path, leaving the fix
+parent repo `.git` (created 2026-10-17 23:43) and silently skipped every path, leaving the fix
 in place. All earlier runs date from 2026-10-13/14, before that repo existed — not affected. Fixed:
 `GIT_CEILING_DIRECTORIES` + an assertion that the fix applies forward after the revert.
 
@@ -387,7 +387,7 @@ runs break that contract was not verified. K3h runs: 0/3 touched QThreadPool.
 
 ## Qt's own tools on every patch — clazy + sanitize-commit (2026-10-20)
 
-`~/qtexp/tool_eval.py`: for the maintainer's change and every agent run of the 9 design tasks, reset
+`tool_eval.py`: for the maintainer's change and every agent run of the 9 design tasks, reset
 the base tree, apply the patch, run **clazy 1.17 (level1)** on the changed translation units and
 **sanitize-commit** (qtrepotools, the script Qt Sanity Bot runs) on a commit of the patch; keep only
 findings on lines the patch added. No agent runs.
