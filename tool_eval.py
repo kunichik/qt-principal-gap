@@ -18,7 +18,11 @@ Q, T, R = harness.Q, harness.T, harness.R
 CLAZY = str(ROOT / "clazy-run.sh")
 SANITIZE = str(ROOT / "tools/sanitize-commit")  # from qtrepotools/git-hooks
 DESIGN = ["756614", "764375", "765378", "759321", "768691", "754389", "750871", "773405", "777778"]
-COMPILED = {e["file"] for e in json.load(open(ROOT / "clazydb/compile_commands.json"))}
+CLAZYDB = ROOT / "clazydb/compile_commands.json"
+if not CLAZYDB.exists():
+    sys.exit(f"{CLAZYDB} is missing: configure the build with -DCMAKE_EXPORT_COMPILE_COMMANDS=ON, "
+             "then run tools/make-clazydb.py")
+COMPILED = {e["file"] for e in json.loads(CLAZYDB.read_text())}
 
 
 def added_lines(diff):
