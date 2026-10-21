@@ -1,8 +1,8 @@
 # What is specific to Qt in the experiment (2026-10-20)
 
-Research for Talk A option (b): what an agent meets in Qt that it would not meet in an arbitrary
-codebase. Data: `results/` (85 agent runs, 54 judged), `tasks/*/{commit,review}.txt`,
-`arms/K3*-cards.md`. Classification of "the decisive point" is mine — owner to review.
+What an agent meets in Qt that it would not meet in an arbitrary codebase. Data: `results/` (101
+agent runs, 93 judged), `tasks/*/{commit,review}.txt`, `arms/K3*-cards.md`. The "decisive point" of
+each change was classified by the author of this experiment, not by a Qt maintainer.
 
 ## 1. Where the decisive point of each design change is written down
 
@@ -18,7 +18,7 @@ codebase. Data: `results/` (85 agent runs, 54 judged), `tasks/*/{commit,review}.
 | 768691 QUrl decode mode | null result on refusal (contract of appendTo) | partly ("returns a negative value") | review + internal docs |
 | 759321 QLockFile EBUSY | unlink while locked first; close + retry only on EBUSY/ETXTBSY/EPERM | **contradicts** the merged code ("We must drop the locks first, which close() does, then unlink()") | merged code only |
 
-Counts (9 changes): 4 fully + 1 partly in the commit message; 3 only in review/code; 1 commit message
+Counts (9 changes): 4 fully + 2 partly in the commit message; 2 only in review; 1 commit message
 describes the opposite of the merged code. For the **same** change none of this is visible to an
 agent writing it (it is written with or after the change). For a **later** change in the same code,
 an agent sees commit messages through `git log` — the review only if it goes to Gerrit.
@@ -49,14 +49,14 @@ The official review skill (K2) and the wiki conventions (K1) did not move the de
 756614 (1/3 like no help). In Gerrit change 761210 (qtaiskills, LDR-1 regex fix), reviewers wrote
 that regexes cannot understand QML and agents should use qmllint ("qmllint actually understands
 QML"); the change was abandoned on 2026-10-19: "the same objective can be reached with QML linter,
-which we can assume to be available." Names not to be spoken without consent.
+which we can assume to be available."
 
 ## Not established
 
 - Whether reading *past* Gerrit reviews would predict the next decision (not tested; question for the room).
 - Giving the agent `git log` up to the change (K0g, 27 runs, 2026-10-20): no average effect
-  (Δ −0.02); helps only where the knowledge is already in the history (773405). See
-  QT-EXPERIMENT-RESULTS.md.
+  (Δ 0.00); helps only where the knowledge is already in the history (773405). See
+  `RESULTS.md`.
 
 ## 6. Agents already write Qt
 

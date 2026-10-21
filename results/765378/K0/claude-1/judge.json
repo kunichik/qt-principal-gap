@@ -3,6 +3,6 @@
  "reviewer_concerns": 0.6,
  "minimality": 0.85,
  "hidden_risk": 0.45,
- "key_difference": "The candidate loops until the list is empty with no pass limit, so an event whose destructor always posts a new event spins forever; (B) stops after MaxPasses and warns that it is leaking the remaining events. The candidate also unposts the events while still holding the mutex, which Thiago asked to avoid, and keeps a redundant lock plus the recursion reset in cleanupThreadData.",
+ "key_difference": "The candidate loops until the list is empty with no pass limit, so an event whose destructor always posts a new event spins forever; (B) stops after MaxPasses and warns that it is leaking the remaining events. The candidate also unposts the events while still holding the mutex, which Reviewer 15 asked to avoid, and keeps a redundant lock plus the recursion reset in cleanupThreadData.",
  "judge_cost_usd": 0.061271900000000004
 }

@@ -3,6 +3,6 @@
  "reviewer_concerns": 0.6,
  "minimality": 0.8,
  "hidden_risk": 0.85,
- "key_difference": "(D) runs the unposting loop while still holding postEventList.mutex and uses fetchAndSubAcquire (and also resets recursion), whereas (B) swaps the list out, drops the lock, and only then unposts with fetchAndSubRelaxed, which is what Thiago explicitly asked for.",
+ "key_difference": "(D) runs the unposting loop while still holding postEventList.mutex and uses fetchAndSubAcquire (and also resets recursion), whereas (B) swaps the list out, drops the lock, and only then unposts with fetchAndSubRelaxed, which is what Reviewer 15 explicitly asked for.",
  "judge_cost_usd": 0.0667958
 }

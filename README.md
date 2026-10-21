@@ -10,9 +10,12 @@ Results and their caveats: [`RESULTS.md`](RESULTS.md). What is specific to Qt:
 
 ## The experiment in one paragraph
 
-Real qtbase changes merged after the model's training cutoff (by date). For each, the tree is put back
-to the state before the change, history is hidden, and the agent (Claude Code, headless) gets only the
-task. Each run is graded two ways: the autotest the author added with the change (hidden from the
+Real qtbase changes merged after the model's training cutoff (by merge date; the Gerrit reviews may
+have been public earlier, and the no-tools recognition probe was run only for the two bug tasks). For
+each, the fix is removed from the tree — for 756614, 768691, 773405, 777778 and 764375 by reverse-applying
+it to the 2026-10-12 `HEAD`, so later unrelated commits stay; for the others by resetting to the
+fix's parent — history is hidden (except arm K0g), and the agent (Claude Code, headless) gets the
+task. Two prompt leaks are disclosed in `RESULTS.md`. Each run is graded two ways: the autotest the author added with the change (hidden from the
 agent, restored for grading), and a blind LLM judge that compares the agent's diff with the merged
 one and reads the review comments (calibrated against manual verdicts, 12/12 on one task). The agent
 gets different amounts of knowledge — the *arms*:
@@ -89,9 +92,11 @@ scripts and `tools/*` always use the directory they are in.
 The agent is not sandboxed. It has Bash and runs in `qtbase/`, one `..` away from `tasks/`,
 `hidden.git/` and earlier `results/`. Nothing but the directory layout keeps it from reading them.
 `tools/audit_transcripts.py` checks each run's transcript for any access outside `qtbase/` and
-`b3/`, for test output from a hidden test the agent did not write, and for unpopped git stashes.
-For the published runs it reports 0 findings over all 115 agent transcripts (positive control in
-`RESULTS.md`). For new experiments, a container or sandbox that mounts only `qtbase/` and `b3/`
+`b3/`, for test output from a hidden test the agent did not write, for unpopped git stashes, and for
+a graded diff that changes nothing outside `tests/`. The last check was added after an independent
+review found one run whose fix was stashed when the session ended (754389 K0g rep 2, now excluded);
+with it the script flags that run and reports 0 findings over the other published transcripts.
+It does not detect what is in the prompt itself — see the two disclosures at the end of `RESULTS.md`. For new experiments, a container or sandbox that mounts only `qtbase/` and `b3/`
 is the stronger fix.
 
 ## Harness versions
@@ -99,7 +104,8 @@ is the stronger fix.
 The published runs were made 2026-10-13 … 2026-10-20 with an earlier version of `harness.py`. The
 current version also: gives every run a fresh Claude Code config and keeps its transcript in the
 run directory; strips HTML comments from the task prompt (the earlier version passed an editorial
-note into every **777778** prompt — see `RESULTS.md`); records the diff against the baseline
+note into every **777778** prompt — see `RESULTS.md`); gives the agent no stdin (the earlier `batch.sh` let `claude -p` read
+the rest of the batch list into 92 of 101 agent prompts — see `RESULTS.md`); records the diff against the baseline
 snapshot rather than `HEAD`; removes stale test binaries from `b3/` before the agent and before
 grading; restores whole hidden-test directories; records hung tests, skipped and blacklisted
 counts; cleans ignored files between runs; grades runs that hit the budget limit instead of
@@ -107,9 +113,13 @@ dropping them. The audit above checks the earlier runs for the problems these ch
 
 ## Limits
 
-Three runs per arm and task; one model through one agent tool; an LLM judge (calibrated on one task);
-cards written with an AI and audited against merged code; the "decisive point" per change classified
-by the author. Treat the numbers as directions, not proofs.
+Three runs per arm and task; one model through one agent tool; an LLM judge of the same model family
+as the agent, one judgement per run, calibrated on one task against the author's verdicts; the judge
+reads the same reviews the K3/K3b cards were written from, so K3b scores are an upper bound; cards
+written with an AI and audited against merged code; the "decisive point" per change classified by the
+author. Every published agent turn is `claude-opus-5-5` under Claude Code 2.1.296 (from the
+transcripts); the scripts pass the alias `opus`, so a rerun may get a newer model. Treat the numbers
+as directions, not proofs.
 
 ## Licence
 

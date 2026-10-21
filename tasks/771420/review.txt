@@ -16,7 +16,7 @@ It's based on the ability to trigger it. And code that directly allows attacker-
 Therefore, assuming that the user code has bugs but not egregious security issues, reaching this problem here means the user has hit a Qt bug, but not a security issue by itself.
 
 [PS1 Reviewer 06 /COMMIT_MSG:23]
-I actually do agree with Marc that this is a security issue. We surely can handle the overflow on our side, so we have to do it.
+I actually do agree with Reviewer 08 that this is a security issue. We surely can handle the overflow on our side, so we have to do it.
 
 But I'm not sure if it's still possible to get this patch into 6.12.0 and 6.11.3.
 
@@ -47,4 +47,4 @@ Yes, but this is code I maintain. My rule is that it's readable first, `const` l
 (We're not in a header, so surely the parens around `max` are redundant ?)
 
 [PS1 Reviewer 15 tests/auto/corelib/text/qstring/tst_qstring.cpp:8826]
-They are, but I guess it's Marc's muscle memory. No big deal to use this where not necessary.
+They are, but I guess it's Reviewer 08's muscle memory. No big deal to use this where not necessary.

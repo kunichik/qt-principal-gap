@@ -3,7 +3,7 @@
  "problems": [
   "The card's 'no unrelated refactoring' line contradicts the final scope. The merged commit does include the NRVO change: it moves the `result` declaration out of the conditional so NRVO can apply, justified as part of reworking the control structure anyway. Reviewer 08 pushed back at PS2, Reviewer 06 had no strong opinion, and the change landed. An engineer following the card would leave out a change the final commit contains.",
   "The card leaves out the reviewers' decision on the regression test. Reviewer 08 rejected running the deeply nested input on a QThread, because on failure the QThread is destroyed while still running. He asked for the test to simply overflow the stack in the main thread, which also gives a better backtrace in the logs. This was resolved as 'Done'. Without it, the engineer is likely to write the threaded test that was rejected.",
-  "The card omits that, as a security fix, the change must be picked back to all supported branches, including 5.15. Marc flagged the missing 5.15 pick as inconsistent, and the final Pick-to is 6.12 6.11 6.8 6.5 5.15.",
+  "The card omits that, as a security fix, the change must be picked back to all supported branches, including 5.15. Reviewer 08 flagged the missing 5.15 pick as inconsistent, and the final Pick-to is 6.12 6.11 6.8 6.5 5.15.",
   "The card omits the agreed exit structure inside the loop: on an end element, `if (--nestingLevel) break; return result;`, returning directly instead of adding a separate return after the big if."
  ],
  "model": "opus",

@@ -3,7 +3,7 @@
  "problems": [
   "The card leaves out the review's main test decision. Reviewer 08 advised against running the regression test in a QThread, because a failing run destroys a still-running QThread. He preferred letting the stack overflow happen in the main thread, which also gives a better backtrace. The test should use a very deep nesting depth (around 100000, as a constexpr named without a k- prefix) and check that the returned text equals \"x\". The card gives the engineer no guidance on the test.",
   "The card does not mention the structure reviewers asked for in the loop. They wanted a do-while on the nesting level, and in the final suggestion the closing-element path becomes `if (--nestingLevel) break; return result;`, which saves a separate return at the end of the large if. The card gives only the do-while rationale.",
-  "The card says \"no unrelated refactoring\" but does not say that the NRVO change (moving the result declaration out of the conditional) is the specific item reviewers pushed out of scope. The commit message still describes that change, so an engineer following it could keep the NRVO change. Marc insisted on dropping it and Reviewer 06 did not object."
+  "The card says \"no unrelated refactoring\" but does not say that the NRVO change (moving the result declaration out of the conditional) is the specific item reviewers pushed out of scope. The commit message still describes that change, so an engineer following it could keep the NRVO change. Reviewer 08 insisted on dropping it and Reviewer 06 did not object."
  ],
  "model": "sonnet",
  "source": false,

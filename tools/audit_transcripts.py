@@ -4,6 +4,8 @@
 For every tool call: does it touch the experiment's own files (tasks, hidden.git, results, arms,
 configs, the token)? For every task with hidden tests: does any tool output show a maintainer-only
 test function (a sign of running an old build of the hidden test)? Are git stashes left unpopped?
+Does the graded agent.diff change anything outside tests/? (A stash pop that never ran, e.g. in a
+command the session ended before, leaves the fix out of the diff even when push and pop balance.)
 
 Usage: audit_transcripts.py [transcript.jsonl ... | dir ...]
   default: results/*/*/claude-*/transcript.jsonl
@@ -72,6 +74,10 @@ def audit(path, mt):
             outputs.append(json.dumps(c.get("content")))
     if pushes > pops:
         findings.append(f"git stash: {pushes} push vs {pops} pop/apply")
+    diff = Path(path).with_name("agent.diff")
+    if Path(path).parent.name.startswith("claude-") and diff.exists() \
+            and not re.search(r"^\+\+\+ b/(?!tests/)", diff.read_text(errors="ignore"), re.M):
+        findings.append("agent.diff changes nothing outside tests/")
     if task:
         written = " ".join(inputs)
         for name in mt[task][0]:

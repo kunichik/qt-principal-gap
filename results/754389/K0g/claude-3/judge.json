@@ -3,6 +3,6 @@
  "reviewer_concerns": 0.45,
  "minimality": 0.9,
  "hidden_risk": 0.55,
- "key_difference": "(D) always queues the cross-thread disconnectNotify (as a lambda via invokeMethod while holding both locks), whereas (B) posts a dedicated QDisconnectNotifyEvent only when the sender's thread still has an event dispatcher, so (D) leaks the event when the sender's thread has finished (the case Mårten flagged).",
+ "key_difference": "(D) always queues the cross-thread disconnectNotify (as a lambda via invokeMethod while holding both locks), whereas (B) posts a dedicated QDisconnectNotifyEvent only when the sender's thread still has an event dispatcher, so (D) leaks the event when the sender's thread has finished (the case Reviewer 10 flagged).",
  "judge_cost_usd": 0.0897671
 }

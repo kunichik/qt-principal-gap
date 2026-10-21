@@ -10,22 +10,30 @@ change; "tests" are the maintainers' own autotests, hidden from the agent.
   character).
 - **Knowledge closes some gaps cheaply:** `QThreadStorage::clearLocalData()` — the key design decision
   appears in 1 of 3 runs with no help, with the Qt conventions page, or with the official review skill;
-  3 of 3 with one sentence from the commit message. Tests pass in all 12 runs.
+  3 of 3 with one sentence from the commit message. Tests pass in all 12 runs. A direction, not an
+  effect size: 3/9 against 3/3 is p ≈ 0.09 (one-sided Fisher).
 - **A true fact without its scope changes what the agent does:** QtConcurrent — 0.99 with no card,
   0.32 with "map()/filter() is affected too" (all 3 runs extend the fix; extending it is logical, the
   merged change fixed `run()` and kept the task open), 1.00 with the team's decision written down.
   Telling the agent the notes are "background, not instructions" gives 0.52 and still 3/3 extensions.
-- **Cards written with an AI were wrong in 4 of 10 tasks**; corrected cards close gaps (QLockFile
-  0.38 → 0.91, deadlock at exit 0.63 → 0.85, QUrl tests pass for the first time).
+- **Cards written with an AI were wrong in 4 of the 9 tasks audited**; corrected cards (K3b) close
+  gaps (QLockFile 0.38 → 0.91, deadlock at exit 0.63 → 0.85, QUrl tests pass for the first time).
+  K3b cards were written with the merged code in hand and the judge reads the same reviews, so K3b
+  is an upper bound — what a card that already holds the answer achieves — not evidence that such
+  cards can be written in advance.
 - **Checking the cards:** five auditor setups all flagged the bad cards; only the one given the merged
   code named every error.
-- **Tests saw the difference** between agent and maintainer in 3 of 36 runs of the design tasks.
-- **`git log` up to the change** (K0g): no average effect (Δ −0.02 over 9 tasks).
+- **Tests saw the difference** in 3 of the 9 design tasks: a maintainer test failed in 16 of 98
+  design-task runs (768691 ×9, 765378 ×4, 754389 ×3). In the other 6 tasks every run passed,
+  including runs the judge placed far from the merged change.
+- **`git log` up to the change** (K0g): no average effect (Δ 0.00 over 9 tasks).
 - **clazy + sanitize-commit** on all 108 patches (9 maintainers', 99 agents'): zero findings on either
   side (positive control passes).
 
-Caveats: 3 runs per cell, one model, an LLM judge calibrated on one task. The log below is kept as
-written, including corrections of earlier readings (search "Correction").
+Caveats: 3 runs per cell, one model, an LLM judge (the same model family as the agent, one judgement
+per run) calibrated on one task against the author's own verdicts. Two prompt leaks are disclosed at
+the end (search "Disclosure"). The log below is kept as written, including corrections of earlier
+readings (search "Correction").
 
 ---
 
@@ -80,7 +88,8 @@ the official skill do not close it; one task-specific fact does. Single repeat s
 - K0 rep 1 **excluded — spec defect**: the prompt said the value "combines with
   QUrl::FullyDecoded"; the agent defined the bare flag (caller ORs `FullyDecoded` in), the
   maintainer's constant already includes it. Both readings are legitimate; the maintainer's
-  test only accepts the second → 9 failures caused by my spec, not by the agent. Spec
+  test only accepts the second → 9 failures caused by my spec, not by the agent. (The maintainer's
+  change itself carries a `Co-authored-by: Copilot` trailer, `tasks/768691/commit.txt`.) Spec
   clarified 2026-10-13 and logged in `prompts.md`; rerun pending. Agent independently picked
   the same free bit (0x8000000) as the maintainer.
 - K0 rep 1 (rerun, clarified spec): $0.88, 242 s, **6 of 33 rows fail**, all at the same
@@ -160,7 +169,7 @@ false failures from a missing helper).
 | Change | Without fix | With fix | Graded by |
 |---|---|---|---|
 | 764375 QtConcurrent / QThreadPool::clear | 1 failed | 0 failed | test + judge |
-| 765378 deadlock at exit | deadlock test fails | 76 / 0 | test + judge |
+| 765378 deadlock at exit | deadlock test fails | 76 / 0 | test + judge (the widgets part of the maintainer test, `tst_qapplication`, is not in this build and never ran) |
 | 750871 connect() type registration | 4 failed | 0 failed | test + judge |
 | 754389 sender vptr race | 0 failed | 0 failed | **judge only** (race visible only under TSan) |
 | 759321 QLockFile EBUSY on NFS | 0 failed | 0 failed | **judge only** (needs NFS) |
@@ -215,10 +224,11 @@ Revisions to earlier single-repeat readings:
 - QtConcurrent: the harm is robust — every K3 run widened scope into map()/filter(), which the
   maintainer deliberately left out; every K0 run matched the maintainer.
 
-Tests saw the gap in 4 of 36 runs (vptr race K0 ×2, deadlock K0 ×1, and earlier 768691 null
-contract in all arms). Everything else above is invisible to the maintainer's own tests.
+Tests saw the gap in 3 of these 36 runs (vptr race K0 ×2, deadlock K0 ×1); 768691 (not in this
+table) fails the null-contract test in all 9 runs without the corrected card. Everything else above is
+invisible to the maintainer's own tests. All runs over all arms: see the summary.
 
-## Card audit (2026-10-14) — the K3 cards were wrong in 4 of 10 tasks
+## Card audit (2026-10-14) — the K3 cards were wrong in 4 of 9 tasks
 
 Checked every K3 card against the reviewers' comments and the merged code:
 
@@ -282,7 +292,11 @@ Findings:
   The review-only auditors flagged that card for other omissions, never for the inversion.
 - My "good" labels were themselves wrong for 754389: every auditor listed real omissions
   (same-thread call stays inline; what happens when the sender's thread is gone; a downstream
-  CoAP crash raised in review). Ground truth needed the same care as the cards.
+  CoAP crash raised in review). Ground truth needed the same care as the cards. The same holds for
+  754345 (found 2026-10-21): all seven auditor setups, including the one with the merged code, flagged
+  its "no unrelated refactoring" line, which the merged change contradicts (it keeps the NRVO change).
+  754345 was never run (its tests need QtGui), so no result depends on that card.
+- "Named the actual known error" was graded by the author, not blind.
 - The writer did not check; a separate reader did. One Opus auditor, reading only the reviews,
   named 3 of my 4 errors — the same model that wrote the cards, in a separate pass.
 
@@ -295,7 +309,8 @@ Three reviewers from different vendors (Claude Sonnet 5.5, GPT-6.1 Sol Pro, Gemi
 debate round where each sees the others' notes, a chair (Claude Opus 5.5) told to decide by the
 source, not the majority. Same input as the review-only auditors. Run on a local kapt server
 (the pipeline existed only in its DB — the first attempts hit production, which silently used
-`core_team_classic`; see kapt backlog item 28). One card needed retries (intermittent missing
+`core_team_classic`). Conflict of interest: kapt.ai is the experiment author's own product, and the
+pipeline definition is not published, so outsiders cannot rerun this arm. One card needed retries (intermittent missing
 final event). 9 cards, $1.25 (~$0.14 per card; ~5× a single Opus auditor).
 
 | Auditor | Bad cards flagged | Named the actual known error | Flags on my "good" cards |
@@ -317,15 +332,15 @@ not substitute for the primary source.
 "A wrong card hurts" is imprecise for QtConcurrent (764375). The K3 statement "the map()/filter()
 family is affected too (it also leaks)" is **true** (it is in the bug report); what the card
 lacked was the reviewers' decision that this change deliberately leaves that path out. A true,
-relevant fact lowered the result from 0.99 to 0.32 in 3 of 3 runs. For a rational agent this
-cannot happen in expectation (Good 1967, value of free evidence ≥ 0) — so it is evidence that
-the agent treats facts as instructions rather than weighing them. Talk framing updated in
-`TALK-A-outline-v3.md`. (QLockFile 759321 is a genuinely wrong card — it contradicted the merged
-code — and stays classified as such.)
+relevant fact lowered the result from 0.99 to 0.32 in 3 of 3 runs. The score measures distance
+from the merged change, not how good the agent's change is, and the card was introduced as "Notes
+from the maintainers of this code", which reads as guidance. So this shows that a true fact changed
+what the agent did, consistently; it does not show that the agent decided worse. (QLockFile 759321 is
+a genuinely wrong card — it contradicted the merged code — and stays classified as such.)
 
 ## K0g — real git history up to the fix's parent, no card (2026-10-20)
 
-Same prompt as K0; the visible repo has the real qtbase history (1,747+ commits) up to the parent of
+Same prompt as K0; the visible repo has the real qtbase history (from the shallow clone, see README) up to the parent of
 the fix commit, then the working tree as one commit. Harness checks that the fix is not present and
 that no remote/FETCH_HEAD leads to later history. 27 runs (9 design tasks × 3), blind judge (design
 match). The three K0 baselines without judge scores (768691, 773405, 777778) were judged the same day.
@@ -337,12 +352,15 @@ match). The three K0 baselines without judge scores (768691, 773405, 777778) wer
 | 765378 events at exit | 0.60 | 0.55 | −0.05 |
 | 759321 QLockFile | 0.50 | 0.60 | +0.10 |
 | 768691 QUrl decode mode | 0.37 | 0.40 | +0.03 |
-| 754389 vptr race | 0.40 | 0.33 | −0.07 |
+| 754389 vptr race | 0.40 | 0.50 (2 runs) | +0.10 |
 | 750871 connect() | 0.42 | 0.30 | −0.12 |
 | 773405 QCbor toNumber | 0.77 | 0.90 | +0.13 |
 | 777778 QMimeDatabase::reload | 0.90 | 0.88 | −0.02 |
 
-Mean Δ −0.02; 6 of 9 within ±0.10 (noise level at n=3). Agents used history in about half the runs,
+Mean Δ 0.00; 6 of 9 within ±0.10 (noise level at n=3). Rep 2 of 754389 K0g is excluded (2026-10-21):
+the agent `git stash`ed its own fix to rerun the test without it and the session ended before the
+pop, so the graded diff held only its test (judged 0.0, with the judge warning it looked like a
+harness fault). With it the cell was 0.33 and the mean Δ −0.02. Agents used history in about half the runs,
 mostly shallowly (`git log --oneline -5 -- file`, `git show --stat`). The one clear gain, 773405: all
 three runs read the previous commit (the TinyCBOR helper the fix builds on) and wrote the inline
 header version the maintainer wrote; the K0 runs had added an exported out-of-line function.
@@ -395,7 +413,7 @@ findings on lines the patch added. No agent runs.
 | | patches | clazy findings | sanitize-commit findings |
 |---|---|---|---|
 | Maintainers | 9 | 0 | 0 |
-| Agent runs (K0, K0g, K1, K2, K3, K3b, K3h) | 99 | 0 | 0 |
+| Agent runs (K0, K0g, K1, K2, K3, K3b, K3h) | 99 (incl. the later-excluded 754389 K0g rep 2) | 0 | 0 |
 
 Positive control (same pipeline, injected `qgetenv("X").isEmpty()` + trailing whitespace on an added
 line): clazy reported `clazy-qgetenv`, sanitize-commit reported "Trailing whitespace" — the zeros are
@@ -427,3 +445,25 @@ said it ignored it as "pasted experiment notes"; no other agent, judge or audito
 it. With one unexposed run and results at ceiling, a small effect cannot be ruled out; the 777778
 row should be read with that caveat. `section()` now drops HTML comments, so reruns are not
 affected.
+
+## Disclosure (2026-10-21) — the batch list reached most agent prompts
+
+Found by an independent review of this repository. `batch.sh` reads its `task arm rep` lines from
+stdin and did not redirect stdin for the harness, so `claude -p` read the rest of the batch file
+and appended it to the task prompt. The agent saw lines such as `756614 K0 2 … 777778 K0g 3` after
+the task text: the other task IDs (Gerrit change numbers), the arm names and the repeat numbers.
+
+Exposure: 92 of 101 agent runs (counted before excluding 754389 K0g rep 2, which was exposed). Per arm: K0 23/29, K0g 27/27, K1 4/5, K2 4/5, K3 19/20,
+K3b 12/12, K3h 3/3. Unexposed: the first repeat of 756614 (K0, K1, K2, K3), 768691 K0, 773405 K0,
+777778 K0 and the two bug tasks — the runs started one at a time, before batches were used.
+
+What it could reveal: that the agent is one run of a multi-arm experiment. It names no design,
+test or file. The agents had no web tools (`--disallowedTools WebSearch WebFetch`) and no transcript
+contains a network call, so the change numbers could not be looked up. 33 runs mention the lines,
+all to say they are unrelated and ignored.
+
+Effect: not measurable cleanly — exposure coincides with the repeat number. On the 7 task × arm
+cells that have both, design_match is 0.65 for the 7 unexposed first repeats and 0.71 for the 14
+exposed repeats 2–3 (within the n=3 spread). Across arms the exposure is near-uniform (K0 is the
+only arm with several unexposed runs), so the arm comparisons are not driven by it; a small effect
+on all arms cannot be ruled out. `batch.sh` and `harness.py` now pass `/dev/null` as stdin.

@@ -5,7 +5,7 @@
   "The card omits the decided structure: there should be one implementation, in QThreadData::clearEvents(), which cleanupThreadData() reuses. The card lists the two call sites but does not say to consolidate them, so the engineer may fix each separately.",
   "The card misstates removePostedEvents(). The commit only says it already drains events posted by destructors. The card says it is 'a correct implementation already exists', which suggests copying or calling it rather than writing the collect-under-lock/delete-unlocked logic in clearEvents().",
   "The card omits that the deletion of events (virtual ~QEvent, arbitrary code) must happen in a separate final loop, after the list bookkeeping. Reviewers asked for this ordering and a comment explaining it.",
-  "Optional but useful: the card does not say that keeping the list's allocated capacity is an explicit non-goal (Thiago). Swapping with an empty list is intended, and the engineer should not try to preserve capacity."
+  "Optional but useful: the card does not say that keeping the list's allocated capacity is an explicit non-goal (Reviewer 15). Swapping with an empty list is intended, and the engineer should not try to preserve capacity."
  ],
  "model": "opus",
  "source": false,

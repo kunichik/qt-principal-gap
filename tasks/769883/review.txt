@@ -28,7 +28,7 @@ This would be better said on the doc of `Qt::DateFormat` (in `corelib/global/qna
 Interesting that this was already invalid, due to the trailing cruft starting with a digit, which was actively checked for.
 
 [PS2 Reviewer 03 /PATCHSET_LEVEL:0]
-Give Reviewer 15@intel.com a chance to comment overnight, but I do think it's the right thing to do.
+Give Reviewer 15 a chance to comment overnight, but I do think it's the right thing to do.
 
 [PS2 Reviewer 03 src/corelib/global/qnamespace.qdoc:736]
 (perhaps "allowed" - not crucial)
