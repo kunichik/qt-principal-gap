@@ -13,6 +13,8 @@ sys.path.insert(0, str(ROOT))
 from usermd import user_md_aside
 
 Q = ROOT
+(Q / "claude-cfg").mkdir(exist_ok=True)
+(Q / "probe").mkdir(exist_ok=True)  # empty working directory for the auditors
 PROMPT = """An engineer is about to implement a change in Qt's qtbase. Someone wrote a short
 "card" for them: the facts a maintainer of this code would want them to know, taken from the
 code review of the real change. The engineer will follow the card closely.

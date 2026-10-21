@@ -42,7 +42,7 @@ batch.sh        run "task arm rep" lines sequentially; stops on a usage-limit/AP
 usermd.py       moves ~/.claude/CLAUDE.md aside during a run (see below)
 cxx             compiler wrapper for macOS with only the Command Line Tools
 clazy-run.sh    clazy with the build's flags (precompiled headers stripped)
-tools/          sanitize-commit (from qtrepotools), fetch-k1.sh
+tools/          sanitize-commit (from qtrepotools), fetch-k1.sh, make-clazydb.py
 tasks/<id>/     prompt in tasks/prompts.md; src.diff / test.diff (the merged change), commit.txt,
                 review.txt (Gerrit comments, reviewer names replaced by aliases)
 arms/           arm material (K1 is fetched, not stored)
@@ -71,7 +71,10 @@ Claude Code (`claude` on PATH) and Python 3, CMake, Ninja.
    so `usermd.py` moves it aside for each run (with a lock) and puts it back afterwards.
 5. **K1.** `tools/fetch-k1.sh` rebuilds the wiki material; it prints a checksum to compare with the one
    the experiment used.
-6. **Run.** `python3 harness.py 756614 K0 1`, then `python3 judge.py results/756614/K0/claude-1`.
+6. **clazy (only for `tool_eval.py`).** Install clazy (e.g. `brew install clazy`), configure the build
+   with `-DCMAKE_EXPORT_COMPILE_COMMANDS=ON`, then `tools/make-clazydb.py` writes
+   `clazydb/compile_commands.json` without precompiled-header flags.
+7. **Run.** `python3 harness.py 756614 K0 1`, then `python3 judge.py results/756614/K0/claude-1`.
    Batches: `sh batch.sh < batch3.txt`.
 
 All paths are relative to this directory; set `QTEXP_ROOT` to use another one.

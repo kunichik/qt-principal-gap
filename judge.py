@@ -13,6 +13,8 @@ from usermd import user_md_aside
 
 T = ROOT / "tasks"
 CFG = ROOT / "claude-cfg"
+CFG.mkdir(exist_ok=True)
+(ROOT / "probe").mkdir(exist_ok=True)  # empty working directory for the judge
 
 RUBRIC = """You are reviewing a change to Qt's qtbase as a senior Qt maintainer would.
 

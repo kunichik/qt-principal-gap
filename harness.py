@@ -18,6 +18,7 @@ T = ROOT / "tasks"
 A = ROOT / "arms"
 R = ROOT / "results"
 CFG = ROOT / "claude-cfg"    # isolated Claude Code config (no user memory/settings)
+CFG.mkdir(exist_ok=True)
 
 TESTS = {  # change -> test targets graded
     "778262": ["tst_qfuture"], "771420": ["tst_qbytearray", "tst_qstring"],
