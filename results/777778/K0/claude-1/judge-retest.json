@@ -1,0 +1,8 @@
+{
+ "design_match": 0.9,
+ "reviewer_concerns": 1.0,
+ "minimality": 0.95,
+ "hidden_risk": 0.95,
+ "key_difference": "(D) calls the private reload only if the global database already exists (staticQMimeDatabase.exists()), while (B) always goes through instance(); (D) also keeps the interval as an int instead of switching to a std::chrono 5s constant, though both stop exporting qmime_secondsBetweenChecks.",
+ "judge_cost_usd": 0.0725557
+}

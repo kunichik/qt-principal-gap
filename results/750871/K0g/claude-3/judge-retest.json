@@ -1,0 +1,8 @@
+{
+ "design_match": 0.1,
+ "reviewer_concerns": 0.5,
+ "minimality": 0.7,
+ "hidden_risk": 0.3,
+ "key_difference": "(D) leaves ConnectionTypes unchanged, so the types array is still nullptr for non-Q_DECLARE_METATYPE types; instead it touches QMetaMethod::parameterMetaType() at runtime in connectImpl, and only for explicit Queued/BlockingQueued connections. That skips AutoConnection, and parameterMetaType() probably does not register the type by name anyway, whereas (B) computes the type ids at compile time via the TypeIsSuitableForMetaType check, guarded per TU by UniqueType.",
+ "judge_cost_usd": 0.0619371
+}

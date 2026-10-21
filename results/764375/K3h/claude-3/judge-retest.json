@@ -1,0 +1,8 @@
+{
+ "design_match": 0.2,
+ "reviewer_concerns": 0.85,
+ "minimality": 0.15,
+ "hidden_risk": 0.45,
+ "key_difference": "(B) fixes the hang with a small destructor in RunFunctionTaskBase that cancels and finishes an unfinished promise; (D) instead adds a new exported QtCore guard-runnable mechanism, including a new member on the public QFutureInterfaceBase, and also rewires ThreadEngine's start paths, so it runs the discarded engine's run() synchronously inside QThreadPool::clear(), which widens the API/ABI surface and risks reentrancy that (B) avoids.",
+ "judge_cost_usd": 0.0766578
+}

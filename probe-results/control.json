@@ -1,0 +1,36 @@
+{
+ "model": "claude-opus-5-5",
+ "purpose": "positive control: pre-cutoff qtbase changes (merged 2024-05)",
+ "answers": [
+  {
+   "change": "562293",
+   "subject": "QVariant: do reset is_null after setValue()",
+   "answer": "UNKNOWN",
+   "cost_usd": 0.018960599999999998
+  },
+  {
+   "change": "559756",
+   "subject": "Q_APPLICATION_STATIC: provide QApplicationStatic header",
+   "answer": "UNKNOWN",
+   "cost_usd": 0.020223099999999997
+  },
+  {
+   "change": "560887",
+   "subject": "QFileSystemEngine::canonicalName: don't use malloc()'ing realpath()",
+   "answer": "UNKNOWN",
+   "cost_usd": 0.021025
+  },
+  {
+   "change": "563548",
+   "subject": "QByteArray::setNum: use assign() instead of clear()+append()",
+   "answer": "UNKNOWN",
+   "cost_usd": 0.018456800000000002
+  },
+  {
+   "change": "564457",
+   "subject": "tst_qfloat16: don't cause UB in converting from float to ints",
+   "answer": "UNKNOWN",
+   "cost_usd": 0.0189948
+  }
+ ]
+}

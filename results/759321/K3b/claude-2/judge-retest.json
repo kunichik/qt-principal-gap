@@ -1,0 +1,8 @@
+{
+ "design_match": 0.9,
+ "reviewer_concerns": 0.9,
+ "minimality": 0.9,
+ "hidden_risk": 0.9,
+ "key_difference": "(D) prints the 'Could not remove our own lock file' warning only in unlock() and reports failure through errno, while (B) puts the warning inside the shared helper, so a stale lock that cannot be removed in removeStaleLock() fails silently in (D).",
+ "judge_cost_usd": 0.07007369999999999
+}

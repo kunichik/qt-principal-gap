@@ -1,0 +1,8 @@
+{
+ "design_match": 0.55,
+ "reviewer_concerns": 0.8,
+ "minimality": 0.6,
+ "hidden_risk": 0.45,
+ "key_difference": "(D) implements clearLocalData() as a bare d.set(nullptr) in the header, so it can re-create thread-local storage during shutdown; (B) adds QThreadStorageData::clear(), which first checks QThreadData::currentThreadData(), making clearLocalData() unconditionally shutdown-safe. Because of this, (D) has to keep the external guard and the private qthread_p.h include in qcollator.cpp, and its QFontCache::cleanup() change calls clearLocalData() with no guard at all.",
+ "judge_cost_usd": 0.09209490000000001
+}

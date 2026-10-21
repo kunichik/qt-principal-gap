@@ -1,0 +1,8 @@
+{
+ "design_match": 0.6,
+ "reviewer_concerns": 0.85,
+ "minimality": 0.85,
+ "hidden_risk": 0.7,
+ "key_difference": "(D) builds the check on qTryMetaTypeInterfaceForType<Unique, Arg>() with a runtime null comparison and keeps a separate QMetaTypeId2::Defined path, all in qobject_impl.h, whereas (B) adds reusable TypeIsSuitableForMetaType/TypeIsCompleteOrVoid traits to qmetatype.h that thread UniqueType into is_complete, decays the arguments with MetatypeDecay, and uses qMetaTypeId uniformly.",
+ "judge_cost_usd": 0.0945078
+}

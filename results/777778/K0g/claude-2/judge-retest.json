@@ -1,0 +1,8 @@
+{
+ "design_match": 0.95,
+ "reviewer_concerns": 1.0,
+ "minimality": 0.95,
+ "hidden_risk": 0.95,
+ "key_difference": "(D) has the same design as (B): a static reload() forwards to a private method that invalidates m_lastCheck under the mutex, and qmime_secondsBetweenChecks is no longer exported. The only differences are cosmetic: the private method is named requestReload(), the constant stays an int rather than becoming a std::chrono 5s, and there is a redundant null check on QMimeDatabasePrivate::instance().",
+ "judge_cost_usd": 0.06039069999999999
+}

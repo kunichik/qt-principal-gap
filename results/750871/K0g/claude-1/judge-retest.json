@@ -1,0 +1,8 @@
+{
+ "design_match": 0.35,
+ "reviewer_concerns": 0.2,
+ "minimality": 0.3,
+ "hidden_risk": 0.3,
+ "key_difference": "(D) checks completeness with `is_complete<T, void>` and no per-TU UniqueType, so the completeness-dependent `types()` can be folded inconsistently across TUs, which is the issue the reviewer raised; it also reintroduces Qt5-style PointerToQObject/IsGadget `QMetaTypeIdQObject` specializations that change `QMetaTypeId2::Defined` globally, where (B) only gates `ConnectionTypes` on a UniqueType-aware `TypeIsSuitableForMetaType` and calls `qMetaTypeId`.",
+ "judge_cost_usd": 0.0823872
+}

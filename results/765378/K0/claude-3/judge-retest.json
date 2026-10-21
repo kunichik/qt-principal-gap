@@ -1,0 +1,8 @@
+{
+ "design_match": 0.45,
+ "reviewer_concerns": 0.45,
+ "minimality": 0.9,
+ "hidden_risk": 0.3,
+ "key_difference": "(D) patches only cleanupThreadData() with an uncapped swap-and-drain loop that unposts and deletes each event in the same pass, while (B) centralises the fix in QThreadData::clearEvents() (also used for secondary threads), unposts the whole batch before running any ~QEvent(), and caps the passes with MaxPasses. Under (D), a destructor that keeps posting loops forever, and a destructor that deletes a later receiver leaves a dangling pe.receiver.",
+ "judge_cost_usd": 0.0748569
+}

@@ -1,0 +1,8 @@
+{
+ "design_match": 0.5,
+ "reviewer_concerns": 0.6,
+ "minimality": 0.9,
+ "hidden_risk": 0.4,
+ "key_difference": "(D) patches the drain loop inline in cleanupThreadData() with no pass limit, so a destructor that always posts loops forever; (B) moves the logic into QThreadData::clearEvents() with a MaxPasses cap and a leak warning, which also fixes the same reentrancy bug for non-main threads.",
+ "judge_cost_usd": 0.0707145
+}

@@ -1,0 +1,8 @@
+{
+ "design_match": 0.6,
+ "reviewer_concerns": 0.4,
+ "minimality": 0.75,
+ "hidden_risk": 0.4,
+ "key_difference": "(D) drains in an unbounded loop with no MaxPasses cap, so an event whose destructor always posts a new event makes application exit hang forever, while (B) caps the passes, warns and leaks the rest.",
+ "judge_cost_usd": 0.07455200000000001
+}

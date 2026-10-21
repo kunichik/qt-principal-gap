@@ -1,0 +1,8 @@
+{
+ "design_match": 0.9,
+ "reviewer_concerns": 0.95,
+ "minimality": 0.85,
+ "hidden_risk": 0.95,
+ "key_difference": "(D) keeps GenerationalCollatorHolder as a wrapper around a QThreadStorage<GenerationalCollator> member instead of inheriting from it, and its QThreadStorageData::clear() also returns early when the tls slot is absent or null rather than only checking for a QThreadData before calling set(nullptr).",
+ "judge_cost_usd": 0.0803837
+}

@@ -1,0 +1,8 @@
+{
+ "design_match": 0.9,
+ "reviewer_concerns": 1.0,
+ "minimality": 0.85,
+ "hidden_risk": 0.9,
+ "key_difference": "(D) adds the same destructor cancel-and-finish logic as (B) and also calls promise.setRunnable(nullptr) to clear the future's pointer to the dying runnable, a defensive extra step that (B) did not need.",
+ "judge_cost_usd": 0.044444000000000004
+}

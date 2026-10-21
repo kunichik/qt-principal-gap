@@ -1,0 +1,8 @@
+{
+ "design_match": 0.95,
+ "reviewer_concerns": 1.0,
+ "minimality": 1.0,
+ "hidden_risk": 1.0,
+ "key_difference": "Both stop exporting qmime_secondsBetweenChecks and implement reload() the same way (invalidate m_lastCheck under the mutex, called through the static instance), but (D) keeps it as a plain int constant compared with elapsed() in milliseconds, whereas (B) turns it into a std::chrono 5s constant compared with durationElapsed().",
+ "judge_cost_usd": 0.0565028
+}

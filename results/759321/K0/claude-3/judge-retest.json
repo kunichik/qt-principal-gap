@@ -1,0 +1,8 @@
+{
+ "design_match": 0.5,
+ "reviewer_concerns": 0.75,
+ "minimality": 0.7,
+ "hidden_risk": 0.7,
+ "key_difference": "(D) handles EBUSY by explicitly releasing the native lock with a new flock/fcntl unlock helper and retrying, keeping the fd open; (B) closes the file descriptor before retrying, through a shared releaseLockFile() helper that also covers ETXTBSY and EPERM and centralises the warning and close logic.",
+ "judge_cost_usd": 0.06629330000000001
+}

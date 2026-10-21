@@ -1,0 +1,8 @@
+{
+ "design_match": 0.3,
+ "reviewer_concerns": 0.3,
+ "minimality": 0.3,
+ "hidden_risk": 0.2,
+ "key_difference": "(D) changes the public QMetaTypeIdQObject default argument and adds PointerToQObject/IsGadget specializations, so QMetaTypeId2::Defined changes for every user of the header, and its 'unique' tag is a named QtPrivate struct, not one in an anonymous namespace. (B) instead keeps the logic inside ConnectionTypes, applies MetatypeDecay, and passes an anonymous-namespace UniqueType through to is_complete, so the result cannot be folded across translation units where completeness differs.",
+ "judge_cost_usd": 0.08991650000000001
+}

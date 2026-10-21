@@ -1,0 +1,8 @@
+{
+ "design_match": 0.4,
+ "reviewer_concerns": 0.75,
+ "minimality": 0.4,
+ "hidden_risk": 0.4,
+ "key_difference": "(D) re-decodes %80–%FF as UTF-8 inside decode() using a new traits struct, where (B) relies on valid UTF-8 already being folded to UTF-16 and rejects every remaining byte >= 0x80; (D) also never rejects literal (unencoded) backslashes on Windows, which (B) catches with an up-front precheck because QUrl stores them in decoded form.",
+ "judge_cost_usd": 0.10382920000000001
+}

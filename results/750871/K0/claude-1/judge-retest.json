@@ -1,0 +1,8 @@
+{
+ "design_match": 0.45,
+ "reviewer_concerns": 0.3,
+ "minimality": 0.7,
+ "hidden_risk": 0.3,
+ "key_difference": "(D) checks completeness with `is_complete<T, void>` instead of passing a per-TU `UniqueType` through a shared `TypeIsSuitableForMetaType` helper in qmetatype.h, so it has the cross-TU completeness/ODR folding bug the reviewer flagged, and it duplicates the checks from `checkTypeIsSuitableForMetaType()` rather than reusing them.",
+ "judge_cost_usd": 0.0665065
+}

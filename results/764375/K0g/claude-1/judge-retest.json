@@ -1,0 +1,8 @@
+{
+ "design_match": 1.0,
+ "reviewer_concerns": 1.0,
+ "minimality": 0.95,
+ "hidden_risk": 1.0,
+ "key_difference": "Essentially identical to the maintainer's fix (destructor that reports canceled+finished if the promise isn't finished); (D) only differs in placing the destructor at the top of the class and adding an explanatory comment.",
+ "judge_cost_usd": 0.0328106
+}

@@ -1,0 +1,13 @@
+{
+ "task": "754389",
+ "model": "claude-opus-5-5",
+ "subject": "Fix data race on a sender's vptr when its receiver is destroyed",
+ "by_id": {
+  "answer": "UNKNOWN",
+  "cost_usd": 0.0184718
+ },
+ "by_task": {
+  "answer": "UNKNOWN",
+  "cost_usd": 0.022507
+ }
+}

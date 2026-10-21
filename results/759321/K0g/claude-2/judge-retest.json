@@ -1,0 +1,8 @@
+{
+ "design_match": 0.7,
+ "reviewer_concerns": 0.9,
+ "minimality": 0.6,
+ "hidden_risk": 0.8,
+ "key_difference": "(D) retries the unlink after closing only on EBUSY, and only after an fstat/stat inode check, while also adding an exported test-only unlink hook; (B) retries on EBUSY, ETXTBSY and EPERM without the identity check and adds no new exported symbol.",
+ "judge_cost_usd": 0.07050450000000001
+}

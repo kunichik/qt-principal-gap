@@ -8,3 +8,5 @@ clazydb/
 arms/K1-qt-conventions.md
 *.log
 __pycache__/
+calibration/
+rejudge/

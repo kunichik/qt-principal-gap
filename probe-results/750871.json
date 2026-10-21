@@ -1,0 +1,13 @@
+{
+ "task": "750871",
+ "model": "claude-opus-5-5",
+ "subject": "QObject: restore registering some types during connect()",
+ "by_id": {
+  "answer": "UNKNOWN",
+  "cost_usd": 0.019095400000000002
+ },
+ "by_task": {
+  "answer": "UNKNOWN",
+  "cost_usd": 0.024528
+ }
+}

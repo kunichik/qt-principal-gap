@@ -1,0 +1,8 @@
+{
+ "design_match": 0.55,
+ "reviewer_concerns": 0.7,
+ "minimality": 0.55,
+ "hidden_risk": 0.5,
+ "key_difference": "(D) also makes the explicit QObject::disconnect(Connection) path in removeConnection() asynchronous, which (B) deliberately left unchanged. It reuses a local QAbstractMetaCallEvent subclass posted as a MetaCall event instead of adding a dedicated DisconnectNotify event type. It also falls back to an inline virtual call when the sender's thread is not running, where (B) skips the call only when there is no event dispatcher. That fallback can reintroduce the cross-thread vptr race (B) avoids, and the async removeConnection() changes semantics for cross-thread explicit disconnects.",
+ "judge_cost_usd": 0.10241589999999999
+}

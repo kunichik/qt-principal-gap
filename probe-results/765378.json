@@ -1,0 +1,13 @@
+{
+ "task": "765378",
+ "model": "claude-opus-5-5",
+ "subject": "Delete pending events without holding the post event list mutex",
+ "by_id": {
+  "answer": "UNKNOWN",
+  "cost_usd": 0.0190091
+ },
+ "by_task": {
+  "answer": "UNKNOWN",
+  "cost_usd": 0.0229466
+ }
+}

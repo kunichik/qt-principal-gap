@@ -1,0 +1,8 @@
+{
+ "design_match": 0.55,
+ "reviewer_concerns": 0.85,
+ "minimality": 0.8,
+ "hidden_risk": 0.6,
+ "key_difference": "On EBUSY, (D) only drops the native lock and retries unlink with the fd still open, while (B) closes the file descriptor before retrying (and also retries on ETXTBSY/EPERM). A server that refuses to unlink an open file, not just a locked one, would still leave the stale lock behind under (D).",
+ "judge_cost_usd": 0.0662557
+}

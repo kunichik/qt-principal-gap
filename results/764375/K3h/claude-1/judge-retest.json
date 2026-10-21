@@ -1,0 +1,8 @@
+{
+ "design_match": 0.6,
+ "reviewer_concerns": 1.0,
+ "minimality": 0.3,
+ "hidden_risk": 0.6,
+ "key_difference": "Both add the same RunFunctionTaskBase destructor that cancels and finishes the promise, but (D) also reroutes ThreadEngine's initial start through a new auto-deleting wrapper runnable to fix the map()/filter() path, which the reviewers deliberately left out of scope and which adds an extra allocation per start, a friend class, and a new cancel-then-threadExit teardown path that can run finish() on an engine that never started.",
+ "judge_cost_usd": 0.055212
+}

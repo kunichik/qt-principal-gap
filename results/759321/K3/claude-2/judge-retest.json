@@ -1,0 +1,8 @@
+{
+ "design_match": 0.4,
+ "reviewer_concerns": 0.7,
+ "minimality": 0.25,
+ "hidden_risk": 0.5,
+ "key_difference": "On EBUSY, (D) does not simply close the file and unlink again as (B) does: it renames the file to a random temp name with QFileSystemEngine::renameFile, compares inodes, and renames it back if it is not ours. That adds the rename/link fallback path the reviewer questioned, a window where another process's live lock is briefly moved away (and possibly leaked under a .rm.* name), and an autotest-only global, while still not handling the ETXTBSY/EPERM cases that (B) covers.",
+ "judge_cost_usd": 0.082467
+}

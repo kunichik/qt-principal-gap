@@ -1,0 +1,8 @@
+{
+ "design_match": 0.35,
+ "reviewer_concerns": 0.6,
+ "minimality": 0.4,
+ "hidden_risk": 0.4,
+ "key_difference": "(D) adds a separate decodeForLocalFile() that UTF-8-decodes percent-encoded high bytes and checks only percent-encoded characters, whereas (B) adds a flag to the existing decode(): it rejects every decoded byte >= 0x80 (valid UTF-8 is already stored decoded) and, on Windows, also rejects a literal backslash already in the input, which (D) lets through.",
+ "judge_cost_usd": 0.1083954
+}

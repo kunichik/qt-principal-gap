@@ -1,0 +1,8 @@
+{
+ "design_match": 1.0,
+ "reviewer_concerns": 1.0,
+ "minimality": 1.0,
+ "hidden_risk": 1.0,
+ "key_difference": "None in the source code: (D) adds the same destructor that cancels and finishes an unfinished promise as (B), with only an explanatory comment added.",
+ "judge_cost_usd": 0.0325416
+}

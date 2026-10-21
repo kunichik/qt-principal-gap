@@ -1,0 +1,8 @@
+{
+ "design_match": 0.5,
+ "reviewer_concerns": 0.85,
+ "minimality": 0.6,
+ "hidden_risk": 0.7,
+ "key_difference": "On EBUSY, (D) explicitly drops the lock with flock/fcntl and adds an inode-identity check before retrying unlink, and it handles only EBUSY. (B) uses a single shared releaseLockFile() helper that closes the fd and then retries unlink on EBUSY, ETXTBSY and EPERM, returning true only if the file is actually gone.",
+ "judge_cost_usd": 0.0757073
+}

@@ -1,0 +1,8 @@
+{
+ "design_match": 0.4,
+ "reviewer_concerns": 0.6,
+ "minimality": 0.45,
+ "hidden_risk": 0.4,
+ "key_difference": "(D) adds a separate decodeForLocalFile() that duplicates decode()'s UTF-8 handling (with its own non-character-allowing traits) and only rejects percent-encoded backslashes, so on Windows it misses the literal '\\\\' already stored in decoded form, which (B) catches with an upfront precheck inside the existing decode().",
+ "judge_cost_usd": 0.1029323
+}

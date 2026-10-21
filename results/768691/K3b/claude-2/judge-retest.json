@@ -1,0 +1,8 @@
+{
+ "design_match": 0.45,
+ "reviewer_concerns": 0.8,
+ "minimality": 0.4,
+ "hidden_risk": 0.4,
+ "key_difference": "(B) treats any decoded byte >= 0x80 as an error, on the premise that valid UTF-8 was already folded to UTF-16, and on Windows rejects literal (already-decoded) backslashes in the input; (D) instead adds its own UTF-8 decoding path with new traits and only rejects percent-encoded %5C, so a literal '\\' passes through unchecked on Windows.",
+ "judge_cost_usd": 0.1189449
+}

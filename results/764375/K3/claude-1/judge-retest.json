@@ -1,0 +1,8 @@
+{
+ "design_match": 0.15,
+ "reviewer_concerns": 0.85,
+ "minimality": 0.2,
+ "hidden_risk": 0.4,
+ "key_difference": "(B) only adds a RunFunctionTaskBase destructor that cancels and finishes an unfinished promise, while (D) adds a new exported QtCore interface (QRunnableDiscardHandler) that QThreadPool::clear() finds with dynamic_cast, changes the base classes of inline QtConcurrent templates, and also reworks the ThreadEngine map/filter path through threadExit(), which brings in ABI/ODR, RTTI and engine-lifetime risks that (B) deliberately avoided.",
+ "judge_cost_usd": 0.0703588
+}

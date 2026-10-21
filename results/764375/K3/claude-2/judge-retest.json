@@ -1,0 +1,8 @@
+{
+ "design_match": 0.6,
+ "reviewer_concerns": 1.0,
+ "minimality": 0.2,
+ "hidden_risk": 0.6,
+ "key_difference": "D adds the same cancel-and-finish destructor to RunFunctionTaskBase as B, but also reworks ThreadEngineBase so every pool start goes through a new auto-deleting PoolTask wrapper that cancels and exits the thread when dropped; B deliberately left that map()/filter() path out of scope, and the rework adds an allocation per thread start plus new exported surface with subtle engine-lifetime logic.",
+ "judge_cost_usd": 0.0561207
+}

@@ -1,0 +1,8 @@
+{
+ "design_match": 0.6,
+ "reviewer_concerns": 0.8,
+ "minimality": 0.85,
+ "hidden_risk": 0.7,
+ "key_difference": "On EBUSY, (D) drops the native lock with flock(LOCK_UN)/F_UNLCK and retries while the fd stays open, retrying only on EBUSY; (B) closes the file descriptor first and retries on EBUSY, ETXTBSY and EPERM, in a shared releaseLockFile() helper that returns true only if the file is actually gone.",
+ "judge_cost_usd": 0.07468620000000001
+}

@@ -1,0 +1,8 @@
+{
+ "design_match": 0.9,
+ "reviewer_concerns": 1.0,
+ "minimality": 0.9,
+ "hidden_risk": 0.95,
+ "key_difference": "(D) handles negative integers with a switch and an explicit -2^64 overflow special case (rounding value64+1 before negating), whereas (B) simply converts value64 to double and computes -val - 1. Both are inline header implementations with the same isNumber() predicate, and (D) gives equal or better precision, so this is a style difference rather than a correctness one.",
+ "judge_cost_usd": 0.0709594
+}

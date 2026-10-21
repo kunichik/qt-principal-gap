@@ -1,0 +1,8 @@
+{
+ "design_match": 0.9,
+ "reviewer_concerns": 1.0,
+ "minimality": 0.85,
+ "hidden_risk": 0.95,
+ "key_difference": "(D) adds an extra early-return in QThreadStorageData::clear() that inspects data->tls size and slot directly before calling set(nullptr), where (B) only checks QThreadData::currentThreadData(); (D) also keeps GenerationalCollatorHolder as a wrapper around a QThreadStorage<GenerationalCollator> member instead of privately inheriting from it.",
+ "judge_cost_usd": 0.08336189999999999
+}

@@ -1,0 +1,8 @@
+{
+ "design_match": 0.15,
+ "reviewer_concerns": 0.85,
+ "minimality": 0.15,
+ "hidden_risk": 0.45,
+ "key_difference": "(B) adds a small destructor to RunFunctionTaskBase that cancels and finishes an unfinished promise when clear() deletes the runnable. (D) instead adds a new exported discard-handler registry to QThreadPoolPrivate, hooks it into QFutureInterfaceBase::setRunnable/reportFinished and ThreadEngineBase, and extends the fix to map/filter. This puts a pool-mutex hash insert and remove on every QtConcurrent::run task and depends on a ThreadEngineBarrier::releaseUnlessLast() that the diff never adds.",
+ "judge_cost_usd": 0.08442940000000002
+}

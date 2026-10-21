@@ -1,0 +1,8 @@
+{
+ "design_match": 0.85,
+ "reviewer_concerns": 1.0,
+ "minimality": 0.9,
+ "hidden_risk": 0.95,
+ "key_difference": "(D) locks the mutex in the public QMimeDatabase::reload() and calls a private requestCheck() that only asserts the lock (keeping qmime_secondsBetweenChecks as a plain int), while (B) puts the locking and invalidation in QMimeDatabasePrivate::reload() and switches the interval to a chrono 5s constant; both stop exporting the variable and invalidate m_lastCheck.",
+ "judge_cost_usd": 0.0644769
+}

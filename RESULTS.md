@@ -31,8 +31,10 @@ change; "tests" are the maintainers' own autotests, hidden from the agent.
   side (positive control passes).
 
 Caveats: 3 runs per cell, one model, an LLM judge (the same model family as the agent, one judgement
-per run) calibrated on one task against the author's own verdicts. Two prompt leaks are disclosed at
-the end (search "Disclosure"). The log below is kept as written, including corrections of earlier
+per run) calibrated on one task against the author's own verdicts; re-judging all 92 runs moved
+design_match by 0.028 on average (Spearman 0.975), so the judge is consistent with itself — whether it
+agrees with a Qt maintainer is not yet checked. Two prompt leaks are disclosed at the end (search
+"Disclosure"); contamination check for the design tasks near the end. The log below is kept as written, including corrections of earlier
 readings (search "Correction").
 
 ---
@@ -467,3 +469,65 @@ cells that have both, design_match is 0.65 for the 7 unexposed first repeats and
 exposed repeats 2–3 (within the n=3 spread). Across arms the exposure is near-uniform (K0 is the
 only arm with several unexposed runs), so the arm comparisons are not driven by it; a small effect
 on all arms cannot be ruled out. `batch.sh` and `harness.py` now pass `/dev/null` as stdin.
+
+## Contamination check for the 9 design tasks (2026-10-21)
+
+Asked for by an independent review: the merge-date check alone does not exclude that the model saw
+a change while it was on Gerrit.
+
+**Dates.** Gerrit REST API (`/changes/<n>?o=ALL_REVISIONS`): every task change, design and bug, had
+its first patchset uploaded between 2026-07-07 (750871) and 2026-10-06 (777778), after the model's
+June 2026 cutoff. A search for other Gerrit changes naming the same QTBUG found no earlier fix
+attempt. Three of the bugs themselves are older (QTBUG-133213, 754389, 2025-01; QTBUG-132826,
+750871, 2025-01; QTBUG-135044, 756614, 2025-03), and 750871 restores behaviour removed by change
+644401 (opened 2025-05, merged 2026-06-22) — so the model may know the problem, not the fix.
+
+**Probe by change number — uninformative.** `tools/probe_recognition.py` asks `claude-opus-5-5`
+without tools whether it knows each change (by number and subject, and by task text). It answered
+UNKNOWN for all 9 tasks — but also for 5 control changes merged in May 2024, well before the cutoff
+(`probe-results/control.json`). The model does not recall changes by number or subject, so this
+probe cannot detect contamination. The same applies to the earlier bug-task check ("said it knows
+none of the three changes", above): it is no evidence either way.
+
+**Probe by API — informative for the 4 feature tasks.** Asked whether Qt has the API each feature
+task adds, the model said NOT SURE for all four (`QThreadStorage::clearLocalData`,
+`QCborStreamReader::isNumber/toNumber`, a static `QMimeDatabase::reload`, `QUrl`
+`DecodeForLocalFile`) and described the older API instead. For three controls added before the
+cutoff (QChronoTimer 6.8, QSpan 6.7, QDirListing 6.8) it gave the right version and an accurate
+description (`probe-results/api.json`). The 5 bug-fix design tasks add no API, so for them only the
+dates above apply.
+
+## Judge test-retest (2026-10-21)
+
+Asked for by the independent review: one judgement per run hides the judge's own noise. Every
+judged run (92) was judged once more with the same `judge.py` and inputs (`tools/rejudge.sh`;
+second scores in `results/*/*/claude-*/judge-retest.json`). The one input difference: 777778's task
+text no longer carries the editorial note (see the first disclosure).
+
+| | mean Δ (retest − first) | mean \|Δ\| | runs with \|Δ\| ≤ 0.05 | max \|Δ\| |
+|---|---|---|---|---|
+| design_match | +0.005 | 0.028 | 82 / 92 | 0.20 (764375 K3h rep 1: 0.80 → 0.60) |
+| reviewer_concerns | +0.010 | 0.035 | 73 / 92 | 0.15 |
+| minimality | +0.007 | 0.037 | 78 / 92 | 0.15 |
+| hidden_risk | +0.010 | 0.036 | 77 / 92 | 0.15 |
+
+Rank correlation of design_match between the two passes: Spearman 0.975. Cell means (task × arm)
+move by 0.018 on average, at most 0.07 (765378 K0: 0.60 → 0.67) — smaller than every difference
+the summary reads as an effect. Per run, the judge moves 0.028 on average; repeats of the same cell
+differ by 0.15 (median range).
+
+What this does and does not show: the judge is consistent with itself, so the n=3 spread in the
+tables comes from the agent runs, not from judging noise. It says nothing about bias — whether the
+judge (the same model family as the agent) agrees with a Qt maintainer. That needs the human
+calibration below.
+
+## Human calibration — prepared, not yet done (2026-10-21)
+
+The 756614 calibration compared the judge with the author's own verdicts. For an independent check,
+`tools/make_calibration_packet.py` builds a blind packet for a Qt reviewer: task, merged change,
+aliased review comments, the 12 agent diffs of **759321 (QLockFile)** under random letters, the
+judge's rubric and a score sheet; the letter-to-run key stays with the experimenter.
+`tools/compare_calibration.py` then reports per-dimension rank correlation and mean difference.
+759321 was chosen because its maintainer test cannot see the difference (NFS-only), so its scores
+rest on the judge alone, and its runs span 0.30–0.92. Results will be added here when a reviewer
+has scored the packet.

@@ -1,0 +1,8 @@
+{
+ "design_match": 0.3,
+ "reviewer_concerns": 0.55,
+ "minimality": 0.3,
+ "hidden_risk": 0.3,
+ "key_difference": "On EBUSY, (B) simply closes the fd and retries unlink(), but (D) adds a rename-aside / dev+ino-check / rename-back scheme exposed as new private (autotest-exported) API. That scheme relies on QFileSystemEngine::renameFile's link+unlink fallback on NFS, which the reviewer flagged. It also briefly moves another process's live lock away, so a third process can create a new lock in that window, breaking mutual exclusion, and a failed restore leaves an orphaned lock. (D) also handles only EBUSY, not ETXTBSY/EPERM.",
+ "judge_cost_usd": 0.0890288
+}

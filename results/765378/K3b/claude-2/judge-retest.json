@@ -1,0 +1,8 @@
+{
+ "design_match": 0.9,
+ "reviewer_concerns": 0.65,
+ "minimality": 0.85,
+ "hidden_risk": 0.9,
+ "key_difference": "(D) uses the same swap-and-drain-with-MaxPasses design as (B), but it decrements postedEvents inside the mutex with fetchAndSubAcquire. Both of these are things Thiago explicitly objected to: he asked to swap, unlock, then operate, and to keep Relaxed. (D) also keeps a redundant locked `recursion = 0` reset in cleanupThreadData.",
+ "judge_cost_usd": 0.0791506
+}

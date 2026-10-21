@@ -45,11 +45,14 @@ batch.sh        run "task arm rep" lines sequentially; stops on a usage-limit/AP
 usermd.py       moves ~/.claude/CLAUDE.md aside during a run (see below)
 cxx             compiler wrapper for macOS with only the Command Line Tools
 clazy-run.sh    clazy with the build's flags (precompiled headers stripped)
-tools/          sanitize-commit (from qtrepotools), fetch-k1.sh, make-clazydb.py, audit_transcripts.py
+tools/          sanitize-commit (from qtrepotools), fetch-k1.sh, make-clazydb.py, audit_transcripts.py,
+                rejudge.sh (judge test-retest), probe_recognition.py (contamination probe),
+                make_calibration_packet.py + compare_calibration.py (blind human calibration)
+probe-results/  contamination probe answers (tasks, pre-cutoff controls, API probe)
 tasks/<id>/     prompt in tasks/prompts.md; src.diff / test.diff (the merged change), commit.txt,
                 review.txt (Gerrit comments, reviewer names replaced by aliases)
 arms/           arm material (K1 is fetched, not stored)
-results/<id>/<arm>/claude-N/   agent.diff, agent.json, summary.json (tests), judge.json, tools.json
+results/<id>/<arm>/claude-N/   agent.diff, agent.json, summary.json (tests), judge.json, judge-retest.json, tools.json
 audits/<id>/    card audits
 ```
 

@@ -1,0 +1,8 @@
+{
+ "design_match": 0.55,
+ "reviewer_concerns": 0.75,
+ "minimality": 0.9,
+ "hidden_risk": 0.6,
+ "key_difference": "(D) checks suitability at runtime by building an array of `qTryMetaTypeInterfaceForType` results and looping over it for nullptr, whereas (B) adds a compile-time `TypeIsSuitableForMetaType<T, UniqueType>` trait in `qmetatype.h` and branches with `if constexpr`, so (D) adds per-connect codegen (the null-check loop Fabian asked about) and its pointer and opaque-pointer handling depends on `qTryMetaTypeInterfaceForType` semantics rather than `IsPointerDeclaredOpaque`.",
+ "judge_cost_usd": 0.0887426
+}

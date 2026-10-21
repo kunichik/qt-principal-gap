@@ -1,0 +1,8 @@
+{
+ "design_match": 0.9,
+ "reviewer_concerns": 1.0,
+ "minimality": 0.95,
+ "hidden_risk": 0.95,
+ "key_difference": "(D) implements toNumber() with a switch on type() and adds a special case for -2^64 (computing -(value64+1) in integer before converting), whereas (B) chains the existing isX() checks and converts value64 to double before applying -val - 1; both are inline header functions with the same API, and (D) also omits (B)'s cross-referencing \\sa updates in the existing docs.",
+ "judge_cost_usd": 0.071904
+}

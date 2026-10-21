@@ -1,0 +1,8 @@
+{
+ "design_match": 0.5,
+ "reviewer_concerns": 0.8,
+ "minimality": 0.8,
+ "hidden_risk": 0.6,
+ "key_difference": "On EBUSY, (D) drops the native lock with a new releaseNativeLocks() helper and retries unlink while the fd is still open, and only for EBUSY; (B) closes the fd first and then retries for EBUSY, ETXTBSY and EPERM, which also covers servers that refuse to unlink any open file.",
+ "judge_cost_usd": 0.0728684
+}

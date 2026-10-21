@@ -1,0 +1,13 @@
+{
+ "task": "756614",
+ "model": "claude-opus-5-5",
+ "subject": "QThreadStorage: add clearLocalData()",
+ "by_id": {
+  "answer": "UNKNOWN",
+  "cost_usd": 0.0184011
+ },
+ "by_task": {
+  "answer": "UNKNOWN",
+  "cost_usd": 0.021168100000000002
+ }
+}

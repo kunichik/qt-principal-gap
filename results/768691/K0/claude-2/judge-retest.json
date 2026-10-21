@@ -1,0 +1,8 @@
+{
+ "design_match": 0.35,
+ "reviewer_concerns": 0.6,
+ "minimality": 0.4,
+ "hidden_risk": 0.4,
+ "key_difference": "(D) adds a separate decodeForLocalFile() that re-decodes UTF-8 runs and checks only percent-encoded bytes, while (B) adds a per-byte safety check to the existing decode() and also rejects literal backslashes on Windows (QUrl stores them decoded), so (D) lets an unencoded '\\' through on Windows.",
+ "judge_cost_usd": 0.1040132
+}

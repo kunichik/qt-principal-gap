@@ -1,0 +1,8 @@
+{
+ "design_match": 0.3,
+ "reviewer_concerns": 0.3,
+ "minimality": 0.3,
+ "hidden_risk": 0.2,
+ "key_difference": "(D) uses a single named completeness tag (QtPrivate::ConnectionTypesCompletenessTag) instead of a per-TU anonymous-namespace UniqueType, so the main reviewer concern stands: identical ConnectionTypes instantiations can see different completeness in different TUs and fold the wrong version (an ODR hazard). (D) also changes QMetaTypeIdQObject's defaults to mark QObject pointers and gadgets as Defined globally, which (B) avoids by checking suitability locally with TypeIsSuitableForMetaType and qMetaTypeId on decayed args.",
+ "judge_cost_usd": 0.0833829
+}

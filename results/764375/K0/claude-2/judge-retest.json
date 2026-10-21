@@ -1,0 +1,8 @@
+{
+ "design_match": 1.0,
+ "reviewer_concerns": 1.0,
+ "minimality": 1.0,
+ "hidden_risk": 1.0,
+ "key_difference": "Functionally identical to the maintainer's change (destructor reports canceled then finished if the promise isn't finished, so onCanceled continuations run); only the placement within the class and an explanatory comment differ.",
+ "judge_cost_usd": 0.032855999999999996
+}

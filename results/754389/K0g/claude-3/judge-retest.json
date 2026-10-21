@@ -1,0 +1,8 @@
+{
+ "design_match": 0.6,
+ "reviewer_concerns": 0.4,
+ "minimality": 0.9,
+ "hidden_risk": 0.55,
+ "key_difference": "(D) always queues disconnectNotify via QMetaObject::invokeMethod for a cross-thread sender, even when the sender's thread has no event dispatcher, so the event leaks and the notification is silently lost; (B) skips posting in that case and documents the new asynchronous behaviour, while (D) leaves the now-inaccurate comment and the disconnectNotify() docs unchanged.",
+ "judge_cost_usd": 0.0930176
+}

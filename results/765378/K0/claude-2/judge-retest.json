@@ -1,0 +1,8 @@
+{
+ "design_match": 0.75,
+ "reviewer_concerns": 0.55,
+ "minimality": 0.8,
+ "hidden_risk": 0.5,
+ "key_difference": "(D) drains the list in an unbounded `while (true)` loop with no `MaxPasses` cap, so an event whose destructor always posts a new event makes application exit hang forever, whereas (B) gives up after 16 passes with a warning; (D) also changes `fetchAndSubRelaxed` to `Acquire` in `clearEvents()` and unposts while holding the mutex, both of which reviewers questioned.",
+ "judge_cost_usd": 0.0738952
+}

@@ -1,0 +1,8 @@
+{
+ "design_match": 0.7,
+ "reviewer_concerns": 0.6,
+ "minimality": 0.85,
+ "hidden_risk": 0.35,
+ "key_difference": "(D) drains in an unbounded loop and deletes each event in the same pass that unposts it, while (B) unposts the whole batch before running any ~QEvent() and caps the passes at MaxPasses. Without that, (D) can use a receiver after it was freed when an event destructor destroys another pending event's receiver, and can loop forever if a destructor always reposts.",
+ "judge_cost_usd": 0.0755874
+}

@@ -1,0 +1,13 @@
+{
+ "task": "773405",
+ "model": "claude-opus-5-5",
+ "subject": "QCborStreamReader: add toNumber",
+ "by_id": {
+  "answer": "UNKNOWN",
+  "cost_usd": 0.018474400000000002
+ },
+ "by_task": {
+  "answer": "UNKNOWN",
+  "cost_usd": 0.018783300000000003
+ }
+}

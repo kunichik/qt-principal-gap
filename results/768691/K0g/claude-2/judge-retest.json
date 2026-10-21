@@ -1,0 +1,8 @@
+{
+ "design_match": 0.55,
+ "reviewer_concerns": 0.7,
+ "minimality": 0.6,
+ "hidden_risk": 0.45,
+ "key_difference": "(D) tries to UTF-8-decode %80-%FF sequences with a new traits struct and only checks percent-decoded backslashes, whereas (B) rejects every decoded byte >= 0x80 outright (valid UTF-8 is already folded to UTF-16) and, on Windows, also rejects literal unencoded backslashes in the input, which (D) misses.",
+ "judge_cost_usd": 0.11384190000000001
+}

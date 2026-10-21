@@ -1,0 +1,8 @@
+{
+ "design_match": 0.9,
+ "reviewer_concerns": 1.0,
+ "minimality": 0.95,
+ "hidden_risk": 0.95,
+ "key_difference": "(D) locks the mutex in the public QMimeDatabase::reload() and has the private reload() assert that the lock is held, whereas (B) locks inside QMimeDatabasePrivate::reload(); (D) also keeps the interval as an int instead of switching to std::chrono, but both invalidate m_lastCheck under the mutex and stop exporting qmime_secondsBetweenChecks.",
+ "judge_cost_usd": 0.059834799999999994
+}

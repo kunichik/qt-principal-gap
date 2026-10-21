@@ -1,0 +1,8 @@
+{
+ "design_match": 0.9,
+ "reviewer_concerns": 1.0,
+ "minimality": 0.95,
+ "hidden_risk": 0.9,
+ "key_difference": "Both add the same inline isNumber() and toNumber() in the header, but (D) converts negative integers as -double(value64 + 1) with a hex-float -0x1p64 special case for the -2^64 wraparound, rounding only once, whereas (B) uses the simpler -double(value64) - 1 that mirrors toInteger(), and (D) calls the public toFloat16()/toFloat()/toDouble() accessors instead of _toFloatingPoint<T>() directly.",
+ "judge_cost_usd": 0.0772159
+}

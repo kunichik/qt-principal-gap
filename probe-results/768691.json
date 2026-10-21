@@ -1,0 +1,13 @@
+{
+ "task": "768691",
+ "model": "claude-opus-5-5",
+ "subject": "QUrl: add a decode mode that rejects unsafe local-file paths",
+ "by_id": {
+  "answer": "UNKNOWN",
+  "cost_usd": 0.0184349
+ },
+ "by_task": {
+  "answer": "UNKNOWN",
+  "cost_usd": 0.022428800000000002
+ }
+}

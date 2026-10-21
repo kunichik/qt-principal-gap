@@ -1,0 +1,48 @@
+{
+ "model": "claude-opus-5-5",
+ "purpose": "API-recognition probe: new API from the feature tasks vs API added before the cutoff",
+ "answers": [
+  {
+   "what": "task 756614",
+   "api": "QThreadStorage<T>::clearLocalData()",
+   "answer": "**NOT SURE**: I don't recall `QThreadStorage<T>::clearLocalData()` in any Qt version, and I can't confirm from memory that it exists. The public API I'm confident about is `hasLocalData()`, `localData()` (const and non-const), and `setLocalData(T)`. To clear the value, I'd expect you to call `setLocalData()` instead: for pointer types (`QThreadStorage<Foo*>`), `setLocalData(nullptr)` deletes the previously stored object, and for value types you'd assign a default-constructed `T`. Internally, `QThreadStorage` wraps `QThreadStorageData`, which keeps a per-thread `QList<void*>` (in `QThreadData::tls`) indexed by a global id. Each storage registers a destructor function, which runs on the old value when it's replaced and again when the thread exits.",
+   "cost_usd": 0.026992499999999996
+  },
+  {
+   "what": "task 773405",
+   "api": "QCborStreamReader::isNumber() and QCborStreamReader::toNumber()",
+   "answer": "**NOT SURE.** I don't recall `QCborStreamReader::isNumber()` or `toNumber()` in any Qt release I know, so I can't give a version or implementation without making it up.\n\nWhat I do know exists (since Qt 5.12) are the type-specific predicates `isInteger()`, `isUnsignedInteger()`, `isNegativeInteger()`, `isFloat16()`, `isFloat()` and `isDouble()`. Matching them are the accessors `toInteger()`, `toUnsignedInteger()`, `toNegativeInteger()`, `toFloat16()`, `toFloat()` and `toDouble()`. These check or decode the current element's major type and additional info as parsed by the underlying TinyCBOR-based state.\n\nIf a generic `isNumber()`/`toNumber()` existed, I'd expect it to be a convenience that returns true for any integer or floating-point type and converts to `double` by dispatching on `type()`. The way to confirm is to grep `qcborstreamreader.h` in the Qt version you target.",
+   "cost_usd": 0.0282736
+  },
+  {
+   "what": "task 777778",
+   "api": "a static QMimeDatabase::reload()",
+   "answer": "**NOT SURE.** I don't recall a public static `QMimeDatabase::reload()` in any Qt release I know of, so I can't name a version or describe its implementation without guessing. As far as I remember, reloading is internal and automatic: `QMimeDatabasePrivate` holds a list of providers (the binary `mime.cache` provider and the XML provider). Those providers periodically re-check the shared-mime-info directories and file timestamps, throttled to roughly every few seconds, and rebuild their data if anything changed. If an explicit API existed, I'd expect it to be a thin static wrapper that locks the database mutex and forces that provider re-check or rebuild. I'd confirm by grepping `qmimedatabase.h` and the Qt changelogs rather than trusting this answer.",
+   "cost_usd": 0.025602100000000003
+  },
+  {
+   "what": "task 768691",
+   "api": "a QUrl component formatting option or decode mode named DecodeForLocalFile",
+   "answer": "**NOT SURE**: I don't recall a `QUrl` option or decode mode named `DecodeForLocalFile`, so I can't give a version, behavior or implementation without making them up. The public `QUrl::ComponentFormattingOption` values I know are `PrettyDecoded`, `EncodeSpaces`, `EncodeUnicode`, `EncodeDelimiters`, `EncodeReserved`, `DecodeReserved`, `FullyEncoded` and `FullyDecoded`. The URL-level `FormattingOptions` include `RemoveScheme`, `RemovePassword`, `PreferLocalFile`, `StripTrailingSlash` and `NormalizePathSegments`. As far as I remember, `QUrl::toLocalFile()` builds its result from the path using `QUrl::FullyDecoded`, so local-file conversion needs no dedicated mode. If something like this exists, I'd expect it to be a private or internal flag in `qurl.cpp`, for example to handle `%2F` or `%00` when converting to a local path, rather than a documented public enum value.",
+   "cost_usd": 0.030657799999999995
+  },
+  {
+   "what": "control, Qt 6.8",
+   "api": "QChronoTimer",
+   "answer": "Yes, **QChronoTimer** was added in **Qt 6.8** (QtCore). I'm fairly confident about that, though not certain of every detail. It's a QObject-based repeating or single-shot timer, much like QTimer, but its interval is a `std::chrono::nanoseconds` value (64-bit, nanosecond-resolution) rather than an `int` of milliseconds. That removes QTimer's roughly 24-day overflow limit, and it drops the int-ms overloads and static `singleShot()` helpers, so for those you still use `QTimer::singleShot`. As I recall, it shares the timer private implementation with QTimer (QTimerPrivate with bindable `interval`, `singleShot`, `timerType` and `active` properties, plus `timeout()` and `remainingTime()`), and registers with the event dispatcher through the 6.8 chrono-based API (`QAbstractEventDispatcherV2::registerTimer` taking `Duration`/`Qt::TimerId`), so the actual precision still depends on the platform dispatcher and `Qt::TimerType`.",
+   "cost_usd": 0.0304974
+  },
+  {
+   "what": "control, Qt 6.7",
+   "api": "QSpan",
+   "answer": "Yes, Qt has **QSpan**, added in **Qt 6.7** in QtCore (`#include <QSpan>`). It is a non-owning, lightweight view over a contiguous sequence of `T`, essentially Qt's equivalent of C++20 `std::span`, so Qt APIs can take spans while Qt still supports C++17. It supports both a fixed extent (`QSpan<T, N>`) and a dynamic extent (`QSpan<T>`, using `q20::dynamic_extent`), and offers `data()`, `size()` (as `qsizetype`), `first()`, `last()`, `subspan()`, iterators and `operator[]`. It implements this as a header-only, mostly `constexpr` class template built on internal `QSpanBase` specializations, which store only a pointer for fixed extents and a pointer plus size for dynamic ones. Its constrained constructors accept C arrays, `std::array`, Qt and std contiguous containers, iterator/size pairs, and (for `const T`) `std::initializer_list`, and it converts to and from `std::span` when that is available.",
+   "cost_usd": 0.0298201
+  },
+  {
+   "what": "control, Qt 6.8",
+   "api": "QDirListing",
+   "answer": "Yes, **QDirListing** exists in QtCore and was added in **Qt 6.8**. It's a modern, STL-style replacement for `QDirIterator` that lists directory entries through a single-pass input iterator, so you can write `for (const auto &entry : QDirListing(path, QDirListing::IteratorFlag::Recursive))`. Each element is a `QDirListing::DirEntry`, which exposes `fileName()`, `filePath()`, `isDir()`, `size()`, `fileInfo()` and similar accessors. Behavior is controlled by `IteratorFlag` values (e.g. `Recursive`, `FilesOnly`, `DirsOnly`, `IncludeHidden`, `ResolveSymlinks`, `FollowDirSymlinks`) plus optional name filters. Internally it's move-only and keeps a stack of per-directory iterators for recursion, using native `QFileSystemIterator` (opendir/readdir on Unix, FindFirstFile on Windows) or `QAbstractFileEngineIterator` for custom engines like `:/` resources, and it caches metadata lazily in each `DirEntry` to avoid extra stat calls.",
+   "cost_usd": 0.0357017
+  }
+ ]
+}

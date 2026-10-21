@@ -1,0 +1,8 @@
+{
+ "design_match": 0.4,
+ "reviewer_concerns": 0.6,
+ "minimality": 0.3,
+ "hidden_risk": 0.35,
+ "key_difference": "(D) adds a second UTF-8 decoding path inside decode(), with new traits that accept non-characters and a bad-encoding fallback, instead of treating any remaining %80-%FF byte as invalid like (B); on Windows it also checks only percent-encoded backslashes and misses literal '\\' in the input, which (B) catches with a precheck.",
+ "judge_cost_usd": 0.1057844
+}

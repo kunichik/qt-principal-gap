@@ -1,0 +1,8 @@
+{
+ "design_match": 0.5,
+ "reviewer_concerns": 0.4,
+ "minimality": 0.6,
+ "hidden_risk": 0.3,
+ "key_difference": "(D) uses the signal's function-pointer type (Func1) as the completeness-check uniquifier, which is the same in every TU, so the cross-TU ODR folding problem Fabian raised remains. (B) uses an anonymous-namespace UniqueType that is threaded through TypeIsSuitableForMetaType into is_complete. (D) also lacks (B)'s explicit pointer-to-incomplete and reference checks, so these cases fall through to qTryMetaTypeInterfaceForType instead of cleanly returning nullptr.",
+ "judge_cost_usd": 0.09641260000000001
+}

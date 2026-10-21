@@ -1,0 +1,8 @@
+{
+ "design_match": 0.75,
+ "reviewer_concerns": 0.45,
+ "minimality": 0.8,
+ "hidden_risk": 0.45,
+ "key_difference": "(D) drains in an unbounded `for (;;)` loop with no MaxPasses cap, so an event whose destructor always posts a new event makes application exit hang forever, where (B) gives up after 16 passes with a warning; (D) also does the unposting under the mutex (Thiago asked to swap, unlock, then operate) and keeps the 'called from within sendPostedEvents()' comment that reviewers had removed.",
+ "judge_cost_usd": 0.0735792
+}

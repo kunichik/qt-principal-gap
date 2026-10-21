@@ -1,0 +1,8 @@
+{
+ "design_match": 1.0,
+ "reviewer_concerns": 1.0,
+ "minimality": 0.95,
+ "hidden_risk": 1.0,
+ "key_difference": "None of substance: (D) adds the same destructor with reportCanceled()+reportFinished() guarded by !isFinished(), differing only in placement within the class and an explanatory comment.",
+ "judge_cost_usd": 0.0328575
+}

@@ -1,0 +1,13 @@
+{
+ "task": "764375",
+ "model": "claude-opus-5-5",
+ "subject": "QtConcurrent: finish futures of tasks dropped by QThreadPool::clear()",
+ "by_id": {
+  "answer": "UNKNOWN",
+  "cost_usd": 0.018600000000000002
+ },
+ "by_task": {
+  "answer": "UNKNOWN",
+  "cost_usd": 0.024333200000000003
+ }
+}

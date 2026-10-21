@@ -1,0 +1,13 @@
+{
+ "task": "759321",
+ "model": "claude-opus-5-5",
+ "subject": "QLockFile/Unix: try harder to release locked files",
+ "by_id": {
+  "answer": "UNKNOWN",
+  "cost_usd": 0.018432300000000002
+ },
+ "by_task": {
+  "answer": "UNKNOWN",
+  "cost_usd": 0.021750199999999997
+ }
+}

@@ -1,0 +1,8 @@
+{
+ "design_match": 0.55,
+ "reviewer_concerns": 0.7,
+ "minimality": 0.6,
+ "hidden_risk": 0.5,
+ "key_difference": "(D) has no pass cap, so an event destructor that always posts another event makes it loop forever; (B) stops after MaxPasses and warns. (D) also copies the drain loop into cleanupThreadData() instead of reusing clearEvents().",
+ "judge_cost_usd": 0.07677439999999999
+}

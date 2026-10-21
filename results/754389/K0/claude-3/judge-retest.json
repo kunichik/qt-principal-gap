@@ -1,0 +1,8 @@
+{
+ "design_match": 0.35,
+ "reviewer_concerns": 0.35,
+ "minimality": 0.95,
+ "hidden_risk": 0.3,
+ "key_difference": "(D) silently drops disconnectNotify() whenever the sender lives in another thread, while (B) posts a QDisconnectNotifyEvent so the sender is still notified later in its own thread; with (D), users like QDBusAbstractInterface (which reviewers said must not get zero notifications) and the counter-tracking in QBuffer/QFutureWatcher are never told about the disconnect.",
+ "judge_cost_usd": 0.07563550000000001
+}

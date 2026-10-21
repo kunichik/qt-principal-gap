@@ -1,0 +1,8 @@
+{
+ "design_match": 1.0,
+ "reviewer_concerns": 1.0,
+ "minimality": 1.0,
+ "hidden_risk": 1.0,
+ "key_difference": "None of substance: (D) adds the same destructor that cancels and finishes an unfinished promise (so .onCanceled() continuations run and qthreadpool.cpp is untouched), differing only in placement within the class and an explanatory comment.",
+ "judge_cost_usd": 0.033233200000000004
+}

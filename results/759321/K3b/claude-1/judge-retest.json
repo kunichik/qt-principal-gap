@@ -1,0 +1,8 @@
+{
+ "design_match": 0.9,
+ "reviewer_concerns": 0.95,
+ "minimality": 0.95,
+ "hidden_risk": 0.9,
+ "key_difference": "(D) emits the 'could not remove lock file' warning only in unlock(), while (B) puts it inside the shared helper, so (D) silently fails when removeStaleLock() cannot delete a stale lock (for example another user's file in a sticky directory).",
+ "judge_cost_usd": 0.06703
+}

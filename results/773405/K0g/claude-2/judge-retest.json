@@ -1,0 +1,8 @@
+{
+ "design_match": 0.9,
+ "reviewer_concerns": 1.0,
+ "minimality": 0.85,
+ "hidden_risk": 0.95,
+ "key_difference": "(D) converts negative integers as -double(value64 + 1) with an explicit -2^64 wrap-around special case inside a switch on type(), whereas (B) uses the simpler -double(value64) - 1 in an if-chain; the results are equivalent but (D) adds extra special-case logic that (B) did not need.",
+ "judge_cost_usd": 0.0733632
+}

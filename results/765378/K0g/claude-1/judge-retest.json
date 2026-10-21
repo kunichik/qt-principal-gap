@@ -1,0 +1,8 @@
+{
+ "design_match": 0.4,
+ "reviewer_concerns": 0.55,
+ "minimality": 0.6,
+ "hidden_risk": 0.4,
+ "key_difference": "(D) duplicates an uncapped drain loop in both cleanupThreadData() and clearEvents() instead of routing cleanupThreadData() through a single clearEvents() that swaps the list out under the mutex, resets startOffset/insertionOffset, and caps the passes at MaxPasses. As a result, (D) can loop forever if an event destructor always re-posts, and its clearEvents() still touches postEventList without holding the mutex.",
+ "judge_cost_usd": 0.0798479
+}

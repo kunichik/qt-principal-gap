@@ -1,0 +1,8 @@
+{
+ "design_match": 0.9,
+ "reviewer_concerns": 0.85,
+ "minimality": 0.9,
+ "hidden_risk": 0.9,
+ "key_difference": "(D) has the same core design: a new QThreadStorageData::clear() that skips the thread when it has no QThreadData, inline clearLocalData() in both the thread and no-thread variants, and a value-based QThreadStorage in the collator. It differs from (B) in that it keeps composition with a forwarding localData() instead of privately inheriting QThreadStorage<GenerationalCollator>, adds a redundant tls-slot pre-check in clear(), and does not document clearLocalData() as the one call that is safe during shutdown.",
+ "judge_cost_usd": 0.0827512
+}

@@ -1,0 +1,8 @@
+{
+ "design_match": 0.35,
+ "reviewer_concerns": 0.6,
+ "minimality": 0.4,
+ "hidden_risk": 0.4,
+ "key_difference": "(D) adds a separate decodeForLocalFile() that UTF-8-decodes valid percent-encoded sequences and only rejects percent-decoded backslashes, whereas (B) extends decode() to reject every percent-decoded byte >= 0x80 and, on Windows, any literal backslash (because QUrl stores backslashes decoded); so (D) misses the stored-backslash case and accepts percent-encoded non-ASCII that (B) rejects.",
+ "judge_cost_usd": 0.11826060000000001
+}

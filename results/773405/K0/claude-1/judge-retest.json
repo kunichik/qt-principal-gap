@@ -1,0 +1,8 @@
+{
+ "design_match": 0.7,
+ "reviewer_concerns": 1.0,
+ "minimality": 0.9,
+ "hidden_risk": 0.9,
+ "key_difference": "(D) implements toNumber() as an exported out-of-line function in the .cpp, adding a new exported symbol and a separate NegativeInteger path that avoids double rounding, whereas (B) keeps it inline in the header and reuses the existing _toFloatingPoint<T>() helpers with a simple `-val - 1` integer conversion.",
+ "judge_cost_usd": 0.0704617
+}

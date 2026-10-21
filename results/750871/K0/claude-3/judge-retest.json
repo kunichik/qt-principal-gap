@@ -1,0 +1,8 @@
+{
+ "design_match": 0.5,
+ "reviewer_concerns": 0.35,
+ "minimality": 0.6,
+ "hidden_risk": 0.35,
+ "key_difference": "(D) uses the sender class (SignalType::Object) as the completeness-check 'unique' type, which is shared across translation units, so an argument type that is forward-declared in one TU and complete in another can still produce ODR-folded wrong ConnectionTypes instantiations; (B) uses an anonymous-namespace UniqueType per TU and also centralizes the suitability check (decay, rejecting references, pointer-completeness) in qmetatype.h instead of threading a new template parameter through the connect() call sites.",
+ "judge_cost_usd": 0.0891156
+}

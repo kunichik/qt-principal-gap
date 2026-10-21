@@ -1,0 +1,8 @@
+{
+ "design_match": 0.9,
+ "reviewer_concerns": 0.6,
+ "minimality": 0.85,
+ "hidden_risk": 0.9,
+ "key_difference": "(D) un-posts the swapped-out events while still holding postEventList.mutex and switches clearEvents() to fetchAndSubAcquire, which are the two things Thiago explicitly asked to avoid; (B) swaps, unlocks, then un-posts using Relaxed.",
+ "judge_cost_usd": 0.0778446
+}

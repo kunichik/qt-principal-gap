@@ -1,0 +1,8 @@
+{
+ "design_match": 1.0,
+ "reviewer_concerns": 1.0,
+ "minimality": 0.95,
+ "hidden_risk": 1.0,
+ "key_difference": "(D) is functionally identical to (B) — a destructor that reports canceled and then finished when the promise is unfinished — differing only in placement within the class and an added explanatory comment.",
+ "judge_cost_usd": 0.0328272
+}

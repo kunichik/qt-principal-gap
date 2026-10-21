@@ -1,0 +1,8 @@
+{
+ "design_match": 0.9,
+ "reviewer_concerns": 1.0,
+ "minimality": 0.85,
+ "hidden_risk": 0.95,
+ "key_difference": "(D) keeps GenerationalCollatorHolder as a wrapper around a value-based QThreadStorage member with a forwarding localData(), where (B) inherits from QThreadStorage<GenerationalCollator> and re-exports localData via a using-declaration; (D)'s QThreadStorageData::clear() also skips set(nullptr) when the thread's tls slot is absent or empty, which avoids growing the tls list.",
+ "judge_cost_usd": 0.08541739999999999
+}

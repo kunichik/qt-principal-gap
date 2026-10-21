@@ -1,0 +1,8 @@
+{
+ "design_match": 0.85,
+ "reviewer_concerns": 1.0,
+ "minimality": 0.95,
+ "hidden_risk": 0.9,
+ "key_difference": "(D) takes the mutex in the public QMimeDatabase::reload() and puts an unlocked inline reload() in the private header, while (B) locks inside QMimeDatabasePrivate::reload(); (D) also drops the named qmime_secondsBetweenChecks constant in favour of an inline 5s literal.",
+ "judge_cost_usd": 0.059504999999999995
+}

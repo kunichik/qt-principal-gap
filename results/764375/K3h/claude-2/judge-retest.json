@@ -1,0 +1,8 @@
+{
+ "design_match": 0.6,
+ "reviewer_concerns": 1.0,
+ "minimality": 0.3,
+ "hidden_risk": 0.6,
+ "key_difference": "(D) has the same RunFunctionTaskBase destructor fix as (B), but also rewrites how ThreadEngine is queued for the map()/filter() path: a new ThreadEngineRunner wrapper, a new protected startFirstThread() in an exported header, and barrier/threadExit handling in a destructor. (B) deliberately left that path out of scope (Task-number instead of Fixes), and the extra code carries unreviewed lifetime and concurrency risk.",
+ "judge_cost_usd": 0.055144500000000006
+}

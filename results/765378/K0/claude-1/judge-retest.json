@@ -1,0 +1,8 @@
+{
+ "design_match": 0.8,
+ "reviewer_concerns": 0.6,
+ "minimality": 0.85,
+ "hidden_risk": 0.5,
+ "key_difference": "(D) drains in an unbounded `while (true)` loop with no pass cap, so an event whose destructor always posts a new event makes shutdown loop forever, whereas (B) stops after MaxPasses with a warning and leaks the rest; (D) also does the unposting loop while still holding the mutex, which Thiago asked to move outside the lock.",
+ "judge_cost_usd": 0.0730273
+}

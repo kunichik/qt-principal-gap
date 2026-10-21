@@ -1,0 +1,8 @@
+{
+ "design_match": 0.5,
+ "reviewer_concerns": 0.75,
+ "minimality": 0.6,
+ "hidden_risk": 0.4,
+ "key_difference": "(D) misses (B)'s Windows precheck for literal backslashes, which QUrl stores in decoded form, so on Windows a path containing an unencoded '\\' is still accepted (and silently passes the no-'%' fast path); (D) also adds its own UTF-8 decoder via a new traits struct, where (B) relies on valid UTF-8 already being folded to UTF-16 and rejects any decoded byte >= 0x80.",
+ "judge_cost_usd": 0.1095465
+}

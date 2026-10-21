@@ -1,0 +1,8 @@
+{
+ "design_match": 0.7,
+ "reviewer_concerns": 0.8,
+ "minimality": 0.95,
+ "hidden_risk": 0.6,
+ "key_difference": "When the sender's thread has no event dispatcher, (D) still calls disconnectNotify() directly from the receiver's thread, which leaves the vptr race open in that case; (B) skips the notification instead, and (D) also posts a QQueuedMetaCallEvent wrapping a lambda rather than adding a dedicated QDisconnectNotifyEvent and QEvent::DisconnectNotify type.",
+ "judge_cost_usd": 0.0916391
+}

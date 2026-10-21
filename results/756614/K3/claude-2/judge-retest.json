@@ -1,0 +1,8 @@
+{
+ "design_match": 0.75,
+ "reviewer_concerns": 1.0,
+ "minimality": 0.8,
+ "hidden_risk": 0.85,
+ "key_difference": "(D) reimplements the clear logic in QThreadStorageData::clear() (its own tls lookup, destructor-map lookup under destructorsMutex, and exchange-then-destroy) instead of guarding on QThreadData::currentThreadData() and reusing set(nullptr) as (B) does, which duplicates set()'s internals and lets a value stored by the destructor survive where set() would overwrite it.",
+ "judge_cost_usd": 0.0912329
+}
