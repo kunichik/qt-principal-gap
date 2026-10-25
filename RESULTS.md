@@ -364,7 +364,8 @@ the agent `git stash`ed its own fix to rerun the test without it and the session
 pop, so the graded diff held only its test (judged 0.0, with the judge warning it looked like a
 harness fault). With it the cell was 0.33 and the mean Δ −0.02. Agents used history in about half the runs,
 mostly shallowly (`git log --oneline -5 -- file`, `git show --stat`). The one clear gain, 773405: all
-three runs read the previous commit (the TinyCBOR helper the fix builds on) and wrote the inline
+three runs read the class's previous commit (`QCborStreamReader: add bytesAvailable()`, fdcf2361; corrected
+2026-10-25 — an earlier version of this line called it "the TinyCBOR helper the fix builds on") and wrote the inline
 header version the maintainer wrote; the K0 runs had added an exported out-of-line function.
 
 Reading: history before a change does not contain the decision made in that change's review, so it
@@ -427,8 +428,9 @@ only to template headers without a same-named .cpp (764375 `qtconcurrentrunbase.
 
 Reading: the agents' patches are as clean as the maintainers' for Qt's own pitfall and sanity checks.
 What separated the agent's change from the maintainer's (scope, unwritten contracts, deliberate
-simplicity) is invisible to these tools. Context: the official `qt-qml-review` skill already runs
-qmllint first; `qt-cpp-review` runs no tool.
+simplicity) is invisible to these tools. Context: both official review skills run their own pattern-based Python linter;
+`qt-qml-review` also runs qmllint if it is installed (optional phase); neither runs clazy (corrected
+2026-10-25; an earlier version said `qt-cpp-review` runs no tool).
 
 ## Disclosure (2026-10-21) — an editorial note reached the 777778 prompt
 

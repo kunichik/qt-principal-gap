@@ -19,7 +19,8 @@ each change was classified by the author of this experiment, not by a Qt maintai
 | 759321 QLockFile EBUSY | unlink while locked first; close + retry only on EBUSY/ETXTBSY/EPERM | **contradicts** the merged code ("We must drop the locks first, which close() does, then unlink()") | merged code only |
 
 Counts (9 changes): 4 fully + 2 partly in the commit message; 2 only in review; 1 commit message
-describes the opposite of the merged code. For the **same** change none of this is visible to an
+describes close-then-unlink while the merged code unlinks first and closes only as a fallback
+(the message was written in review, PS3, next to the unlink-first code). For the **same** change none of this is visible to an
 agent writing it (it is written with or after the change). For a **later** change in the same code,
 an agent sees commit messages through `git log` — the review only if it goes to Gerrit.
 
