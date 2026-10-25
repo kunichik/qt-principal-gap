@@ -363,13 +363,15 @@ Mean Δ 0.00; 6 of 9 within ±0.10 (noise level at n=3). Rep 2 of 754389 K0g is 
 the agent `git stash`ed its own fix to rerun the test without it and the session ended before the
 pop, so the graded diff held only its test (judged 0.0, with the judge warning it looked like a
 harness fault). With it the cell was 0.33 and the mean Δ −0.02. Agents used history in about half the runs,
-mostly shallowly (`git log --oneline -5 -- file`, `git show --stat`). The one clear gain, 773405: all
-three runs read the class's previous commit (`QCborStreamReader: add bytesAvailable()`, fdcf2361; corrected
-2026-10-25 — an earlier version of this line called it "the TinyCBOR helper the fix builds on") and wrote the inline
-header version the maintainer wrote; the K0 runs had added an exported out-of-line function.
+mostly shallowly (`git log --oneline -5 -- file`, `git show --stat`). The largest gain, 773405: all
+three runs wrote the inline header version the maintainer wrote (K0: 1 of 3). They did read the class's previous
+commit (`QCborStreamReader: add bytesAvailable()`, fdcf2361, an out-of-line function), but their transcripts
+give the existing inline accessors in the header as the reason — visible without history too. So the gain is
+not clearly due to the history (corrected 2026-10-25; earlier text credited "the TinyCBOR helper the fix
+builds on").
 
 Reading: history before a change does not contain the decision made in that change's review, so it
-does not close those gaps; it helps when the needed knowledge is already in it (773405).
+does not close those gaps; the one cell that moved (773405) is not clearly due to the history.
 
 Harness note (found while adding K0g): with `qtbase/.git` removed, `git apply -R` ran inside the
 parent repo `.git` (created 2026-10-17 23:43) and silently skipped every path, leaving the fix

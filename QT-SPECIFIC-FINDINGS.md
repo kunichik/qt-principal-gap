@@ -19,7 +19,8 @@ each change was classified by the author of this experiment, not by a Qt maintai
 | 759321 QLockFile EBUSY | unlink while locked first; close + retry only on EBUSY/ETXTBSY/EPERM | **contradicts** the merged code ("We must drop the locks first, which close() does, then unlink()") | merged code only |
 
 Counts (9 changes): 4 fully + 2 partly in the commit message; 2 only in review; 1 commit message
-describes close-then-unlink while the merged code unlinks first and closes only as a fallback
+says close first, then unlink, while the merged code unlinks while still locked, then closes, and retries
+the unlink only if the first attempt failed
 (the message was written in review, PS3, next to the unlink-first code). For the **same** change none of this is visible to an
 agent writing it (it is written with or after the change). For a **later** change in the same code,
 an agent sees commit messages through `git log` — the review only if it goes to Gerrit.
@@ -56,7 +57,7 @@ which we can assume to be available."
 
 - Whether reading *past* Gerrit reviews would predict the next decision (not tested; question for the room).
 - Giving the agent `git log` up to the change (K0g, 27 runs, 2026-10-20): no average effect
-  (Δ 0.00); helps only where the knowledge is already in the history (773405). See
+  (Δ 0.00); 773405, the one cell that moved, is not clearly due to the history (see RESULTS K0g). See
   `RESULTS.md`.
 
 ## 6. Agents already write Qt
