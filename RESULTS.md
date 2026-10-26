@@ -529,8 +529,8 @@ calibration below.
 
 The 756614 calibration compared the judge with the author's own verdicts. For an independent check,
 `tools/make_calibration_packet.py` builds a blind packet for a Qt reviewer: task, merged change,
-aliased review comments, the 12 agent diffs of **759321 (QLockFile)** under random letters, the
-judge's rubric and a score sheet; the letter-to-run key stays with the experimenter.
+aliased review comments, 6 of the 12 agent diffs of **759321 (QLockFile)** — chosen to span the judge's
+range (0.30–0.92) — under random letters, the judge's design_match rubric and a one-column score sheet; the letter-to-run key stays with the experimenter.
 `tools/compare_calibration.py` then reports per-dimension rank correlation and mean difference.
 759321 was chosen because its maintainer test cannot see the difference (NFS-only), so its scores
 rest on the judge alone, and its runs span 0.30–0.92. Results will be added here when a reviewer

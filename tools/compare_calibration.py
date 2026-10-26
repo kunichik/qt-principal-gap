@@ -2,6 +2,7 @@
 """Compares a human reviewer's scores.csv with the LLM judge's scores for the same runs.
 
 Usage: compare_calibration.py <KEY-task.json> <scores.csv> <published-repo>
+(scores.csv may hold all four judge dimensions or only design_match)
 Prints per-candidate scores side by side, Spearman rank correlation and mean absolute difference
 per dimension.
 """
@@ -35,6 +36,7 @@ def spearman(a, b):
 
 key = json.loads(Path(sys.argv[1]).read_text())["key"]
 human = {row["candidate"]: row for row in csv.DictReader(open(sys.argv[2]))}
+DIMS = [d for d in DIMS if d in next(iter(human.values()))]  # the short packet asks only for design_match
 pub = Path(sys.argv[3])
 rows = []
 for L, run in sorted(key.items()):
