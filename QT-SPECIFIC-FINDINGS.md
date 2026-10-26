@@ -12,13 +12,13 @@ each change was classified by the author of this experiment, not by a Qt maintai
 | 754389 sender vptr race | notify inline only from the owning thread, else post | **yes** (full rationale) | — |
 | 750871 connect() metatypes | reuse `qTryMetaTypeInterfaceForType()`, as moc does | **yes** | — |
 | 777778 QMimeDatabase::reload | static; tests use reload(), variable no longer exported | **yes** | — |
-| 773405 QCborStreamReader::toNumber | inline in the header, reusing the existing `_toFloatingPoint<T>()` | no — it only points to a TinyCBOR commit (test data) | no review — only in the merged code |
+| 773405 QCborStreamReader::toNumber | inline in the header, reusing the existing `_toFloatingPoint<T>()` | no — it only points to a TinyCBOR commit (test data) | review: +2 without comments — only implicit in the merged code |
 | 764375 QtConcurrent + clear() | fix run() only; task kept open for map()/filter() | no — but footer is `Task-number:`, not `Fixes:` | review: "we don't want to close the task yet, because the patch doesn't fix map()/filter() path" |
 | 765378 events at exit | bounded passes (MaxPasses) because ~QEvent() may post | no ("drain whatever those destructors post") | review: "we limit the passes to avoid an infinite loop" |
 | 768691 QUrl decode mode | null result on refusal (contract of appendTo) | no — it says only that the function "returns a negative value" | review + internal docs |
 | 759321 QLockFile EBUSY | unlink while locked first; close + retry only on EBUSY/ETXTBSY/EPERM | **contradicts** the merged code ("We must drop the locks first, which close() does, then unlink()") | merged code only |
 
-Counts (9 changes): 4 in the commit message; 3 only in review; 1 only in the merged code (773405); 1 commit message
+Counts (9 changes): 4 in the commit message. Of the other 5: 765378 and 768691 also in a code comment / internal doc the change added (and in review); 764375 only in review (plus the `Task-number:` footer); 773405 only implicit in the merged code; 1 commit message
 says close first, then unlink, while the merged code unlinks while still locked, then closes, and retries
 the unlink only if the first attempt failed
 (the message was written in review, PS3, next to the unlink-first code). For the **same** change none of this is visible to an
