@@ -125,6 +125,18 @@ author. Every published agent turn is `claude-opus-5-5` under Claude Code 2.1.29
 transcripts); the scripts pass the alias `opus`, so a rerun may get a newer model. Treat the numbers
 as directions, not proofs.
 
+## Acknowledgements
+
+- The qtbase authors and reviewers whose changes, commit messages and review comments this experiment
+  is built on (reviewer names anonymised, see `REVIEWERS-ANONYMISED.txt`).
+- An independent Qt developer with 20+ years of Qt experience, who scored the blind calibration packet
+  on 759321, and also ran it through the Hermes agent with Qwen3.8-27B as a second, independent model
+  (see RESULTS "Human calibration").
+- Volker Hilsheimer, for the invitation to present this at Qt Contributors Summit 2026.
+- Tools used to build the experiment and the talk: Claude Code (Claude Opus and Sonnet), Cursor,
+  Slidev. The card-debate auditor ran on kapt.ai (Claude Sonnet 5.5, GPT-6.1 Sol Pro, Gemini 4 Argon;
+  chair Claude Opus 5.5) — the author's own product, see the conflict-of-interest note in RESULTS.
+
 ## Licence
 
 Code: MIT ([`LICENSE`](LICENSE)). `clazy-run.sh` and `cxx` are written for macOS with the Command
