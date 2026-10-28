@@ -117,7 +117,8 @@ dropping them. The audit above checks the earlier runs for the problems these ch
 ## Limits
 
 Three runs per arm and task; one model through one agent tool; an LLM judge of the same model family
-as the agent, one judgement per run, calibrated on one task against the author's verdicts; the judge
+as the agent, one judgement per run, calibrated on one task against the author's verdicts and blind-checked by one independent
+Qt developer (20+ years of Qt) on another (rank correlation 0.72, see RESULTS "Human calibration"); the judge
 reads the same reviews the K3/K3b cards were written from, so K3b scores are an upper bound; cards
 written with an AI and audited against merged code; the "decisive point" per change classified by the
 author. Every published agent turn is `claude-opus-5-5` under Claude Code 2.1.296 (from the

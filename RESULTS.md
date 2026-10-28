@@ -32,8 +32,10 @@ change; "tests" are the maintainers' own autotests, hidden from the agent.
 
 Caveats: 3 runs per cell, one model, an LLM judge (the same model family as the agent, one judgement
 per run) calibrated on one task against the author's own verdicts; re-judging all 92 runs moved
-design_match by 0.028 on average (Spearman 0.975), so the judge is consistent with itself — whether it
-agrees with a Qt maintainer is not yet checked. Two prompt leaks are disclosed at the end (search
+design_match by 0.028 on average (Spearman 0.975), so the judge is consistent with itself. A blind check by one
+independent Qt developer (20+ years of Qt) on one task (759321, 6 runs) gave rank correlation 0.72 with the judge — same top
+two, the judge more generous to the runs without a card (see "Human calibration"); agreement with a Qt
+maintainer is not checked. Two prompt leaks are disclosed at the end (search
 "Disclosure"); contamination check for the design tasks near the end. The log below is kept as written, including corrections of earlier
 readings (search "Correction").
 
@@ -525,7 +527,7 @@ tables comes from the agent runs, not from judging noise. It says nothing about 
 judge (the same model family as the agent) agrees with a Qt maintainer. That needs the human
 calibration below.
 
-## Human calibration — prepared, not yet done (2026-10-21)
+## Human calibration (prepared 2026-10-21, scored 2026-10-28)
 
 The 756614 calibration compared the judge with the author's own verdicts. For an independent check,
 `tools/make_calibration_packet.py` builds a blind packet for a Qt reviewer: task, merged change,
@@ -533,5 +535,29 @@ aliased review comments, 6 of the 12 agent diffs of **759321 (QLockFile)** — c
 range (0.30–0.92) — under random letters, the judge's design_match rubric and a one-column score sheet; the letter-to-run key stays with the experimenter.
 `tools/compare_calibration.py` then reports per-dimension rank correlation and mean difference.
 759321 was chosen because its maintainer test cannot see the difference (NFS-only), so its scores
-rest on the judge alone, and its runs span 0.30–0.92. Results will be added here when a reviewer
-has scored the packet.
+rest on the judge alone, and its runs span 0.30–0.92. Packet v2 (6 candidates, design_match only).
+
+**Result (2026-10-28).** One independent Qt developer (20+ years of Qt experience) scored the blind packet on their own (no key, no judge
+scores). Separately, the reviewer ran a second model on the same packet — `hermes` agent with Qwen3.8-27B —
+after scoring by hand, so the human scores did not see it. `tools/compare_calibration.py`:
+
+| Cand. | Run | Human | Judge | Qwen3.8-27B |
+|---|---|---|---|---|
+| A | K0/claude-1 | 0.30 | 0.60 | 0.50 |
+| B | K3b/claude-1 | 0.90 | 0.92 | 0.90 |
+| C | K3b/claude-3 | 0.90 | 0.90 | 0.90 |
+| D | K0/claude-3 | 0.30 | 0.45 | 0.40 |
+| E | K3/claude-3 | 0.40 | 0.30 | 0.50 |
+| F | K0g/claude-2 | 0.40 | 0.70 | 0.55 |
+
+- Human vs judge: Spearman **0.72**, mean |difference| 0.14.
+- Qwen vs judge: Spearman 0.88, mean |difference| 0.09. Human vs Qwen: Spearman 0.92, mean 0.09.
+- Same top two for all three (B, C — both K3b). The largest gaps: the judge rates A (K0) and F (K0g)
+  0.30 higher than the human; the human and Qwen both put them lower. So on this task the judge is more
+  generous to designs that differ from the merged one, which would shrink, not inflate, the K3b gain.
+- Reviewer notes (paraphrased): A/D "not the very same logic"; B/C "very close to the merged one";
+  E/F "more changes than in the original". Qwen's notes name the same discriminators: file-local helper
+  with no API/ABI surface, close the fd before the retry unlink, EBUSY/ETXTBSY/EPERM, return whether the
+  file is really gone.
+- Limits: one reviewer, one task, six runs, one dimension. A sanity check, not a calibration of the
+  whole result.
